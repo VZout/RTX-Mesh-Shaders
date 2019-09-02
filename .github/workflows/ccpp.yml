@@ -13,5 +13,17 @@ jobs:
       run: mkdir build
     - name: Configure CMake
       run: cd build && cmake ..
-    - name: Build
+    - name: Build (Make)
+      run: cd build && make
+  build_windows:
+    name: Build for Windows (MinGW)
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: Create Build Directory
+      run: mkdir build
+    - name: Configure CMake (MinGW)
+      run: cd build && cmake -G "MinGW Makefiles" ..
+    - name: Build (MinGW)
       run: cd build && make
