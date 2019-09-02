@@ -16,8 +16,3 @@ jobs:
       run: cd build && cmake ..
     - name: Build
       run: cd build && make
-
-  test_ubuntu:
-    - name: Run
-      run: cd build && ./TuringMeshShaders
-
