@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: Master Push Compilation Test
 
 on: [push]
 
