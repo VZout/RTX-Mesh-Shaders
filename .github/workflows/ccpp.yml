@@ -10,16 +10,14 @@ jobs:
     - uses: actions/checkout@v1
     #- name: configure
     #  run: ./configure
-    - name: create build dir
+    - name: Create Build Directory
       run: mkdir build
-    - name: configure cmake
+    - name: Configure CMake
       run: cd build && cmake ..
-    - name: make
+    - name: Build
       working-directory: /build/
       run: make
-    - name: make check
+    - name: Make Check
       working-directory: /build/
       run: make check
-    - name: make distcheck
-      working-directory: /build/
       run: make distcheck
