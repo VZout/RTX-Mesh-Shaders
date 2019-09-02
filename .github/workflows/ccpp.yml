@@ -16,8 +16,8 @@ jobs:
       run: cd build && cmake ..
     - name: Build
       working-directory: /build/
-      run: make
+      run: cd build && make
     - name: Make Check
       working-directory: /build/
-      run: make check
-      run: make distcheck
+      run: cd build && make check
+      run: cd build && make distcheck
