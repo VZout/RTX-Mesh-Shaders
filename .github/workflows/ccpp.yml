@@ -15,8 +15,6 @@ jobs:
     - name: Configure CMake
       run: cd build && cmake ..
     - name: Build
-      working-directory: /build/
       run: cd build && make
     - name: Make Check
-      working-directory: /build/
       run: cd build && make check && make distcheck
