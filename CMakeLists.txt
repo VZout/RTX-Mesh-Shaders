@@ -94,6 +94,6 @@ endif ()
 file(GLOB SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 file(GLOB HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp")
 
-# Executable
+# Application
 add_executable(Test ${HEADERS} ${SOURCES})
 target_link_libraries(Test ${VULKAN_LIBRARY})
