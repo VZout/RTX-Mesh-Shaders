@@ -16,5 +16,7 @@ jobs:
       run: cd build && cmake ..
     - name: Build
       run: cd build && make
-    - name: Make Check
-      run: cd build && make check && make distcheck
+  test_ubuntu:
+    - name: Run
+      run: cd build && ./TuringMeshShaders
+
