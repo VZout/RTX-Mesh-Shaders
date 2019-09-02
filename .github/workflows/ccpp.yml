@@ -19,5 +19,4 @@ jobs:
       run: cd build && make
     - name: Make Check
       working-directory: /build/
-      run: cd build && make check
-      run: cd build && make distcheck
+      run: cd build && make check && make distcheck
