@@ -26,18 +26,16 @@ template<typename T>
 struct ComponentData : internal::BaseComponentData
 {
 	T m_value;
-}
+};
 
-using NodeHandle = std::size_t;
 using NodeList = std::vector<Node>;
 
 class SceneGraph
 {
 	public:
-		std::pair<NodeHandle> CreateNode();
+		NodeHandle CreateNode();
 		void DestroyNode(NodeHandle handle);
 		NodeList const & GetNodes();
-		TransformList const & GetTransforms();
 			
 		// instead of this define 1 function to add or remove component. That component is a empty struct but that struct can be used to look into a table of create/remove functions so you can have component specific initialization.
 		void PromotoToMesh();
@@ -51,5 +49,5 @@ class SceneGraph
 
 		ComponentData<float[3]> m_positions;
 		ComponentData<float[3]> m_rotations;
-		ComponentData<void> m_meshes;
+		ComponentData<void*> m_meshes;
 };
