@@ -12,13 +12,15 @@ jobs:
     #  run: ./configure
     - name: create build dir
       run: mkdir build
-    - name: move into build dir
-      run: cd build
     - name: configure cmake
+      working-directory: /build/
       run: cmake ..
     - name: make
+      working-directory: /build/
       run: make
     - name: make check
+      working-directory: /build/
       run: make check
     - name: make distcheck
+      working-directory: /build/
       run: make distcheck
