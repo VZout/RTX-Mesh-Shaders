@@ -13,8 +13,7 @@ jobs:
     - name: create build dir
       run: mkdir build
     - name: configure cmake
-      working-directory: /build/
-      run: cmake ..
+      run: cd build | cmake ..
     - name: make
       working-directory: /build/
       run: make
