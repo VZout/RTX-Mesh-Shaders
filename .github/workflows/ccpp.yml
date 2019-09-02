@@ -4,12 +4,11 @@ on: [push]
 
 jobs:
   build_ubuntu:
+    name: Build for Ubuntu
     runs-on: ubuntu-latest
     
     steps:
     - uses: actions/checkout@v1
-    #- name: configure
-    #  run: ./configure
     - name: Create Build Directory
       run: mkdir build
     - name: Configure CMake
