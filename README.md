@@ -2,6 +2,8 @@
 
 This is a demo repository for a few techniques made possible by NVIDIA's Turing Architecture (RTX). This repository is used for research and learning purposes. I'm writing a paper on the topic of mesh shaders where I compare the different techniques and determine which techniques would be the most beneficial to implement.
 
+## [Research Paper](example.com)
+
 ## Building
 
 To build this project you require cmake 3.12 or higher. To make use of mesh shading you need a [RTX capable machine](example.com). You need a C++17 capable compiler. To following compilers are tested:
@@ -23,8 +25,6 @@ mkdir build
 cd build
 cmake -G "[configuration]" ..
 ```
-
-## [Research Paper](example.com)
 
 ## Screenshots
 
