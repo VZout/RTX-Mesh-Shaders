@@ -1,4 +1,4 @@
-#include "window.hpp"
+#include "application.hpp"
 
 Application::Application(std::string const & name)
 	: m_window(nullptr), m_name(name)
