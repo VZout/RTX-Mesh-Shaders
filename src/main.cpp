@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include "scene_graph.hpp"
-#include "window.hpp"
+#include "application.hpp"
 
 class Demo : public Application
 {
