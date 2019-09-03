@@ -90,10 +90,17 @@ else ()
 	message(STATUS "Found Vulkan: ${VULKAN_LIBRARY}")
 endif ()
 
+# Other Externals
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+add_subdirectory(external/glfw)
+
 # Source files
 file(GLOB SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 file(GLOB HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp")
 
 # Application
 add_executable(Test ${HEADERS} ${SOURCES})
-target_link_libraries(Test ${VULKAN_LIBRARY})
+target_link_libraries(Test ${VULKAN_LIBRARY} glfw)
+target_include_directories(Test PUBLIC external/glfw/include external/vulkan/include)
