@@ -1,17 +1,34 @@
 #include <iostream>
 
 #include "scene_graph.hpp"
+#include "window.hpp"
 
-int main()
+class Demo : public Application
 {
-	std::cout << "Hello World\n";
+public:
+	Demo() : Application("Mesh Shaders Demo")
+	{
 
-	auto sg = new SceneGraph();
+	}
 
-	auto node = sg->CreateNode();
-	sg->PromoteNode<MeshComponent>(node);
+protected:
+	void Init() final
+	{
+		std::cout << "Hello World\n";
 
-	delete sg;
+		auto sg = new SceneGraph();
 
-	return 0;
-}
+		auto node = sg->CreateNode();
+		sg->PromoteNode<MeshComponent>(node);
+
+		delete sg;
+	}
+
+	void Loop() final
+	{
+		// Do stuff
+	}
+};
+
+
+ENTRY(Demo, 1280, 720)
