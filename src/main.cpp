@@ -2,6 +2,7 @@
 
 #include "scene_graph.hpp"
 #include "application.hpp"
+#include "renderer.hpp"
 
 class Demo : public Application
 {
@@ -14,7 +15,8 @@ public:
 protected:
 	void Init() final
 	{
-		std::cout << "Hello World\n";
+		Renderer renderer;
+		renderer.Init();
 
 		auto sg = new SceneGraph();
 
