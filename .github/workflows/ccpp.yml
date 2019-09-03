@@ -9,6 +9,8 @@ jobs:
     
     steps:
     - uses: actions/checkout@v1
+    - name: Checkout submodules
+      run: git submodule update --init --recursive
     - name: Create Build Directory
       run: mkdir build
     - name: Configure CMake
@@ -21,6 +23,8 @@ jobs:
     
     steps:
     - uses: actions/checkout@v1
+    - name: Checkout submodules
+      run: git submodule update --init --recursive
     - name: Create Build Directory
       run: mkdir build
     - name: Configure CMake (MinGW)
