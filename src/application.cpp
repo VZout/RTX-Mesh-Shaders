@@ -33,8 +33,12 @@ void Application::Start(std::uint32_t width, std::uint32_t height)
 	glfwSetWindowUserPointer(m_window, this);
 	glfwSetKeyCallback(m_window, Application::KeyCallback_Internal);
 
+	Init();
+
 	while (!glfwWindowShouldClose(m_window))
 	{
+		Loop();
+
 		glfwPollEvents();
 	}
 
