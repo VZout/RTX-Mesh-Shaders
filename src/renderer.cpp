@@ -4,6 +4,7 @@
 
 Renderer::~Renderer()
 {
+	delete m_direct_queue;
 	delete m_context;
 }
 
@@ -20,6 +21,8 @@ void Renderer::Init()
 	{
 		std::cout << "\t- " << extension.extensionName << " (" << std::to_string(extension.specVersion) << ")" << std::endl;
 	}
+
+	m_direct_queue = new gfx::CommandQueue(m_context, gfx::CommandQueueType::DIRECT);
 }
 
 void Renderer::Render()

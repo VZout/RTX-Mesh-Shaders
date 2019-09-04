@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graphics/context.hpp"
+#include "graphics/command_queue.hpp"
 
 class Renderer
 {
@@ -13,4 +14,5 @@ public:
 
 private:
 	gfx::Context* m_context;
+	gfx::CommandQueue* m_direct_queue;
 };
