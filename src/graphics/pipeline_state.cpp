@@ -88,3 +88,8 @@ void gfx::PipelineState::SetRootSignature(RootSignature* root_signature)
 {
 	m_root_signature = root_signature;
 }
+
+void gfx::PipelineState::Compile()
+{
+	// todo
+}

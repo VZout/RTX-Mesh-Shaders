@@ -24,6 +24,8 @@ namespace gfx
 		void SetViewport(Viewport* viewport);
 		void SetRootSignature(RootSignature* root_signature);
 
+		void Compile();
+
 	private:
 		VkPipelineVertexInputStateCreateInfo m_vertex_input_info;
 		VkPipelineInputAssemblyStateCreateInfo m_ia_info;

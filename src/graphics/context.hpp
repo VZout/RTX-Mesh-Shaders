@@ -34,6 +34,7 @@ namespace gfx
 		friend class Shader;
 		friend class PipelineState;
 		friend class RootSignature;
+		friend class RenderPass;
 	public:
 		Context(Application* app);
 		~Context();
