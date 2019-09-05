@@ -8,6 +8,9 @@
 
 #include "graphics/context.hpp"
 #include "graphics/command_queue.hpp"
+#include "graphics/render_window.hpp"
+
+class Application;
 
 class Renderer
 {
@@ -15,10 +18,11 @@ public:
 	Renderer() = default;
 	~Renderer();
 
-	void Init();
+	void Init(Application* app);
 	void Render();
 
 private:
 	gfx::Context* m_context;
 	gfx::CommandQueue* m_direct_queue;
+	gfx::RenderWindow* m_render_window;
 };

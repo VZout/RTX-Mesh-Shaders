@@ -22,7 +22,7 @@ protected:
 	void Init() final
 	{
 		Renderer renderer;
-		renderer.Init();
+		renderer.Init(this);
 
 		auto sg = new SceneGraph();
 

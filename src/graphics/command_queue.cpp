@@ -16,7 +16,7 @@ gfx::CommandQueue::CommandQueue(Context* context, CommandQueueType queue_type)
 	switch(queue_type)
 	{
 		case CommandQueueType::DIRECT:
-			queue_family_idx = context->GetGraphicsQueueFamilyIdx();
+			queue_family_idx = context->GetDirectQueueFamilyIdx();
 			break;
 		default:
 			throw std::runtime_error("Tried to create a command queue with a unsupported type");

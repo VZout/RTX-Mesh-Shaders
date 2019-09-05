@@ -10,24 +10,35 @@
 
 Renderer::~Renderer()
 {
+	delete m_render_window;
 	delete m_direct_queue;
 	delete m_context;
 }
 
-void Renderer::Init()
+void Renderer::Init(Application* app)
 {
-	m_context = new gfx::Context();
+	m_context = new gfx::Context(app);
 
 	std::cout << "Initialized Vulkan" << std::endl;
 
 	auto supported_extensions = m_context->GetSupportedExtensions();
+	auto supported_device_extensions = m_context->GetSupportedDeviceExtensions();
 
-	std::cout << "Supported Extensions:" << std::endl;
-	for (auto extension : supported_extensions)
+	auto print_extensions_func = [](auto extensions)
 	{
-		std::cout << "\t- " << extension.extensionName << " (" << std::to_string(extension.specVersion) << ")" << std::endl;
-	}
+		for (auto extension : extensions)
+		{
+			std::cout << "\t- " << extension.extensionName << " (" << std::to_string(extension.specVersion) << ")" << std::endl;
+		}
+	};
 
+	std::cout << "Supported Instance Extensions:" << std::endl;
+	print_extensions_func(supported_extensions);
+
+	std::cout << "Supported Device Extensions:" << std::endl;
+	print_extensions_func(supported_device_extensions);
+
+	m_render_window = new gfx::RenderWindow(m_context);
 	m_direct_queue = new gfx::CommandQueue(m_context, gfx::CommandQueueType::DIRECT);
 }
 

@@ -21,6 +21,7 @@ namespace gfx
 
 	class CommandQueue
 	{
+		friend class RenderWindow;
 	public:
 		CommandQueue(Context* context, CommandQueueType queue_type);
 		~CommandQueue() = default;

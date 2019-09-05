@@ -56,6 +56,27 @@ void Application::Close()
 	glfwSetWindowShouldClose(m_window, true);
 }
 
+std::uint32_t Application::GetWidth() const
+{
+	std::int32_t width, _;
+	glfwGetWindowSize(m_window, &width, &_);
+
+	return static_cast<std::uint32_t>(width);
+}
+
+std::uint32_t Application::GetHeight() const
+{
+	std::int32_t height, _;
+	glfwGetWindowSize(m_window, &_, &height);
+
+	return static_cast<std::uint32_t>(height);
+}
+
+HWND Application::GetNativeHandle()
+{
+	return glfwGetWin32Window(m_window);
+}
+
 void Application::Destroy()
 {
 	glfwDestroyWindow(m_window);

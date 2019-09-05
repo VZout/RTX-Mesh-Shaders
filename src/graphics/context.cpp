@@ -10,7 +10,10 @@
 #include <vector>
 #include <GLFW/glfw3.h>
 #include <map>
+#include <set>
+#include <string>
 
+#include "../application.hpp"
 #include "gfx_settings.hpp"
 
 namespace internal
@@ -20,7 +23,8 @@ namespace internal
 			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 			VkDebugUtilsMessageTypeFlagsEXT messageType,
 			const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-			void* pUserData) {
+			void* pUserData)
+	{
 
 		std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 
@@ -39,7 +43,8 @@ namespace internal
 		return create_info;
 	}
 
-	VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* create_info, const VkAllocationCallbacks* allocator, VkDebugUtilsMessengerEXT* debug_messenger) {
+	VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* create_info, const VkAllocationCallbacks* allocator, VkDebugUtilsMessengerEXT* debug_messenger)
+	{
 		auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
 		if (func != nullptr)
 		{
@@ -50,7 +55,8 @@ namespace internal
 		}
 	}
 
-	void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debug_messenger, const VkAllocationCallbacks* allocator) {
+	void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debug_messenger, const VkAllocationCallbacks* allocator)
+	{
 		auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
 		if (func != nullptr)
 		{
@@ -60,11 +66,12 @@ namespace internal
 
 } /* internal */
 
-gfx::Context::Context()
+gfx::Context::Context(Application* app)
 	: m_app_info(), m_instance_create_info(), m_instance(VK_NULL_HANDLE),
 	m_debug_messenger(), m_debug_messenger_create_info(),
 	m_logical_device(VK_NULL_HANDLE), m_physical_device(VK_NULL_HANDLE),
-	m_physical_device_properties(), m_physical_device_features()
+	m_physical_device_properties(), m_physical_device_features(),
+	m_surface(VK_NULL_HANDLE), m_surface_create_info(), m_app(app)
 {
 	std::uint32_t glfw_extension_count;
 	const char** glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
@@ -73,7 +80,8 @@ gfx::Context::Context()
 
 	std::vector<const char*> extensions(glfw_extensions, glfw_extensions + glfw_extension_count);
 
-	if (gfx::settings::enable_validation_layers) {
+	if (gfx::settings::enable_validation_layers)
+	{
 		m_debug_messenger_create_info = internal::GetDebugMessengerCreateInfo();
 		if (!HasValidationLayerSupport())
 		{
@@ -108,18 +116,25 @@ gfx::Context::Context()
 		EnableDebugCallback();
 	}
 
+	CreateSurface();
+
 	// Get the device and its properties.
 	m_physical_device = FindPhysicalDevice();
 	vkGetPhysicalDeviceProperties(m_physical_device, &m_physical_device_properties);
 	vkGetPhysicalDeviceFeatures(m_physical_device, &m_physical_device_features);
+
 	m_queue_family_indices = FindQueueFamilies(m_physical_device);
+	m_swapchain_support_details = GetSwapChainSupportDetails(m_physical_device);
 
 	CreateLogicalDevice();
 }
 
 gfx::Context::~Context()
 {
-	if (gfx::settings::enable_validation_layers) {
+	vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
+
+	if (gfx::settings::enable_validation_layers)
+	{
 		internal::DestroyDebugUtilsMessengerEXT(m_instance, m_debug_messenger, nullptr);
 	}
 
@@ -134,6 +149,22 @@ std::vector<VkExtensionProperties> gfx::Context::GetSupportedExtensions()
 
 	std::vector<VkExtensionProperties> extensions(extension_count);
 	vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, extensions.data());
+
+	return extensions;
+}
+
+std::vector<VkExtensionProperties> gfx::Context::GetSupportedDeviceExtensions()
+{
+	return GetSupportedDeviceExtensions(m_physical_device);
+}
+
+std::vector<VkExtensionProperties> gfx::Context::GetSupportedDeviceExtensions(VkPhysicalDevice device)
+{
+	std::uint32_t extension_count = 0;
+	vkEnumerateDeviceExtensionProperties(device, nullptr, &extension_count, nullptr);
+
+	std::vector<VkExtensionProperties> extensions(extension_count);
+	vkEnumerateDeviceExtensionProperties(device, nullptr, &extension_count, extensions.data());
 
 	return extensions;
 }
@@ -159,7 +190,8 @@ bool gfx::Context::HasValidationLayerSupport()
 			}
 		}
 
-		if (!layerFound) {
+		if (!layerFound)
+		{
 			return false;
 		}
 	}
@@ -167,9 +199,21 @@ bool gfx::Context::HasValidationLayerSupport()
 	return true;
 }
 
-std::uint32_t gfx::Context::GetGraphicsQueueFamilyIdx()
+std::uint32_t gfx::Context::GetDirectQueueFamilyIdx()
 {
-	return m_queue_family_indices.graphics_family.value();
+	return m_queue_family_indices.direct_family.value();
+}
+
+void gfx::Context::CreateSurface()
+{
+	m_surface_create_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+	m_surface_create_info.hwnd = m_app->GetNativeHandle();
+	m_surface_create_info.hinstance = GetModuleHandle(nullptr);
+
+	if (vkCreateWin32SurfaceKHR(m_instance, &m_surface_create_info, nullptr, &m_surface) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to create window surface!");
+	}
 }
 
 void gfx::Context::CreateLogicalDevice()
@@ -178,7 +222,7 @@ void gfx::Context::CreateLogicalDevice()
 
 	VkDeviceQueueCreateInfo queue_create_info = {};
 	queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	queue_create_info.queueFamilyIndex = m_queue_family_indices.graphics_family.value();
+	queue_create_info.queueFamilyIndex = m_queue_family_indices.direct_family.value();
 	queue_create_info.queueCount = 1;
 	queue_create_info.pQueuePriorities = &queue_priority;
 
@@ -189,11 +233,13 @@ void gfx::Context::CreateLogicalDevice()
 	create_info.pQueueCreateInfos = &queue_create_info;
 	create_info.queueCreateInfoCount = 1;
 	create_info.pEnabledFeatures = &device_features;
-	create_info.enabledExtensionCount = 0;
+	create_info.enabledExtensionCount = gfx::settings::device_extensions.size();
+	create_info.ppEnabledExtensionNames = gfx::settings::device_extensions.data();
 	create_info.ppEnabledLayerNames = gfx::settings::validation_layers.data();
 	create_info.enabledLayerCount = gfx::settings::enable_validation_layers ? static_cast<uint32_t>(gfx::settings::validation_layers.size()) : 0;
 
-	if (vkCreateDevice(m_physical_device, &create_info, nullptr, &m_logical_device) != VK_SUCCESS) {
+	if (vkCreateDevice(m_physical_device, &create_info, nullptr, &m_logical_device) != VK_SUCCESS)
+	{
 		throw std::runtime_error("failed to create logical device!");
 	}
 }
@@ -225,18 +271,70 @@ VkPhysicalDevice gfx::Context::FindPhysicalDevice()
 	if (candidates.rbegin()->first > 0)
 	{
 		retval = candidates.rbegin()->second;
-	} else {
+	}
+	else
+	{
 		throw std::runtime_error("failed to find a suitable GPU!");
 	}
 
 	return retval;
 }
 
+bool gfx::Context::HasExtensionSupport(VkPhysicalDevice device)
+{
+	auto available_extensions = GetSupportedDeviceExtensions(device);
+
+	std::set<std::string> required_extensions(gfx::settings::device_extensions.begin(), gfx::settings::device_extensions.end());
+
+	for (const auto& extension : available_extensions)
+	{
+		required_extensions.erase(extension.extensionName);
+	}
+
+	return required_extensions.empty();
+}
+
+gfx::SwapChainSupportDetails gfx::Context::GetSwapChainSupportDetails(VkPhysicalDevice device)
+{
+	SwapChainSupportDetails details;
+
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_surface, &details.m_capabilities);
+
+	std::uint32_t format_count;
+	vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_surface, &format_count, nullptr);
+	if (format_count != 0) {
+		details.m_formats.resize(format_count);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_surface, &format_count, details.m_formats.data());
+	}
+
+	std::uint32_t present_mode_count;
+	vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_surface, &present_mode_count, nullptr);
+	if (present_mode_count != 0) {
+		details.m_present_modes.resize(present_mode_count);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_surface, &present_mode_count, details.m_present_modes.data());
+	}
+
+	return details;
+}
+
 std::uint32_t gfx::Context::GetDeviceSuitabilityRating(VkPhysicalDevice device)
 {
 	// Application can't function without a graphics queue family.
 	QueueFamilyIndices queue_family_indices = FindQueueFamilies(device);
-	if (!queue_family_indices.HasGraphicsFamily())
+	if (!queue_family_indices.HasDirectFamily())
+	{
+		return 0;
+	}
+
+	bool supports_required_extensions = HasExtensionSupport(device);
+	if (!supports_required_extensions)
+	{
+		return 0;
+	}
+
+	auto swapchain_support_details = GetSwapChainSupportDetails(device);
+	bool swapchain_adaquate = !swapchain_support_details.m_formats.empty() && !swapchain_support_details.m_present_modes.empty();
+	if (!swapchain_adaquate)
 	{
 		return 0;
 	}
@@ -278,10 +376,13 @@ gfx::QueueFamilyIndices gfx::Context::FindQueueFamilies(VkPhysicalDevice device)
 
 	for (std::int32_t i = 0; i < families.size(); i++)
 	{
+		VkBool32 present_support = false;
+		vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_surface, &present_support);
+
 		const auto & family = families[i];
-		if (family.queueCount > 0 && family.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+		if (family.queueCount > 0 && family.queueFlags & VK_QUEUE_GRAPHICS_BIT && present_support)
 		{
-			retval.graphics_family = i;
+			retval.direct_family = i;
 		}
 	}
 
@@ -290,12 +391,13 @@ gfx::QueueFamilyIndices gfx::Context::FindQueueFamilies(VkPhysicalDevice device)
 
 void gfx::Context::EnableDebugCallback()
 {
-	if (internal::CreateDebugUtilsMessengerEXT(m_instance, &m_debug_messenger_create_info, nullptr, &m_debug_messenger) != VK_SUCCESS) {
+	if (internal::CreateDebugUtilsMessengerEXT(m_instance, &m_debug_messenger_create_info, nullptr, &m_debug_messenger) != VK_SUCCESS)
+	{
 		throw std::runtime_error("failed to set up debug messenger!");
 	}
 }
 
-bool gfx::QueueFamilyIndices::HasGraphicsFamily()
+bool gfx::QueueFamilyIndices::HasDirectFamily()
 {
-	return graphics_family.has_value();
+	return direct_family.has_value();
 }
