@@ -104,3 +104,8 @@ file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h
 add_executable(Test ${HEADERS} ${SOURCES})
 target_link_libraries(Test ${VULKAN_LIBRARY} glfw)
 target_include_directories(Test PUBLIC external/glfw/include external/vulkan/include)
+
+# Copy Resources
+add_custom_command(TARGET Test PRE_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                   ${CMAKE_SOURCE_DIR}/src/shaders/ $<TARGET_FILE_DIR:Test>)

@@ -6,6 +6,11 @@
 
 #include "renderer.hpp"
 
+#include "graphics/context.hpp"
+#include "graphics/command_queue.hpp"
+#include "graphics/render_window.hpp"
+#include "graphics/shader.hpp"
+
 #include <iostream>
 
 Renderer::~Renderer()
@@ -13,6 +18,8 @@ Renderer::~Renderer()
 	delete m_render_window;
 	delete m_direct_queue;
 	delete m_context;
+	delete m_vs;
+	delete m_ps;
 }
 
 void Renderer::Init(Application* app)
@@ -40,6 +47,11 @@ void Renderer::Init(Application* app)
 
 	m_render_window = new gfx::RenderWindow(m_context);
 	m_direct_queue = new gfx::CommandQueue(m_context, gfx::CommandQueueType::DIRECT);
+
+	m_vs = new gfx::Shader(m_context);
+	m_ps = new gfx::Shader(m_context);
+	m_vs->LoadAndCompile("test.vs", gfx::ShaderType::VERTEX);
+	m_ps->LoadAndCompile("test.ps", gfx::ShaderType::PIXEL);
 }
 
 void Renderer::Render()

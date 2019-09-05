@@ -6,11 +6,17 @@
 
 #pragma once
 
-#include "graphics/context.hpp"
-#include "graphics/command_queue.hpp"
-#include "graphics/render_window.hpp"
-
 class Application;
+
+namespace gfx
+{
+
+	class Context;
+	class CommandQueue;
+	class RenderWindow;
+	class Shader;
+
+} /* gfx */
 
 class Renderer
 {
@@ -25,4 +31,8 @@ private:
 	gfx::Context* m_context;
 	gfx::CommandQueue* m_direct_queue;
 	gfx::RenderWindow* m_render_window;
+
+	// Temporary
+	gfx::Shader* m_vs;
+	gfx::Shader* m_ps;
 };
