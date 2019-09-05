@@ -1,0 +1,90 @@
+/*!
+ *  \author    Viktor Zoutman
+ *  \date      2019-2020
+ *  \copyright GNU General Public License v3.0
+ */
+
+#include "pipeline_state.hpp"
+#include "context.hpp"
+#include "viewport.hpp"
+#include "root_signature.hpp"
+#include "gfx_settings.hpp"
+
+gfx::PipelineState::PipelineState(Context* context)
+	: m_context(context), m_vertex_input_info(), m_ia_info(), m_viewport_info(), m_raster_info(),
+	m_ms_info(), m_color_blend_attachment_info(), m_color_blend_info(), m_layout(VK_NULL_HANDLE),
+	m_root_signature(nullptr)
+{
+	// Vertex Input
+	m_vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	m_vertex_input_info.vertexBindingDescriptionCount = 0;
+	m_vertex_input_info.pVertexBindingDescriptions = nullptr;
+	m_vertex_input_info.vertexAttributeDescriptionCount = 0;
+	m_vertex_input_info.pVertexAttributeDescriptions = nullptr;
+
+	// Input Assembler
+	m_ia_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+	m_ia_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	m_ia_info.primitiveRestartEnable = VK_FALSE;
+
+	// Rasterizer
+	m_raster_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+	m_raster_info.depthClampEnable = VK_FALSE;
+	m_raster_info.rasterizerDiscardEnable = VK_FALSE;
+	m_raster_info.polygonMode = VK_POLYGON_MODE_FILL;
+	m_raster_info.lineWidth = 1.0f;
+	m_raster_info.cullMode = gfx::settings::cull_mode;
+	m_raster_info.frontFace = VK_FRONT_FACE_CLOCKWISE;
+	m_raster_info.depthBiasEnable = VK_FALSE;
+	m_raster_info.depthBiasConstantFactor = 0.0f;
+	m_raster_info.depthBiasClamp = 0.0f;
+	m_raster_info.depthBiasSlopeFactor = 0.0f;
+
+	// Multi-Sampling
+	m_ms_info.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+	m_ms_info.sampleShadingEnable = VK_FALSE;
+	m_ms_info.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+	m_ms_info.minSampleShading = 1.0f;
+	m_ms_info.pSampleMask = nullptr;
+	m_ms_info.alphaToCoverageEnable = VK_FALSE;
+	m_ms_info.alphaToOneEnable = VK_FALSE;
+
+	// Color Blend Attachment
+	m_color_blend_attachment_info.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+	m_color_blend_attachment_info.blendEnable = VK_TRUE;
+	m_color_blend_attachment_info.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+	m_color_blend_attachment_info.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+	m_color_blend_attachment_info.colorBlendOp = VK_BLEND_OP_ADD;
+	m_color_blend_attachment_info.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+	m_color_blend_attachment_info.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+	m_color_blend_attachment_info.alphaBlendOp = VK_BLEND_OP_ADD;
+
+	// Color Blend
+	m_color_blend_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+	m_color_blend_info.logicOpEnable = VK_FALSE;
+	m_color_blend_info.logicOp = VK_LOGIC_OP_COPY;
+	m_color_blend_info.attachmentCount = 1;
+	m_color_blend_info.pAttachments = &m_color_blend_attachment_info;
+	m_color_blend_info.blendConstants[0] = 0.0f;
+	m_color_blend_info.blendConstants[1] = 0.0f;
+	m_color_blend_info.blendConstants[2] = 0.0f;
+	m_color_blend_info.blendConstants[3] = 0.0f;
+}
+
+gfx::PipelineState::~PipelineState()
+{
+}
+
+void gfx::PipelineState::SetViewport(Viewport* viewport)
+{
+	m_viewport_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+	m_viewport_info.viewportCount = 1;
+	m_viewport_info.pViewports = &viewport->m_viewport;
+	m_viewport_info.scissorCount = 1;
+	m_viewport_info.pScissors = &viewport->m_scissor;
+}
+
+void gfx::PipelineState::SetRootSignature(RootSignature* root_signature)
+{
+	m_root_signature = root_signature;
+}

@@ -39,9 +39,10 @@ protected:
 };
 
 #define ENTRY(AppType, width, height) \
-int main() \
-{ \
-	auto app = new AppType(); \
-	app->Start(width, height); \
-	return 0; \
+int main()                            \
+{                                     \
+	auto app = new AppType();         \
+	app->Start(width, height);        \
+	delete app;                       \
+	return 0;                         \
 }

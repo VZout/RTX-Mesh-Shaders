@@ -18,11 +18,16 @@ public:
 
 	}
 
+	~Demo()
+	{
+		delete m_renderer;
+	}
+
 protected:
 	void Init() final
 	{
-		Renderer renderer;
-		renderer.Init(this);
+		m_renderer = new Renderer();
+		m_renderer->Init(this);
 
 		auto sg = new SceneGraph();
 
@@ -34,8 +39,10 @@ protected:
 
 	void Loop() final
 	{
-		// Do stuff
+		m_renderer->Render();
 	}
+
+	Renderer* m_renderer;
 };
 
 
