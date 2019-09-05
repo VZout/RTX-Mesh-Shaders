@@ -31,6 +31,7 @@ namespace gfx
 	{
 		friend class CommandQueue;
 		friend class RenderWindow;
+		friend class Shader;
 	public:
 		Context(Application* app);
 		~Context();
