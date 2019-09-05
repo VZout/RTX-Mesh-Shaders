@@ -15,6 +15,9 @@ namespace gfx
 	class CommandQueue;
 	class RenderWindow;
 	class Shader;
+	class Viewport;
+	class PipelineState;
+	class RootSignature;
 
 } /* gfx */
 
@@ -35,4 +38,7 @@ private:
 	// Temporary
 	gfx::Shader* m_vs;
 	gfx::Shader* m_ps;
+	gfx::Viewport* m_viewport;
+	gfx::PipelineState* m_pipeline;
+	gfx::RootSignature* m_root_signature;
 };

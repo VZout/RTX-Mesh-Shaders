@@ -19,7 +19,7 @@ gfx::Shader::~Shader()
 {
 	auto logical_device = m_context->m_logical_device;
 
-	vkDestroyShaderModule(logical_device, m_module, nullptr);
+	if (m_module) vkDestroyShaderModule(logical_device, m_module, nullptr);
 }
 
 void gfx::Shader::Load(std::string const& path)
