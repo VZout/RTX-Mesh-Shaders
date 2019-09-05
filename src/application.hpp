@@ -7,7 +7,9 @@
 #pragma once
 
 #define GLFW_INCLUDE_VULKAN
+#define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3.h>
+#include <GLFW/glfw3native.h>
 #include <string>
 
 class Application
@@ -18,6 +20,9 @@ public:
 
 	void Start(std::uint32_t width, std::uint32_t height);
 	void Close();
+	[[nodiscard]] std::uint32_t GetWidth() const;
+	[[nodiscard]] std::uint32_t GetHeight() const;
+	HWND GetNativeHandle();
 
 protected:
 	virtual void Init() = 0;

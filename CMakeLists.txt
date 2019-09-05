@@ -31,7 +31,7 @@ set(CMAKE_DEBUG_POSTFIX "d")
 # Use FindVulkan module added with CMAKE 3.7
 if (NOT CMAKE_VERSION VERSION_LESS 3.7.0)
 	message(STATUS "Using module to find Vulkan")
-	find_package(Vulkan)
+	#find_package(Vulkan)
 endif ()
 
 if (WIN32)

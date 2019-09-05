@@ -11,28 +11,42 @@
 #include <cstdint>
 #include <optional>
 
+class Application;
+
 namespace gfx
 {
 	struct QueueFamilyIndices {
-		std::optional<std::uint32_t> graphics_family;
+		std::optional<std::uint32_t> direct_family;
 
-		bool HasGraphicsFamily();
+		bool HasDirectFamily();
+	};
+
+	struct SwapChainSupportDetails {
+		VkSurfaceCapabilitiesKHR m_capabilities;
+		std::vector<VkSurfaceFormatKHR> m_formats;
+		std::vector<VkPresentModeKHR> m_present_modes;
 	};
 
 	class Context
 	{
 		friend class CommandQueue;
+		friend class RenderWindow;
 	public:
-		Context();
+		Context(Application* app);
 		~Context();
 
 		std::vector<VkExtensionProperties> GetSupportedExtensions();
+		std::vector<VkExtensionProperties> GetSupportedDeviceExtensions();
 		bool HasValidationLayerSupport();
-		std::uint32_t GetGraphicsQueueFamilyIdx();
+		std::uint32_t GetDirectQueueFamilyIdx();
 
 	private:
+		std::vector<VkExtensionProperties> GetSupportedDeviceExtensions(VkPhysicalDevice device);
+		void CreateSurface();
 		void CreateLogicalDevice();
 		VkPhysicalDevice FindPhysicalDevice();
+		bool HasExtensionSupport(VkPhysicalDevice device);
+		SwapChainSupportDetails GetSwapChainSupportDetails(VkPhysicalDevice device);
 		std::uint32_t GetDeviceSuitabilityRating(VkPhysicalDevice device);
 		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 		void EnableDebugCallback();
@@ -47,6 +61,11 @@ namespace gfx
 		VkPhysicalDeviceFeatures m_physical_device_features;
 		VkPhysicalDeviceProperties m_physical_device_properties;
 		QueueFamilyIndices m_queue_family_indices;
+		SwapChainSupportDetails m_swapchain_support_details;
+		VkSurfaceKHR m_surface;
+		VkWin32SurfaceCreateInfoKHR m_surface_create_info;
+
+		Application* m_app;
 	};
 
 } /* gfx */
