@@ -74,8 +74,8 @@ void Renderer::Init(Application* app)
 
 	m_vs = new gfx::Shader(m_context);
 	m_ps = new gfx::Shader(m_context);
-	m_vs->LoadAndCompile("vert.spv", gfx::ShaderType::VERTEX);
-	m_ps->LoadAndCompile("pix.spv", gfx::ShaderType::PIXEL);
+	m_vs->LoadAndCompile("shaders/triangle.vert.spv", gfx::ShaderType::VERTEX);
+	m_ps->LoadAndCompile("shaders/triangle.frag.spv", gfx::ShaderType::PIXEL);
 
 	m_viewport = new gfx::Viewport(app->GetWidth(), app->GetHeight());
 
@@ -117,5 +117,8 @@ void Renderer::Render()
 
 void Renderer::WaitForAllPreviousWork()
 {
-	m_context->FlushAllWork();
+	for (auto& fence : m_present_fences)
+	{
+		fence->Wait();
+	}
 }

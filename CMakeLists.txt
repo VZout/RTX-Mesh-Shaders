@@ -1,3 +1,4 @@
+# dir -Recurse *.* | Get-Content | Measure-Object -Line -Word
 cmake_minimum_required(VERSION 3.12)
 project(TuringMeshShaders)
 
@@ -99,13 +100,35 @@ add_subdirectory(external/glfw)
 # Source files
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp")
+file(GLOB_RECURSE GLSL_SOURCE_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/*.*")
 
 # Application
-add_executable(Test ${HEADERS} ${SOURCES})
+add_executable(Test ${HEADERS} ${SOURCES} ${GLSL_SOURCE_FILES})
 target_link_libraries(Test ${VULKAN_LIBRARY} glfw)
 target_include_directories(Test PUBLIC external/glfw/include external/vulkan/include)
 
-# Copy Resources
-add_custom_command(TARGET Test PRE_BUILD
-                   COMMAND ${CMAKE_COMMAND} -E copy_directory
-                   ${CMAKE_SOURCE_DIR}/src/shaders/ $<TARGET_FILE_DIR:Test>)
+# Compile GLSL Shaders Into SPRIV
+if (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "AMD64")
+  set(GLSL_VALIDATOR "$ENV{VULKAN_SDK}/Bin/glslangValidator.exe")
+else()
+  set(GLSL_VALIDATOR "$ENV{VULKAN_SDK}/Bin32/glslangValidator.exe")
+endif()
+
+foreach(GLSL ${GLSL_SOURCE_FILES})
+  get_filename_component(FILE_NAME ${GLSL} NAME)
+  set(SPIRV "${PROJECT_BINARY_DIR}/bin/shaders/${FILE_NAME}.spv")
+  add_custom_command(
+    OUTPUT ${SPIRV}
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/shaders/"
+    COMMAND ${GLSL_VALIDATOR} -V ${GLSL} -o ${SPIRV}
+    DEPENDS ${GLSL}
+	COMMENT "Compiling GLSL to SPRIV")
+  list(APPEND SPIRV_BINARY_FILES ${SPIRV})
+endforeach(GLSL)
+
+add_custom_target(
+    Shaders 
+    DEPENDS ${SPIRV_BINARY_FILES}
+    )
+
+add_dependencies(Test Shaders)
