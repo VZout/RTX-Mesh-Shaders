@@ -26,14 +26,14 @@ public:
 protected:
 	void Init() final
 	{
+		SetVisibility(true);
+
 		m_renderer = new Renderer();
 		m_renderer->Init(this);
 
 		auto sg = new SceneGraph();
-
 		auto node = sg->CreateNode();
 		sg->PromoteNode<MeshComponent>(node);
-
 		delete sg;
 	}
 

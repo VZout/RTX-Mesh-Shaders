@@ -22,6 +22,7 @@ public:
 	void Close();
 	[[nodiscard]] std::uint32_t GetWidth() const;
 	[[nodiscard]] std::uint32_t GetHeight() const;
+	void SetVisibility(bool value);
 	HWND GetNativeHandle();
 
 protected:

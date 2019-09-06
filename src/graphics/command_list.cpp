@@ -29,7 +29,7 @@ gfx::CommandList::CommandList(CommandQueue* queue)
 
 	m_cmd_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	m_cmd_pool_create_info.queueFamilyIndex = m_context->GetDirectQueueFamilyIdx();
-	m_cmd_pool_create_info.flags = 0;
+	m_cmd_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 	if (vkCreateCommandPool(logical_device, &m_cmd_pool_create_info, nullptr, &m_cmd_pool) != VK_SUCCESS)
 	{
@@ -65,7 +65,10 @@ void gfx::CommandList::Begin(std::uint32_t frame_idx)
 	begin_info.flags = 0;
 	begin_info.pInheritanceInfo = nullptr;
 
-	if (vkBeginCommandBuffer(m_cmd_buffers[frame_idx], &begin_info) != VK_SUCCESS)
+	vkResetCommandBuffer(m_cmd_buffers[frame_idx], 0);
+
+	if (vkResetCommandBuffer(m_cmd_buffers[frame_idx], 0) != VK_SUCCESS ||
+		vkBeginCommandBuffer(m_cmd_buffers[frame_idx], &begin_info) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to begin recording command buffer!");
 	}
