@@ -7,10 +7,17 @@
 #pragma once
 
 #include "vulkan/vulkan.h"
+#include "context.hpp"
+
+
+#include <vector>
+#include <cstdint>
 
 namespace gfx
 {
 	class Context;
+	class Fence;
+	class CommandList;
 
 	enum class CommandQueueType
 	{
@@ -22,12 +29,18 @@ namespace gfx
 	class CommandQueue
 	{
 		friend class RenderWindow;
+		friend class CommandList;
 	public:
 		CommandQueue(Context* context, CommandQueueType queue_type);
 		~CommandQueue() = default;
 
+		void Execute(std::vector<CommandList*> cmd_lists, Fence* fence, std::uint32_t frame_idx);
+
 	private:
+		CommandQueueType m_type;
 		VkQueue m_queue;
+
+		Context* m_context;
 	};
 
 } /* gfx */

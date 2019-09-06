@@ -34,7 +34,9 @@ namespace gfx
 		friend class Shader;
 		friend class PipelineState;
 		friend class RootSignature;
-		friend class RenderPass;
+		friend class RenderTarget;
+		friend class CommandList;
+		friend class Fence;
 	public:
 		Context(Application* app);
 		~Context();
@@ -43,6 +45,7 @@ namespace gfx
 		std::vector<VkExtensionProperties> GetSupportedDeviceExtensions();
 		bool HasValidationLayerSupport();
 		std::uint32_t GetDirectQueueFamilyIdx();
+		void FlushAllWork();
 
 	private:
 		std::vector<VkExtensionProperties> GetSupportedDeviceExtensions(VkPhysicalDevice device);

@@ -11,10 +11,10 @@
 #include "../application.hpp"
 #include "context.hpp"
 #include "command_queue.hpp"
+#include "fence.hpp"
 #include "gfx_settings.hpp"
 
-gfx::RenderWindow::RenderWindow(Context* context)
-	: m_context(context)
+gfx::RenderWindow::RenderWindow(Context* context) : RenderTarget(context), m_frame_idx(0)
 {
 	auto surface_format = PickSurfaceFormat();
 	auto present_mode = PickPresentMode();
@@ -47,6 +47,9 @@ gfx::RenderWindow::RenderWindow(Context* context)
 
 	GetSwapchainImages();
 	CreateSwapchainImageViews();
+
+	CreateRenderPass(VK_FORMAT_B8G8R8A8_UNORM);
+	CreateFrameBuffers();
 }
 
 gfx::RenderWindow::~RenderWindow()
@@ -59,18 +62,41 @@ gfx::RenderWindow::~RenderWindow()
 	vkDestroySwapchainKHR(logical_device, m_swapchain, nullptr);
 }
 
-void gfx::RenderWindow::Present(CommandQueue* queue)
+
+void gfx::RenderWindow::AquireBackBuffer(Fence* fence)
 {
+	auto logical_device = m_context->m_logical_device;
+
+	std::uint32_t new_frame_idx = 0;
+	vkAcquireNextImageKHR(logical_device, m_swapchain, UINT64_MAX, fence->m_wait_semaphore, VK_NULL_HANDLE, &new_frame_idx);
+
+	if (m_frame_idx != new_frame_idx)
+	{
+		std::runtime_error("Render window frame index is out of sync with the swap chain!");
+	}
+}
+
+void gfx::RenderWindow::Present(CommandQueue* queue, Fence* fence)
+{
+	auto logical_device = m_context->m_logical_device;
+
 	VkPresentInfoKHR present_info = {};
 	present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-	present_info.waitSemaphoreCount = 0;
-	present_info.pWaitSemaphores = nullptr;
+	present_info.waitSemaphoreCount = 1;
+	present_info.pWaitSemaphores = &fence->m_signal_semaphore;
 	present_info.swapchainCount = 1;
 	present_info.pSwapchains = &m_swapchain;
 	present_info.pResults = nullptr;
 	present_info.pImageIndices = &m_frame_idx;
 
 	vkQueuePresentKHR(queue->m_queue, &present_info);
+
+	m_frame_idx = (m_frame_idx + 1) % gfx::settings::num_back_buffers;
+}
+
+std::uint32_t gfx::RenderWindow::GetFrameIdx()
+{
+	return m_frame_idx;
 }
 
 VkSurfaceFormatKHR gfx::RenderWindow::PickSurfaceFormat()
@@ -169,6 +195,36 @@ void gfx::RenderWindow::CreateSwapchainImageViews()
 
 		if (vkCreateImageView(logical_device, &create_info, nullptr, &m_swapchain_image_views[i]) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create image views!");
+		}
+	}
+}
+
+void gfx::RenderWindow::CreateFrameBuffers()
+{
+	auto logical_device = m_context->m_logical_device;
+	m_width = m_context->m_app->GetWidth();
+	m_height = m_context->m_app->GetHeight();
+
+	m_frame_buffers.resize(m_swapchain_image_views.size());
+
+	for (std::size_t i = 0; i < m_swapchain_image_views.size(); i++)
+	{
+		VkImageView attachments[] =
+		{
+				m_swapchain_image_views[i]
+		};
+
+		VkFramebufferCreateInfo buffer_info = {};
+		buffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		buffer_info.renderPass = m_render_pass;
+		buffer_info.attachmentCount = 1;
+		buffer_info.pAttachments = attachments;
+		buffer_info.width = m_width;
+		buffer_info.height = m_height;
+		buffer_info.layers = 1;
+
+		if (vkCreateFramebuffer(logical_device, &buffer_info, nullptr, &m_frame_buffers[i]) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create framebuffer!");
 		}
 	}
 }
