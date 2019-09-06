@@ -26,6 +26,7 @@ namespace gfx
 
 	class Shader
 	{
+		friend class PipelineState;
 	public:
 		explicit Shader(Context* context);
 		~Shader();

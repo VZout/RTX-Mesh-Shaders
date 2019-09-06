@@ -15,6 +15,7 @@ namespace gfx
 
 	class RenderPass 
 	{
+		friend class PipelineState;
 	public:
 		RenderPass(Context* context, VkFormat format);
 		~RenderPass();

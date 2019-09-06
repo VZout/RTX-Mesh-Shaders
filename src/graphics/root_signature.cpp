@@ -19,14 +19,13 @@ void gfx::RootSignature::Compile()
 {
 	auto logical_device = m_context->m_logical_device;
 
-	VkPipelineLayoutCreateInfo layout_info = {};
-	layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	layout_info.setLayoutCount = 0;
-	layout_info.pSetLayouts = nullptr;
-	layout_info.pushConstantRangeCount = 0;
-	layout_info.pPushConstantRanges = nullptr;
+	m_pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	m_pipeline_layout_info.setLayoutCount = 0;
+	m_pipeline_layout_info.pSetLayouts = nullptr;
+	m_pipeline_layout_info.pushConstantRangeCount = 0;
+	m_pipeline_layout_info.pPushConstantRanges = nullptr;
 
-	if (vkCreatePipelineLayout(logical_device, &layout_info, nullptr, &m_pipeline_layout) != VK_SUCCESS)
+	if (vkCreatePipelineLayout(logical_device, &m_pipeline_layout_info, nullptr, &m_pipeline_layout) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to create pipeline layout!");
 	}
