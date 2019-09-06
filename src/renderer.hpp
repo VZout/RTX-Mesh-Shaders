@@ -18,6 +18,7 @@ namespace gfx
 	class Viewport;
 	class PipelineState;
 	class RootSignature;
+	class RenderPass;
 
 } /* gfx */
 
@@ -41,4 +42,5 @@ private:
 	gfx::Viewport* m_viewport;
 	gfx::PipelineState* m_pipeline;
 	gfx::RootSignature* m_root_signature;
+	gfx::RenderPass* m_render_pass;
 };

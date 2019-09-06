@@ -14,6 +14,7 @@
 #include "graphics/pipeline_state.hpp"
 #include "graphics/viewport.hpp"
 #include "graphics/root_signature.hpp"
+#include "graphics/render_pass.hpp"
 
 #include <iostream>
 
@@ -21,6 +22,7 @@ Renderer::~Renderer()
 {
 	delete m_viewport;
 	delete m_root_signature;
+	delete m_render_pass;
 	delete m_pipeline;
 	delete m_vs;
 	delete m_ps;
@@ -57,17 +59,23 @@ void Renderer::Init(Application* app)
 
 	m_vs = new gfx::Shader(m_context);
 	m_ps = new gfx::Shader(m_context);
-	//m_vs->LoadAndCompile("test.vs", gfx::ShaderType::VERTEX);
-	//m_ps->LoadAndCompile("test.ps", gfx::ShaderType::PIXEL);
+	m_vs->LoadAndCompile("vert.spv", gfx::ShaderType::VERTEX);
+	m_ps->LoadAndCompile("pix.spv", gfx::ShaderType::PIXEL);
 
 	m_viewport = new gfx::Viewport(app->GetWidth(), app->GetHeight());
 
 	m_root_signature = new gfx::RootSignature(m_context);
 	m_root_signature->Compile();
 
+	m_render_pass = new gfx::RenderPass(m_context, VK_FORMAT_B8G8R8_UNORM);
+
 	m_pipeline = new gfx::PipelineState(m_context);
 	m_pipeline->SetViewport(m_viewport);
+	m_pipeline->AddShader(m_vs);
+	m_pipeline->AddShader(m_ps);
+	m_pipeline->SetRenderPass(m_render_pass);
 	m_pipeline->SetRootSignature(m_root_signature);
+	m_pipeline->Compile();
 }
 
 void Renderer::Render()

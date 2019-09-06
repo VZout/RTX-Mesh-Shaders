@@ -5,15 +5,17 @@
  */
 
 #include "pipeline_state.hpp"
+#include "render_pass.hpp"
 #include "context.hpp"
 #include "viewport.hpp"
 #include "root_signature.hpp"
 #include "gfx_settings.hpp"
+#include "shader.hpp"
 
 gfx::PipelineState::PipelineState(Context* context)
 	: m_context(context), m_vertex_input_info(), m_ia_info(), m_viewport_info(), m_raster_info(),
 	m_ms_info(), m_color_blend_attachment_info(), m_color_blend_info(), m_layout(VK_NULL_HANDLE),
-	m_root_signature(nullptr)
+	m_root_signature(nullptr), m_render_pass(nullptr), m_create_info(), m_pipeline(VK_NULL_HANDLE)
 {
 	// Vertex Input
 	m_vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -73,6 +75,9 @@ gfx::PipelineState::PipelineState(Context* context)
 
 gfx::PipelineState::~PipelineState()
 {
+	auto logical_device = m_context->m_logical_device;
+
+	vkDestroyPipeline(logical_device, m_pipeline, nullptr);
 }
 
 void gfx::PipelineState::SetViewport(Viewport* viewport)
@@ -89,7 +94,40 @@ void gfx::PipelineState::SetRootSignature(RootSignature* root_signature)
 	m_root_signature = root_signature;
 }
 
+void gfx::PipelineState::AddShader(gfx::Shader* shader)
+{
+	m_shader_info.push_back(shader->m_shader_stage_create_info);
+}
+
+void gfx::PipelineState::SetRenderPass(gfx::RenderPass* pass)
+{
+	m_render_pass = pass;
+}
+
 void gfx::PipelineState::Compile()
 {
-	// todo
+	auto logical_device = m_context->m_logical_device;
+
+	m_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	m_create_info.stageCount = m_shader_info.size();
+	m_create_info.pStages = m_shader_info.data();
+	m_create_info.pVertexInputState = &m_vertex_input_info;
+	m_create_info.pInputAssemblyState = &m_ia_info;
+	m_create_info.pViewportState = &m_viewport_info;
+	m_create_info.pRasterizationState = &m_raster_info;
+	m_create_info.pMultisampleState = &m_ms_info;
+	m_create_info.pDepthStencilState = nullptr;
+	m_create_info.pColorBlendState = &m_color_blend_info;
+	m_create_info.pDynamicState = nullptr;
+	m_create_info.layout = m_root_signature->m_pipeline_layout;
+	m_create_info.renderPass = m_render_pass->m_render_pass;
+	m_create_info.subpass = 0;
+	m_create_info.basePipelineHandle = VK_NULL_HANDLE;
+	m_create_info.basePipelineIndex = -1;
+	m_create_info.flags = 0;
+
+	if (vkCreateGraphicsPipelines(logical_device, VK_NULL_HANDLE, 1, &m_create_info, nullptr, &m_pipeline) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to create graphics pipeline!");
+	}
 }

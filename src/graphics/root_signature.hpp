@@ -15,6 +15,7 @@ namespace gfx
 
 	class RootSignature
 	{
+		friend class PipelineState;
 	public:
 		explicit RootSignature(Context* context);
 		~RootSignature();
