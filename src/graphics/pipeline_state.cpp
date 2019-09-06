@@ -5,17 +5,17 @@
  */
 
 #include "pipeline_state.hpp"
-#include "render_pass.hpp"
 #include "context.hpp"
 #include "viewport.hpp"
 #include "root_signature.hpp"
 #include "gfx_settings.hpp"
 #include "shader.hpp"
+#include "render_target.hpp"
 
 gfx::PipelineState::PipelineState(Context* context)
 	: m_context(context), m_vertex_input_info(), m_ia_info(), m_viewport_info(), m_raster_info(),
 	m_ms_info(), m_color_blend_attachment_info(), m_color_blend_info(), m_layout(VK_NULL_HANDLE),
-	m_root_signature(nullptr), m_render_pass(nullptr), m_create_info(), m_pipeline(VK_NULL_HANDLE)
+	m_root_signature(nullptr), m_render_target(nullptr), m_create_info(), m_pipeline(VK_NULL_HANDLE)
 {
 	// Vertex Input
 	m_vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -99,9 +99,9 @@ void gfx::PipelineState::AddShader(gfx::Shader* shader)
 	m_shader_info.push_back(shader->m_shader_stage_create_info);
 }
 
-void gfx::PipelineState::SetRenderPass(gfx::RenderPass* pass)
+void gfx::PipelineState::SetRenderTarget(gfx::RenderTarget* target)
 {
-	m_render_pass = pass;
+	m_render_target = target;
 }
 
 void gfx::PipelineState::Compile()
@@ -120,7 +120,7 @@ void gfx::PipelineState::Compile()
 	m_create_info.pColorBlendState = &m_color_blend_info;
 	m_create_info.pDynamicState = nullptr;
 	m_create_info.layout = m_root_signature->m_pipeline_layout;
-	m_create_info.renderPass = m_render_pass->m_render_pass;
+	m_create_info.renderPass = m_render_target->m_render_pass;
 	m_create_info.subpass = 0;
 	m_create_info.basePipelineHandle = VK_NULL_HANDLE;
 	m_create_info.basePipelineIndex = -1;

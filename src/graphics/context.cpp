@@ -204,6 +204,11 @@ std::uint32_t gfx::Context::GetDirectQueueFamilyIdx()
 	return m_queue_family_indices.direct_family.value();
 }
 
+void gfx::Context::FlushAllWork()
+{
+	vkDeviceWaitIdle(m_logical_device);
+}
+
 void gfx::Context::CreateSurface()
 {
 	m_surface_create_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;

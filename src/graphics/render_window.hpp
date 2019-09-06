@@ -6,24 +6,26 @@
 
 #pragma once
 
-#include "vulkan/vulkan.h"
+#include "render_target.hpp"
 
 #include <cstdint>
-#include <vector>
 
 namespace gfx
 {
 
 	class Context;
 	class CommandQueue;
+	class Fence;
 
-	class RenderWindow
+	class RenderWindow : public RenderTarget
 	{
 	public:
 		RenderWindow(Context*  context);
-		~RenderWindow();
+		virtual ~RenderWindow();
 
-		void Present(CommandQueue* queue);
+		void AquireBackBuffer(Fence* fence);
+		void Present(CommandQueue* queue, Fence* fence);
+		std::uint32_t GetFrameIdx();
 
 	private:
 		VkSurfaceFormatKHR PickSurfaceFormat();
@@ -32,13 +34,12 @@ namespace gfx
 		std::uint32_t ComputeNumBackBuffers();
 		void GetSwapchainImages();
 		void CreateSwapchainImageViews();
+		void CreateFrameBuffers();
 
 		std::uint32_t m_frame_idx;
 		VkSwapchainKHR m_swapchain;
 		std::vector<VkImage> m_swapchain_images;
 		std::vector<VkImageView> m_swapchain_image_views;
-
-		Context* m_context;
 	};
 
 } /* gfx */
