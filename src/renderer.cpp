@@ -91,15 +91,6 @@ void Renderer::Init(Application* app)
 	m_pipeline->Compile();
 
 	std::cout << "Finished Initializing Renderer" << std::endl;
-
-	for (std::size_t frame_idx = 0; frame_idx < gfx::settings::num_back_buffers; frame_idx++)
-	{
-		m_direct_cmd_list->Begin(frame_idx);
-		m_direct_cmd_list->BindRenderTargetVersioned(m_render_window, frame_idx);
-		m_direct_cmd_list->BindPipelineState(m_pipeline, frame_idx);
-		m_direct_cmd_list->DrawInstanced(frame_idx, 3, 1);
-		m_direct_cmd_list->Close(frame_idx);
-	}
 }
 
 void Renderer::Render()
@@ -109,6 +100,12 @@ void Renderer::Render()
 	m_present_fences[frame_idx]->Wait();
 
 	m_render_window->AquireBackBuffer(m_present_fences[frame_idx]);
+
+	m_direct_cmd_list->Begin(frame_idx);
+	m_direct_cmd_list->BindRenderTargetVersioned(m_render_window, frame_idx);
+	m_direct_cmd_list->BindPipelineState(m_pipeline, frame_idx);
+	m_direct_cmd_list->DrawInstanced(frame_idx, 3, 1);
+	m_direct_cmd_list->Close(frame_idx);
 
 	m_direct_queue->Execute({ m_direct_cmd_list }, m_present_fences[frame_idx], frame_idx);
 

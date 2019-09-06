@@ -28,6 +28,7 @@ void Application::KeyCallback_Internal(GLFWwindow* window, int key, int scan_cod
 void Application::Start(std::uint32_t width, std::uint32_t height)
 {
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
 	m_window = glfwCreateWindow(width, height, m_name.c_str(), nullptr, nullptr);
 	if (!m_window)
@@ -70,6 +71,18 @@ std::uint32_t Application::GetHeight() const
 	glfwGetWindowSize(m_window, &_, &height);
 
 	return static_cast<std::uint32_t>(height);
+}
+
+void Application::SetVisibility(bool value)
+{
+	if (value)
+	{
+		glfwShowWindow(m_window);
+	}
+	else
+	{
+		glfwHideWindow(m_window);
+	}
 }
 
 HWND Application::GetNativeHandle()
