@@ -26,7 +26,7 @@ gfx::PipelineState::PipelineState(Context* context)
 
 	// Input Assembler
 	m_ia_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	m_ia_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	m_ia_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
 	m_ia_info.primitiveRestartEnable = VK_FALSE;
 
 	// Rasterizer
