@@ -104,7 +104,7 @@ void Renderer::Render()
 	m_direct_cmd_list->Begin(frame_idx);
 	m_direct_cmd_list->BindRenderTargetVersioned(m_render_window, frame_idx);
 	m_direct_cmd_list->BindPipelineState(m_pipeline, frame_idx);
-	m_direct_cmd_list->DrawInstanced(frame_idx, 3, 1);
+	m_direct_cmd_list->DrawInstanced(frame_idx, 4, 1);
 	m_direct_cmd_list->Close(frame_idx);
 
 	m_direct_queue->Execute({ m_direct_cmd_list }, m_present_fences[frame_idx], frame_idx);
