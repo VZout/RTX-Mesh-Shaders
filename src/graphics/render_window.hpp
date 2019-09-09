@@ -25,6 +25,7 @@ namespace gfx
 
 		void AquireBackBuffer(Fence* fence);
 		void Present(CommandQueue* queue, Fence* fence);
+		void Resize(std::uint32_t width, std::uint32_t height);
 		std::uint32_t GetFrameIdx();
 
 	private:
@@ -32,6 +33,7 @@ namespace gfx
 		VkPresentModeKHR PickPresentMode();
 		VkExtent2D ComputeSwapchainExtend();
 		std::uint32_t ComputeNumBackBuffers();
+		void CreateSwapchain(std::uint32_t width, std::uint32_t height);
 		void GetSwapchainImages();
 		void CreateSwapchainImageViews();
 		void CreateFrameBuffers();

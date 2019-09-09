@@ -45,6 +45,7 @@ namespace gfx
 		std::vector<VkExtensionProperties> GetSupportedDeviceExtensions();
 		bool HasValidationLayerSupport();
 		std::uint32_t GetDirectQueueFamilyIdx();
+		void WaitForDevice();
 
 	private:
 		std::vector<VkExtensionProperties> GetSupportedDeviceExtensions(VkPhysicalDevice device);

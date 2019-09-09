@@ -7,6 +7,7 @@
 #pragma once
 
 #include <vector>
+#include <cstdint>
 
 class Application;
 
@@ -35,6 +36,7 @@ public:
 	void Init(Application* app);
 	void Render();
 	void WaitForAllPreviousWork();
+	void Resize(std::uint32_t width, std::uint32_t height);
 
 private:
 	gfx::Context* m_context;

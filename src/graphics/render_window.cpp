@@ -16,34 +16,8 @@
 
 gfx::RenderWindow::RenderWindow(Context* context) : RenderTarget(context), m_frame_idx(0)
 {
-	auto surface_format = PickSurfaceFormat();
-	auto present_mode = PickPresentMode();
-	auto extent = ComputeSwapchainExtend();
-	auto num_back_buffers = ComputeNumBackBuffers();
-
-	auto capabilities = m_context->m_swapchain_support_details.m_capabilities;
-
-	VkSwapchainCreateInfoKHR create_info = {};
-	create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	create_info.surface = m_context->m_surface;
-	create_info.minImageCount = num_back_buffers;
-	create_info.imageFormat = surface_format.format;
-	create_info.imageColorSpace = surface_format.colorSpace;
-	create_info.imageExtent = extent;
-	create_info.imageArrayLayers = 1;
-	create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	create_info.queueFamilyIndexCount = 0;
-	create_info.pQueueFamilyIndices = nullptr;
-	create_info.preTransform = capabilities.currentTransform;
-	create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-	create_info.presentMode = present_mode;
-	create_info.clipped = VK_TRUE;
-	create_info.oldSwapchain = VK_NULL_HANDLE;
-
-	if (vkCreateSwapchainKHR(m_context->m_logical_device, &create_info, nullptr, &m_swapchain) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create swap chain!");
-	}
+	auto app = context->m_app;
+	CreateSwapchain(app->GetWidth(), app->GetHeight());
 
 	GetSwapchainImages();
 	CreateSwapchainImageViews();
@@ -92,6 +66,35 @@ void gfx::RenderWindow::Present(CommandQueue* queue, Fence* fence)
 	vkQueuePresentKHR(queue->m_queue, &present_info);
 
 	m_frame_idx = (m_frame_idx + 1) % gfx::settings::num_back_buffers;
+}
+
+void gfx::RenderWindow::Resize(std::uint32_t width, std::uint32_t height)
+{
+	// Cleanup
+	auto logical_device = m_context->m_logical_device;
+
+	vkDestroyRenderPass(logical_device, m_render_pass, nullptr);
+
+	for (auto& frame_buffer : m_frame_buffers) {
+		vkDestroyFramebuffer(logical_device, frame_buffer, nullptr);
+	}
+
+	for (auto& view : m_swapchain_image_views) {
+		vkDestroyImageView(logical_device, view, nullptr);
+	}
+
+	vkDestroySwapchainKHR(logical_device, m_swapchain, nullptr);
+
+	// Recreate
+	CreateSwapchain(width, height);
+
+	GetSwapchainImages();
+	CreateSwapchainImageViews();
+
+	CreateRenderPass(VK_FORMAT_B8G8R8A8_UNORM);
+	CreateFrameBuffers();
+
+	m_frame_idx = 0;
 }
 
 std::uint32_t gfx::RenderWindow::GetFrameIdx()
@@ -158,6 +161,38 @@ std::uint32_t gfx::RenderWindow::ComputeNumBackBuffers()
 	}
 
 	return gfx::settings::num_back_buffers;
+}
+
+void gfx::RenderWindow::CreateSwapchain(std::uint32_t width, std::uint32_t height)
+{
+	auto surface_format = PickSurfaceFormat();
+	auto present_mode = PickPresentMode();
+	auto num_back_buffers = ComputeNumBackBuffers();
+
+	auto capabilities = m_context->m_swapchain_support_details.m_capabilities;
+
+	VkSwapchainCreateInfoKHR create_info = {};
+	create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	create_info.surface = m_context->m_surface;
+	create_info.minImageCount = num_back_buffers;
+	create_info.imageFormat = surface_format.format;
+	create_info.imageColorSpace = surface_format.colorSpace;
+	create_info.imageExtent.width = width;
+	create_info.imageExtent.height = height;
+	create_info.imageArrayLayers = 1;
+	create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	create_info.queueFamilyIndexCount = 0;
+	create_info.pQueueFamilyIndices = nullptr;
+	create_info.preTransform = capabilities.currentTransform;
+	create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	create_info.presentMode = present_mode;
+	create_info.clipped = VK_TRUE;
+	create_info.oldSwapchain = VK_NULL_HANDLE;
+
+	if (vkCreateSwapchainKHR(m_context->m_logical_device, &create_info, nullptr, &m_swapchain) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create swap chain!");
+	}
 }
 
 void gfx::RenderWindow::GetSwapchainImages()

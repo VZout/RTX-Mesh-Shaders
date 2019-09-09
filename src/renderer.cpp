@@ -119,3 +119,13 @@ void Renderer::WaitForAllPreviousWork()
 		fence->Wait();
 	}
 }
+
+void Renderer::Resize(std::uint32_t width, std::uint32_t height)
+{
+	//WaitForAllPreviousWork();
+	m_context->WaitForDevice();
+
+	m_render_window->Resize(width, height);
+	m_pipeline->SetRenderTarget(m_render_window);
+	m_pipeline->Recompile();
+}

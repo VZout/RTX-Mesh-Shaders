@@ -33,6 +33,7 @@ namespace gfx
 		void SetRenderTarget(RenderTarget* target);
 
 		void Compile();
+		void Recompile();
 
 	private:
 		std::vector<VkPipelineShaderStageCreateInfo> m_shader_info;
