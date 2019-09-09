@@ -38,6 +38,7 @@ gfx::CommandList::CommandList(CommandQueue* queue)
 
 	// Create the actual command buffers
 	m_cmd_buffers.resize(gfx::settings::num_back_buffers);
+	m_bound_render_target = std::vector<bool>(gfx::settings::num_back_buffers, false);
 
 	VkCommandBufferAllocateInfo allocation_info = {};
 	allocation_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -74,6 +75,20 @@ void gfx::CommandList::Begin(std::uint32_t frame_idx)
 	}
 }
 
+void gfx::CommandList::Close(std::uint32_t frame_idx)
+{
+	if (m_bound_render_target[frame_idx])
+	{
+		vkCmdEndRenderPass(m_cmd_buffers[frame_idx]);
+		m_bound_render_target[frame_idx] = false;
+	}
+
+	if (vkEndCommandBuffer(m_cmd_buffers[frame_idx]) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to record command buffer!");
+	}
+}
+
 void gfx::CommandList::BindRenderTargetVersioned(RenderTarget* render_target, std::uint32_t frame_idx)
 {
 	VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -89,6 +104,8 @@ void gfx::CommandList::BindRenderTargetVersioned(RenderTarget* render_target, st
 	render_pass_begin_info.pClearValues = &clearColor;
 
 	vkCmdBeginRenderPass(m_cmd_buffers[frame_idx], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+
+	m_bound_render_target[frame_idx] = true;
 }
 
 void gfx::CommandList::BindPipelineState(gfx::PipelineState* pipeline, std::uint32_t frame_idx)
@@ -96,17 +113,30 @@ void gfx::CommandList::BindPipelineState(gfx::PipelineState* pipeline, std::uint
 	vkCmdBindPipeline(m_cmd_buffers[frame_idx], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->m_pipeline);
 }
 
-void gfx::CommandList::DrawInstanced(std::uint32_t frame_idx, std::uint32_t vertex_count, std::uint32_t instance_count, std::uint32_t first_vertex, std::uint32_t first_instance)
+void gfx::CommandList::BindVertexBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx)
+{
+	std::vector<VkBuffer> buffers = { staging_buffer->m_buffer };
+	std::vector<VkDeviceSize> offsets = { 0 };
+	vkCmdBindVertexBuffers(m_cmd_buffers[frame_idx], 0, buffers.size(), buffers.data(), offsets.data());
+}
+
+void gfx::CommandList::StageBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx)
+{
+	VkBufferCopy copy_region = {};
+	copy_region.srcOffset = 0;
+	copy_region.dstOffset = 0;
+	copy_region.size = staging_buffer->m_size * staging_buffer->m_stride;
+	vkCmdCopyBuffer(m_cmd_buffers[frame_idx], staging_buffer->m_staging_buffer, staging_buffer->m_buffer, 1, &copy_region);
+}
+
+void gfx::CommandList::Draw(std::uint32_t frame_idx, std::uint32_t vertex_count, std::uint32_t instance_count,
+		std::uint32_t first_vertex, std::uint32_t first_instance)
 {
 	vkCmdDraw(m_cmd_buffers[frame_idx], vertex_count, instance_count, first_vertex, first_instance);
 }
 
-void gfx::CommandList::Close(std::uint32_t frame_idx)
+void gfx::CommandList::DrawIndexed(std::uint32_t frame_idx, std::uint32_t idx_count, std::uint32_t instance_count,
+		std::uint32_t first_idx, std::uint32_t vertex_offset, std::uint32_t first_instance)
 {
-	vkCmdEndRenderPass(m_cmd_buffers[frame_idx]);
-
-	if (vkEndCommandBuffer(m_cmd_buffers[frame_idx]) != VK_SUCCESS)
-	{
-		throw std::runtime_error("failed to record command buffer!");
-	}
+	vkCmdDrawIndexed(m_cmd_buffers[frame_idx], idx_count, instance_count, first_idx, vertex_offset, first_instance);
 }

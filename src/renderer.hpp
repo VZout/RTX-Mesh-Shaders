@@ -23,6 +23,7 @@ namespace gfx
 	class RootSignature;
 	class RenderTarget;
 	class CommandList;
+	class StagingBuffer;
 	class Fence;
 
 } /* gfx */
@@ -49,6 +50,7 @@ private:
 	gfx::Shader* m_vs;
 	gfx::Shader* m_ps;
 	gfx::Viewport* m_viewport;
+	gfx::StagingBuffer* m_vertex_buffer;
 	gfx::PipelineState* m_pipeline;
 	gfx::RootSignature* m_root_signature;
 };

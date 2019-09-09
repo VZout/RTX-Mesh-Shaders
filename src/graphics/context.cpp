@@ -121,6 +121,7 @@ gfx::Context::Context(Application* app)
 	// Get the device and its properties.
 	m_physical_device = FindPhysicalDevice();
 	vkGetPhysicalDeviceProperties(m_physical_device, &m_physical_device_properties);
+	vkGetPhysicalDeviceMemoryProperties(m_physical_device, &m_physical_device_mem_properties);
 	vkGetPhysicalDeviceFeatures(m_physical_device, &m_physical_device_features);
 
 	m_queue_family_indices = FindQueueFamilies(m_physical_device);
@@ -207,6 +208,19 @@ std::uint32_t gfx::Context::GetDirectQueueFamilyIdx()
 void gfx::Context::WaitForDevice()
 {
 	vkDeviceWaitIdle(m_logical_device);
+}
+
+std::uint32_t gfx::Context::FindMemoryType(std::uint32_t filter, VkMemoryPropertyFlags properties)
+{
+	for (uint32_t i = 0; i < m_physical_device_mem_properties.memoryTypeCount; i++)
+	{
+		if ((filter & (1 << i)) && (m_physical_device_mem_properties.memoryTypes[i].propertyFlags & properties) == properties)
+		{
+			return i;
+		}
+	}
+
+	throw std::runtime_error("failed to find suitable memory type!");
 }
 
 void gfx::Context::CreateSurface()

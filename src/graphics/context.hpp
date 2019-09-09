@@ -37,6 +37,7 @@ namespace gfx
 		friend class RenderTarget;
 		friend class CommandList;
 		friend class Fence;
+		friend class StagingBuffer;
 	public:
 		Context(Application* app);
 		~Context();
@@ -46,6 +47,7 @@ namespace gfx
 		bool HasValidationLayerSupport();
 		std::uint32_t GetDirectQueueFamilyIdx();
 		void WaitForDevice();
+		std::uint32_t FindMemoryType(std::uint32_t filter, VkMemoryPropertyFlags properties);
 
 	private:
 		std::vector<VkExtensionProperties> GetSupportedDeviceExtensions(VkPhysicalDevice device);
@@ -67,6 +69,7 @@ namespace gfx
 		VkPhysicalDevice m_physical_device;
 		VkPhysicalDeviceFeatures m_physical_device_features;
 		VkPhysicalDeviceProperties m_physical_device_properties;
+		VkPhysicalDeviceMemoryProperties m_physical_device_mem_properties;
 		QueueFamilyIndices m_queue_family_indices;
 		SwapChainSupportDetails m_swapchain_support_details;
 		VkSurfaceKHR m_surface;

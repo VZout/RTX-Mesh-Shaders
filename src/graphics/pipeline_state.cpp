@@ -15,15 +15,9 @@
 gfx::PipelineState::PipelineState(Context* context)
 	: m_context(context), m_vertex_input_info(), m_ia_info(), m_viewport_info(), m_raster_info(),
 	m_ms_info(), m_color_blend_attachment_info(), m_color_blend_info(), m_layout(VK_NULL_HANDLE),
-	m_root_signature(nullptr), m_render_target(nullptr), m_create_info(), m_pipeline(VK_NULL_HANDLE)
+	m_root_signature(nullptr), m_render_target(nullptr), m_create_info(), m_pipeline(VK_NULL_HANDLE),
+	m_input_layout()
 {
-	// Vertex Input
-	m_vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	m_vertex_input_info.vertexBindingDescriptionCount = 0;
-	m_vertex_input_info.pVertexBindingDescriptions = nullptr;
-	m_vertex_input_info.vertexAttributeDescriptionCount = 0;
-	m_vertex_input_info.pVertexAttributeDescriptions = nullptr;
-
 	// Input Assembler
 	m_ia_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 	m_ia_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
@@ -104,9 +98,21 @@ void gfx::PipelineState::SetRenderTarget(gfx::RenderTarget* target)
 	m_render_target = target;
 }
 
+void gfx::PipelineState::SetInputLayout(InputLayout const & input_layout)
+{
+	m_input_layout = input_layout;
+}
+
 void gfx::PipelineState::Compile()
 {
 	auto logical_device = m_context->m_logical_device;
+
+	// Vertex Input
+	m_vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	m_vertex_input_info.vertexBindingDescriptionCount = m_input_layout.first.size();
+	m_vertex_input_info.pVertexBindingDescriptions = m_input_layout.first.data();
+	m_vertex_input_info.vertexAttributeDescriptionCount = m_input_layout.second.size();
+	m_vertex_input_info.pVertexAttributeDescriptions = m_input_layout.second.data();
 
 	m_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 	m_create_info.stageCount = m_shader_info.size();
