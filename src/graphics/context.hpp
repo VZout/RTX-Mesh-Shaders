@@ -37,7 +37,9 @@ namespace gfx
 		friend class RenderTarget;
 		friend class CommandList;
 		friend class Fence;
+		friend class GPUBuffer;
 		friend class StagingBuffer;
+		friend class DescriptorHeap;
 	public:
 		Context(Application* app);
 		~Context();

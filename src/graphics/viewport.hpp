@@ -19,6 +19,8 @@ namespace gfx
 		Viewport(std::uint32_t width, std::uint32_t height);
 		~Viewport() = default;
 
+		void Resize(std::uint32_t width, std::uint32_t height);
+
 	private:
 		VkViewport m_viewport;
 		VkRect2D m_scissor;

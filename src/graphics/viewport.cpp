@@ -20,3 +20,12 @@ gfx::Viewport::Viewport(std::uint32_t width, std::uint32_t height)
 	m_scissor.extent.width = width;
 	m_scissor.extent.height = height;
 }
+
+void gfx::Viewport::Resize(std::uint32_t width, std::uint32_t height)
+{
+	m_viewport.width = static_cast<float>(width);
+	m_viewport.height = static_cast<float>(height);
+
+	m_scissor.extent.width = width;
+	m_scissor.extent.height = height;
+}

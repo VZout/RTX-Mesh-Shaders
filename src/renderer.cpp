@@ -8,6 +8,7 @@
 
 #include "application.hpp"
 #include "vertex.hpp"
+#include "buffer_definitions.hpp"
 #include "graphics/context.hpp"
 #include "graphics/command_queue.hpp"
 #include "graphics/render_window.hpp"
@@ -18,15 +19,21 @@
 #include "graphics/command_list.hpp"
 #include "graphics/gfx_settings.hpp"
 #include "graphics/gfx_enums.hpp"
-#include "graphics/staging_buffer.hpp"
+#include "graphics/gpu_buffers.hpp"
 #include "graphics/fence.hpp"
+#include "graphics/descriptor_heap.hpp"
 
+#include <chrono>
 #include <iostream>
 
 Renderer::~Renderer()
 {
 	WaitForAllPreviousWork();
 
+	for (auto& cb : m_cbs)
+	{
+		delete cb;
+	}
 	delete m_vertex_buffer;
 	delete m_viewport;
 	for (auto& fence : m_present_fences)
@@ -40,6 +47,7 @@ Renderer::~Renderer()
 	delete m_render_window;
 	delete m_direct_cmd_list;
 	delete m_direct_queue;
+	delete m_desc_heap;
 	delete m_context;
 }
 
@@ -105,6 +113,18 @@ void Renderer::Init(Application* app)
 
 	m_vertex_buffer = new gfx::StagingBuffer(m_context, (void*)vertices.data(), vertices.size(), sizeof(Vertex2D), gfx::enums::BufferUsageFlag::VERTEX_BUFFER);
 
+	Sleep(20);
+	int x = 0;
+
+	m_desc_heap = new gfx::DescriptorHeap(m_context, m_root_signature);
+	m_cbs.resize(gfx::settings::num_back_buffers);
+	for (auto i = 0; i < gfx::settings::num_back_buffers; i++)
+	{
+		m_cbs[i] = new gfx::GPUBuffer(m_context, sizeof(cb::Basic), gfx::enums::BufferUsageFlag::CONSTANT_BUFFER);
+		m_cbs[i]->Map();
+		m_desc_heap->CreateSRVFromCB(m_cbs[i], i);
+	}
+
 	// Upload
 	m_direct_cmd_list->Begin(0);
 	m_direct_cmd_list->StageBuffer(m_vertex_buffer, 0);
@@ -114,6 +134,8 @@ void Renderer::Init(Application* app)
 	m_vertex_buffer->FreeStagingResources();
 	std::cout << "Finished Uploading Resources" << std::endl;
 
+	m_start = std::chrono::high_resolution_clock::now();
+
 	std::cout << "Finished Initializing Renderer" << std::endl;
 }
 
@@ -122,13 +144,18 @@ void Renderer::Render()
 	auto frame_idx = m_render_window->GetFrameIdx();
 
 	m_present_fences[frame_idx]->Wait();
-
 	m_render_window->AquireBackBuffer(m_present_fences[frame_idx]);
+
+	auto diff = std::chrono::high_resolution_clock::now() - m_start;
+	float t = diff.count();
+	cb::Basic basic_cb_data { t };
+	m_cbs[frame_idx]->Update(&basic_cb_data, sizeof(cb::Basic));
 
 	m_direct_cmd_list->Begin(frame_idx);
 	m_direct_cmd_list->BindRenderTargetVersioned(m_render_window, frame_idx);
 	m_direct_cmd_list->BindPipelineState(m_pipeline, frame_idx);
 	m_direct_cmd_list->BindVertexBuffer(m_vertex_buffer, frame_idx);
+	m_direct_cmd_list->BindDescriptorTable(m_root_signature, m_desc_heap, frame_idx, frame_idx);
 	m_direct_cmd_list->Draw(frame_idx, 4, 1);
 	m_direct_cmd_list->Close(frame_idx);
 
@@ -149,6 +176,8 @@ void Renderer::Resize(std::uint32_t width, std::uint32_t height)
 {
 	//WaitForAllPreviousWork();
 	m_context->WaitForDevice();
+
+	m_viewport->Resize(width, height);
 
 	m_render_window->Resize(width, height);
 	m_pipeline->SetRenderTarget(m_render_window);
