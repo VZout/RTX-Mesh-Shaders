@@ -8,6 +8,7 @@
 
 #include <vector>
 #include <cstdint>
+#include <chrono>
 
 class Application;
 
@@ -23,8 +24,10 @@ namespace gfx
 	class RootSignature;
 	class RenderTarget;
 	class CommandList;
+	class GPUBuffer;
 	class StagingBuffer;
 	class Fence;
+	class DescriptorHeap;
 
 } /* gfx */
 
@@ -51,6 +54,10 @@ private:
 	gfx::Shader* m_ps;
 	gfx::Viewport* m_viewport;
 	gfx::StagingBuffer* m_vertex_buffer;
+	gfx::DescriptorHeap* m_desc_heap;
+	std::vector<gfx::GPUBuffer*> m_cbs;
 	gfx::PipelineState* m_pipeline;
 	gfx::RootSignature* m_root_signature;
+
+	std::chrono::time_point<std::chrono::high_resolution_clock> m_start;
 };

@@ -6,7 +6,12 @@ layout(location = 0) in vec2 pos;
 layout(location = 1) in vec3 color;
 #endif
 
-layout(location = 0) out vec3 frag_color;
+layout(location = 0) out float g_time;
+
+// Uniforms
+layout(binding = 0) uniform UniformBufferObject {
+    float time;
+} ubo;
 
 vec2 positions[4] = vec2[](
     vec2(-1, 1),
@@ -41,6 +46,6 @@ void main()
 
     }
 
-    frag_color = color;
+    g_time = ubo.time;
 }
 #endif

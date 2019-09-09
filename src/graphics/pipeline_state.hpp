@@ -9,6 +9,7 @@
 #include <vulkan/vulkan.h>
 #include <vector>
 #include "render_target.hpp"
+#include "viewport.hpp"
 
 
 namespace gfx

@@ -8,8 +8,10 @@
 
 #include "context.hpp"
 #include "gfx_settings.hpp"
+#include "descriptor_heap.hpp"
 #include "render_target.hpp"
 #include "pipeline_state.hpp"
+#include "root_signature.hpp"
 
 gfx::CommandList::CommandList(CommandQueue* queue)
 	: m_context(queue->m_context), m_queue(queue), m_cmd_pool(VK_NULL_HANDLE), m_cmd_pool_create_info()
@@ -120,12 +122,17 @@ void gfx::CommandList::BindVertexBuffer(StagingBuffer* staging_buffer, std::uint
 	vkCmdBindVertexBuffers(m_cmd_buffers[frame_idx], 0, buffers.size(), buffers.data(), offsets.data());
 }
 
+void gfx::CommandList::BindDescriptorTable(RootSignature* root_signature, DescriptorHeap* heap, std::uint32_t handle, std::uint32_t frame_idx)
+{
+	vkCmdBindDescriptorSets(m_cmd_buffers[frame_idx], VK_PIPELINE_BIND_POINT_GRAPHICS, root_signature->m_pipeline_layout, 0, 1, &heap->m_descriptor_sets[handle], 0, nullptr);
+}
+
 void gfx::CommandList::StageBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx)
 {
 	VkBufferCopy copy_region = {};
 	copy_region.srcOffset = 0;
 	copy_region.dstOffset = 0;
-	copy_region.size = staging_buffer->m_size * staging_buffer->m_stride;
+	copy_region.size = staging_buffer->m_size;
 	vkCmdCopyBuffer(m_cmd_buffers[frame_idx], staging_buffer->m_staging_buffer, staging_buffer->m_buffer, 1, &copy_region);
 }
 

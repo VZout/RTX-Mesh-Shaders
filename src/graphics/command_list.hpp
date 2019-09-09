@@ -12,12 +12,14 @@
 #include <cstdint>
 
 #include "command_queue.hpp"
-#include "staging_buffer.hpp"
+#include "gpu_buffers.hpp"
 
 namespace gfx
 {
 	class Context;
 	class RenderTarget;
+	class RootSignature;
+	class DescriptorHeap;
 	class PipelineState;
 
 	class CommandList
@@ -34,6 +36,7 @@ namespace gfx
 		void BindRenderTargetVersioned(RenderTarget* render_target, std::uint32_t frame_idx);
 		void BindPipelineState(PipelineState* pipeline, std::uint32_t frame_idx);
 		void BindVertexBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx);
+		void BindDescriptorTable(RootSignature* root_signature, DescriptorHeap* heap, std::uint32_t handle, std::uint32_t frame_idx);
 		void StageBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx);
 		void Draw(std::uint32_t frame_idx, std::uint32_t vertex_count, std::uint32_t instance_count,
 				std::uint32_t first_vertex = 0, std::uint32_t first_instance = 0);
