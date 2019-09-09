@@ -105,7 +105,7 @@ file(GLOB_RECURSE GLSL_SOURCE_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DI
 # Application
 add_executable(Test ${HEADERS} ${SOURCES} ${GLSL_SOURCE_FILES})
 target_link_libraries(Test ${VULKAN_LIBRARY} glfw)
-target_include_directories(Test PUBLIC external/glfw/include external/vulkan/include)
+target_include_directories(Test PUBLIC external/glfw/include external/vulkan/include external/glm/glm)
 
 # Compile GLSL Shaders Into SPRIV
 if (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "AMD64")
