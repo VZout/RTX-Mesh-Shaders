@@ -35,6 +35,7 @@ namespace gfx
 		~CommandQueue() = default;
 
 		void Execute(std::vector<CommandList*> cmd_lists, Fence* fence, std::uint32_t frame_idx);
+		void Wait();
 
 	private:
 		CommandQueueType m_type;

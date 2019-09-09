@@ -24,6 +24,8 @@ namespace gfx
 	{
 		friend class CommandList;
 	public:
+		using InputLayout = std::pair<std::vector<VkVertexInputBindingDescription>, std::vector<VkVertexInputAttributeDescription>>;
+
 		explicit PipelineState(Context* context);
 		~PipelineState();
 
@@ -31,11 +33,13 @@ namespace gfx
 		void SetRootSignature(RootSignature* root_signature);
 		void AddShader(Shader* shader);
 		void SetRenderTarget(RenderTarget* target);
+		void SetInputLayout(InputLayout const & input_layout);
 
 		void Compile();
 		void Recompile();
 
 	private:
+		InputLayout m_input_layout;
 		std::vector<VkPipelineShaderStageCreateInfo> m_shader_info;
 		VkPipelineVertexInputStateCreateInfo m_vertex_input_info;
 		VkPipelineInputAssemblyStateCreateInfo m_ia_info;
