@@ -131,3 +131,12 @@ void gfx::PipelineState::Compile()
 		throw std::runtime_error("failed to create graphics pipeline!");
 	}
 }
+
+void gfx::PipelineState::Recompile()
+{
+	auto logical_device = m_context->m_logical_device;
+
+	vkDestroyPipeline(logical_device, m_pipeline, nullptr);
+
+	Compile();
+}

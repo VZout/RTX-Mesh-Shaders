@@ -25,10 +25,16 @@ void Application::KeyCallback_Internal(GLFWwindow* window, int key, int scan_cod
 	static_cast<Application*>(glfwGetWindowUserPointer(window))->KeyCallback(key, action);
 }
 
+void Application::ResizeCallback_Internal(GLFWwindow* window, int width, int height)
+{
+	static_cast<Application*>(glfwGetWindowUserPointer(window))->ResizeCallback(static_cast<std::uint32_t>(width),
+	                                                                            static_cast<std::uint32_t>(height));
+}
+
 void Application::Start(std::uint32_t width, std::uint32_t height)
 {
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+	//glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
 	m_window = glfwCreateWindow(width, height, m_name.c_str(), nullptr, nullptr);
 	if (!m_window)
@@ -39,6 +45,7 @@ void Application::Start(std::uint32_t width, std::uint32_t height)
 
 	glfwSetWindowUserPointer(m_window, this);
 	glfwSetKeyCallback(m_window, Application::KeyCallback_Internal);
+	glfwSetFramebufferSizeCallback(m_window, Application::ResizeCallback_Internal);
 
 	Init();
 

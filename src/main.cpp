@@ -26,8 +26,6 @@ public:
 protected:
 	void Init() final
 	{
-		SetVisibility(true);
-
 		m_renderer = new Renderer();
 		m_renderer->Init(this);
 
@@ -40,6 +38,11 @@ protected:
 	void Loop() final
 	{
 		m_renderer->Render();
+	}
+
+	void ResizeCallback(std::uint32_t width, std::uint32_t height) final
+	{
+		m_renderer->Resize(width, height);
 	}
 
 	Renderer* m_renderer;
