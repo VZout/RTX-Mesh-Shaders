@@ -152,7 +152,7 @@ void Renderer::Init(Application* app)
 
 	imgui_impl = new ImGuiImpl();
 	imgui_impl->InitImGuiResources(m_context, m_render_window, m_direct_queue);
-	std::cout << "Finished Initializing IMGUI" << std::endl;
+	std::cout << "Finished Initializing ImGui" << std::endl;
 #endif
 
 	std::cout << "Finished Initializing Renderer" << std::endl;
