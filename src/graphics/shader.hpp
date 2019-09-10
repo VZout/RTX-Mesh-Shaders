@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+class ImGuiImpl;
+
 namespace gfx
 {
 
@@ -26,6 +28,7 @@ namespace gfx
 
 	class Shader
 	{
+		friend class ::ImGuiImpl;
 		friend class PipelineState;
 	public:
 		explicit Shader(Context* context);

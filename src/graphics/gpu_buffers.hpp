@@ -11,6 +11,8 @@
 
 #include "gfx_enums.hpp"
 
+class ImGuiImpl;
+
 namespace gfx
 {
 
@@ -20,6 +22,7 @@ namespace gfx
 	{
 		friend class CommandList;
 		friend class DescriptorHeap;
+		friend class ::ImGuiImpl;
 	public:
 		GPUBuffer(Context* context, std::uint64_t size);
 		GPUBuffer(Context* context, std::uint64_t size, enums::BufferUsageFlag usage);

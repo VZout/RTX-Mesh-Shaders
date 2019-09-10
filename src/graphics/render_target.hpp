@@ -10,6 +10,8 @@
 #include <vector>
 #include <cstdint>
 
+class ImGuiImpl;
+
 namespace gfx
 {
 
@@ -19,6 +21,7 @@ namespace gfx
 	{
 		friend class PipelineState;
 		friend class CommandList;
+		friend class ::ImGuiImpl;
 	public:
 		explicit RenderTarget(Context* context);
 		virtual ~RenderTarget();

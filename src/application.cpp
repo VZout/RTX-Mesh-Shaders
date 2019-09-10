@@ -97,6 +97,11 @@ HWND Application::GetNativeHandle()
 	return glfwGetWin32Window(m_window);
 }
 
+GLFWwindow* Application::GetWindow()
+{
+	return m_window;
+}
+
 void Application::Destroy()
 {
 	glfwDestroyWindow(m_window);

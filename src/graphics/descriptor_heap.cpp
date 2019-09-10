@@ -32,6 +32,8 @@ gfx::DescriptorHeap::DescriptorHeap(Context* context, RootSignature* root_signat
 			throw std::runtime_error("failed to create descriptor pool!");
 		}
 
+		if (!root_signature) continue;
+
 		// Create the descriptor tables
 		std::vector<VkDescriptorSetLayout> layouts(desc.m_num_descriptors);
 		for (auto i = 0; i < desc.m_num_descriptors; i++)
@@ -80,7 +82,7 @@ void gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, std::uint32_t handl
 	descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	descriptor_write.descriptorCount = 1;
 	descriptor_write.pBufferInfo = &buffer_info;
-	descriptor_write.pImageInfo = nullptr; // Optional
-	descriptor_write.pTexelBufferView = nullptr; // Optional
+	descriptor_write.pImageInfo = nullptr;
+	descriptor_write.pTexelBufferView = nullptr;
 	vkUpdateDescriptorSets(logical_device, 1, &descriptor_write, 0, nullptr);
 }
