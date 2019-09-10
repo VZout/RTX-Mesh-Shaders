@@ -10,6 +10,8 @@
 
 #include <cstdint>
 
+class ImGuiImpl;
+
 namespace gfx
 {
 
@@ -19,6 +21,7 @@ namespace gfx
 
 	class RenderWindow : public RenderTarget
 	{
+		friend class ::ImGuiImpl;
 	public:
 		RenderWindow(Context*  context);
 		virtual ~RenderWindow();

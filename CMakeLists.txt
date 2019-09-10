@@ -101,11 +101,15 @@ add_subdirectory(external/glfw)
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp")
 file(GLOB_RECURSE GLSL_SOURCE_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/*.*")
+file(GLOB IMGUI CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/external/imgui/*.cpp")
 
 # Application
-add_executable(Test ${HEADERS} ${SOURCES} ${GLSL_SOURCE_FILES})
+add_executable(Test ${HEADERS} ${SOURCES} ${GLSL_SOURCE_FILES} ${IMGUI})
 target_link_libraries(Test ${VULKAN_LIBRARY} glfw)
-target_include_directories(Test PUBLIC external/glfw/include external/vulkan/include external/glm/glm)
+target_include_directories(Test PUBLIC
+	external/glfw/include
+	external/vulkan/include external/glm/glm
+	external/imgui)
 
 # Compile GLSL Shaders Into SPRIV
 if (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "AMD64")

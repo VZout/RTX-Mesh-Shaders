@@ -12,6 +12,8 @@
 #include <optional>
 
 class Application;
+class Renderer;
+class ImGuiImpl;
 
 namespace gfx
 {
@@ -40,6 +42,8 @@ namespace gfx
 		friend class GPUBuffer;
 		friend class StagingBuffer;
 		friend class DescriptorHeap;
+
+		friend class ::ImGuiImpl; // TODO: probably dont want this
 	public:
 		Context(Application* app);
 		~Context();

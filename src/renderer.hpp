@@ -11,6 +11,7 @@
 #include <chrono>
 
 class Application;
+class ImGuiImpl;
 
 namespace gfx
 {
@@ -58,6 +59,8 @@ private:
 	std::vector<gfx::GPUBuffer*> m_cbs;
 	gfx::PipelineState* m_pipeline;
 	gfx::RootSignature* m_root_signature;
+
+	ImGuiImpl* imgui_impl;
 
 	std::chrono::time_point<std::chrono::high_resolution_clock> m_start;
 };

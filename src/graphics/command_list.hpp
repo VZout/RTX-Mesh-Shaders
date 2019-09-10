@@ -14,6 +14,8 @@
 #include "command_queue.hpp"
 #include "gpu_buffers.hpp"
 
+class ImGuiImpl;
+
 namespace gfx
 {
 	class Context;
@@ -26,6 +28,7 @@ namespace gfx
 	{
 		friend class RenderWindow;
 		friend class CommandQueue;
+		friend class ::ImGuiImpl;
 	public:
 		explicit CommandList(CommandQueue* queue);
 		~CommandList();

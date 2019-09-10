@@ -24,6 +24,7 @@ public:
 	[[nodiscard]] std::uint32_t GetHeight() const;
 	void SetVisibility(bool value);
 	HWND GetNativeHandle();
+	GLFWwindow* GetWindow();
 
 protected:
 	virtual void Init() = 0;

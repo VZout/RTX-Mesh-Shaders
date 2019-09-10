@@ -22,6 +22,10 @@
 #include "graphics/gpu_buffers.hpp"
 #include "graphics/fence.hpp"
 #include "graphics/descriptor_heap.hpp"
+#include <imgui.h>
+#include "imgui/imgui_style.hpp"
+#include "imgui/imgui_impl_glfw.hpp"
+#include "imgui/imgui_impl_vulkan.hpp"
 
 #include <chrono>
 #include <iostream>
@@ -29,6 +33,10 @@
 Renderer::~Renderer()
 {
 	WaitForAllPreviousWork();
+
+	delete imgui_impl;
+
+	ImGui_ImplGlfw_Shutdown();
 
 	for (auto& cb : m_cbs)
 	{
@@ -143,6 +151,29 @@ void Renderer::Init(Application* app)
 
 	m_start = std::chrono::high_resolution_clock::now();
 
+#define IMGUI
+#ifdef IMGUI
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
+	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
+	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
+	io.ConfigDockingWithShift = true;
+	//io.ConfigViewportsNoAutoMerge = true;
+	//io.ConfigViewportsNoTaskBarIcon = true;
+
+	ImGui_ImplGlfw_InitForVulkan(app->GetWindow(), true);
+
+	// Setup Dear ImGui style
+	ImGui::StyleColorsCherry();
+
+	imgui_impl = new ImGuiImpl();
+	imgui_impl->InitImGuiResources(m_context, m_render_window, m_direct_queue);
+	std::cout << "Finished Initializing IMGUI" << std::endl;
+#endif
+
 	std::cout << "Finished Initializing Renderer" << std::endl;
 }
 
@@ -160,10 +191,31 @@ void Renderer::Render()
 
 	m_direct_cmd_list->Begin(frame_idx);
 	m_direct_cmd_list->BindRenderTargetVersioned(m_render_window, frame_idx);
+
 	m_direct_cmd_list->BindPipelineState(m_pipeline, frame_idx);
 	m_direct_cmd_list->BindVertexBuffer(m_vertex_buffer, frame_idx);
 	m_direct_cmd_list->BindDescriptorTable(m_root_signature, m_desc_heap, 0, frame_idx);
 	m_direct_cmd_list->Draw(frame_idx, 4, 1);
+
+#ifdef IMGUI
+	// imgui itself code
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
+
+	ImGui::Begin("Whatsup");
+	ImGui::Text("Hey this is my framerate: %.0f", ImGui::GetIO().Framerate);
+	ImGui::End();
+
+	ImGui::Begin("Letsgo");
+	ImGui::End();
+
+	// Render to generate draw buffers
+	ImGui::Render();
+
+	imgui_impl->UpdateBuffers();
+	imgui_impl->Draw(m_direct_cmd_list, frame_idx);
+#endif
+
 	m_direct_cmd_list->Close(frame_idx);
 
 	m_direct_queue->Execute({ m_direct_cmd_list }, m_present_fences[frame_idx], frame_idx);

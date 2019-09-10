@@ -13,6 +13,9 @@
 #include <vector>
 #include <cstdint>
 
+class Renderer;
+class ImGuiImpl;
+
 namespace gfx
 {
 	class Context;
@@ -30,6 +33,7 @@ namespace gfx
 	{
 		friend class RenderWindow;
 		friend class CommandList;
+		friend class ::ImGuiImpl;
 	public:
 		CommandQueue(Context* context, CommandQueueType queue_type);
 		~CommandQueue() = default;

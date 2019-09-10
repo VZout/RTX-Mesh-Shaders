@@ -10,6 +10,8 @@
 #include <vector>
 #include <cstdint>
 
+class Renderer;
+
 namespace gfx
 {
 
@@ -25,6 +27,8 @@ namespace gfx
 	class DescriptorHeap
 	{
 		friend class CommandList;
+
+		friend class ::Renderer; // TODO: remove me bich
 	public:
 		struct Desc
 		{
