@@ -29,7 +29,7 @@
 
 #include <iostream>
 
-Renderer::Renderer()
+Renderer::Renderer() : m_context(nullptr), m_direct_queue(nullptr), m_render_window(nullptr), m_direct_cmd_list(nullptr)
 {
 
 }
