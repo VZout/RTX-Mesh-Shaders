@@ -17,17 +17,17 @@ jobs:
   #    run: cd build && cmake ..
   #  - name: Build (Make)
   #    run: cd build && make
-  build_windows:
-    name: Build for Windows (MinGW)
-    runs-on: windows-latest
-    
-    steps:
-    - uses: actions/checkout@v1
-    - name: Checkout submodules
-      run: git submodule update --init --recursive
-    - name: Create Build Directory
-      run: mkdir build
-    - name: Configure CMake (MinGW)
-      run: cd build && cmake -DCMAKE_SH="CMAKE_SH-NOTFOUND" -G "MinGW Makefiles" ..
-    - name: Build (MinGW)
-      run: cd build && make
+  #build_windows:
+  #  name: Build for Windows (MinGW)
+  #  runs-on: windows-latest
+  #  
+  #  steps:
+  #  - uses: actions/checkout@v1
+  #  - name: Checkout submodules
+  #    run: git submodule update --init --recursive
+  #  - name: Create Build Directory
+  #    run: mkdir build
+  #  - name: Configure CMake (MinGW)
+  #    run: cd build && cmake -DCMAKE_SH="CMAKE_SH-NOTFOUND" -G "MinGW Makefiles" ..
+  #  - name: Build (MinGW)
+  #    run: cd build && make
