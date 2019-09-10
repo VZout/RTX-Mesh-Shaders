@@ -182,6 +182,23 @@ void Renderer::Render()
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 
+	ImGui::DockSpaceOverViewport(ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+
+	if (ImGui::BeginMainMenuBar())
+	{
+		if (ImGui::BeginMenu("File"))
+		{
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("About"))
+		{
+			ImGui::EndMenu();
+		}
+
+		ImGui::EndMainMenuBar();
+	}
+
 	ImGui::Begin("Whatsup");
 	ImGui::Text("Hey this is my framerate: %.0f", ImGui::GetIO().Framerate);
 	ImGui::ToggleButton("Toggle", &m_temp);
