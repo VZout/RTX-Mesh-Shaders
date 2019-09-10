@@ -535,7 +535,6 @@ void ImGuiImpl::UpdateBuffers()
 	}
 
 	// Index buffer
-	VkDeviceSize indexSize = imDrawData->TotalIdxCount * sizeof(ImDrawIdx);
 	if (!indexBuffer || (indexBuffer->m_buffer == VK_NULL_HANDLE) || (indexCount < imDrawData->TotalIdxCount)) {
 		if (indexBuffer)
 		{
@@ -560,20 +559,16 @@ void ImGuiImpl::UpdateBuffers()
 	}
 
 	// Flush to make writes visible to GPU
-	auto flush = [this](gfx::GPUBuffer* buffer)
-	{
-		VkMappedMemoryRange mappedRange = {};
-		mappedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-		mappedRange.pNext = nullptr;
-		mappedRange.memory = buffer->m_buffer_memory;
-		mappedRange.offset = 0;
-		mappedRange.size = VK_WHOLE_SIZE;
-		return vkFlushMappedMemoryRanges(m_context->m_logical_device, 1, &mappedRange);
-	};
-
-	flush(vertexBuffer);
-	flush(indexBuffer);
-	// TODO make this a single flush
+	VkMappedMemoryRange vb_mapped_range = {}, ib_mapped_range = {};
+	vb_mapped_range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+	vb_mapped_range.pNext = nullptr;
+	vb_mapped_range.offset = 0;
+	vb_mapped_range.size = VK_WHOLE_SIZE;
+	vb_mapped_range.memory = vertexBuffer->m_buffer_memory;
+	ib_mapped_range = vb_mapped_range;
+	ib_mapped_range.memory = indexBuffer->m_buffer_memory;
+	std::vector<VkMappedMemoryRange> mapped_ranges = { vb_mapped_range, ib_mapped_range };
+	vkFlushMappedMemoryRanges(m_context->m_logical_device, mapped_ranges.size(), mapped_ranges.data());
 }
 
 void ImGuiImpl::Draw(gfx::CommandList* cmd_list, std::uint32_t frame_idx) // TODO: Kill the frame index
