@@ -20,12 +20,17 @@ namespace gfx
 		friend class CommandList;
 		friend class DescriptorHeap;
 	public:
-		explicit RootSignature(Context* context);
+		struct Desc
+		{
+			std::vector<VkDescriptorSetLayoutBinding> m_parameters;
+		};
+
+		RootSignature(Context* context, Desc desc);
 		~RootSignature();
 		void Compile();
 
 	private:
-		std::vector<VkDescriptorSetLayoutBinding> m_layout_bindings;
+		Desc m_desc;
 		std::vector<VkDescriptorSetLayout> m_descriptor_set_layouts;
 		VkPipelineLayoutCreateInfo m_pipeline_layout_info;
 		VkPipelineLayout m_pipeline_layout;

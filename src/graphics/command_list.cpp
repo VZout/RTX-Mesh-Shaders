@@ -124,7 +124,7 @@ void gfx::CommandList::BindVertexBuffer(StagingBuffer* staging_buffer, std::uint
 
 void gfx::CommandList::BindDescriptorTable(RootSignature* root_signature, DescriptorHeap* heap, std::uint32_t handle, std::uint32_t frame_idx)
 {
-	vkCmdBindDescriptorSets(m_cmd_buffers[frame_idx], VK_PIPELINE_BIND_POINT_GRAPHICS, root_signature->m_pipeline_layout, 0, 1, &heap->m_descriptor_sets[handle], 0, nullptr);
+	vkCmdBindDescriptorSets(m_cmd_buffers[frame_idx], VK_PIPELINE_BIND_POINT_GRAPHICS, root_signature->m_pipeline_layout, 0, 1, &heap->m_descriptor_sets[frame_idx][handle], 0, nullptr);
 }
 
 void gfx::CommandList::StageBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx)

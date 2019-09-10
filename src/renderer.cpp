@@ -91,7 +91,14 @@ void Renderer::Init(Application* app)
 
 	m_viewport = new gfx::Viewport(app->GetWidth(), app->GetHeight());
 
-	m_root_signature = new gfx::RootSignature(m_context);
+	gfx::RootSignature::Desc root_signature_desc;
+	root_signature_desc.m_parameters.resize(1);
+	root_signature_desc.m_parameters[0].binding = 0;
+	root_signature_desc.m_parameters[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	root_signature_desc.m_parameters[0].descriptorCount = 1;
+	root_signature_desc.m_parameters[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	root_signature_desc.m_parameters[0].pImmutableSamplers = nullptr;
+	m_root_signature = new gfx::RootSignature(m_context, root_signature_desc);
 	m_root_signature->Compile();
 
 	m_pipeline = new gfx::PipelineState(m_context);
@@ -113,16 +120,16 @@ void Renderer::Init(Application* app)
 
 	m_vertex_buffer = new gfx::StagingBuffer(m_context, (void*)vertices.data(), vertices.size(), sizeof(Vertex2D), gfx::enums::BufferUsageFlag::VERTEX_BUFFER);
 
-	Sleep(20);
-	int x = 0;
-
-	m_desc_heap = new gfx::DescriptorHeap(m_context, m_root_signature);
+	gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
+	descriptor_heap_desc.m_versions = gfx::settings::num_back_buffers;
+	descriptor_heap_desc.m_num_descriptors = 1;
+	m_desc_heap = new gfx::DescriptorHeap(m_context, m_root_signature, descriptor_heap_desc);
 	m_cbs.resize(gfx::settings::num_back_buffers);
 	for (auto i = 0; i < gfx::settings::num_back_buffers; i++)
 	{
 		m_cbs[i] = new gfx::GPUBuffer(m_context, sizeof(cb::Basic), gfx::enums::BufferUsageFlag::CONSTANT_BUFFER);
 		m_cbs[i]->Map();
-		m_desc_heap->CreateSRVFromCB(m_cbs[i], i);
+		m_desc_heap->CreateSRVFromCB(m_cbs[i], 0, i);
 	}
 
 	// Upload
@@ -155,7 +162,7 @@ void Renderer::Render()
 	m_direct_cmd_list->BindRenderTargetVersioned(m_render_window, frame_idx);
 	m_direct_cmd_list->BindPipelineState(m_pipeline, frame_idx);
 	m_direct_cmd_list->BindVertexBuffer(m_vertex_buffer, frame_idx);
-	m_direct_cmd_list->BindDescriptorTable(m_root_signature, m_desc_heap, frame_idx, frame_idx);
+	m_direct_cmd_list->BindDescriptorTable(m_root_signature, m_desc_heap, 0, frame_idx);
 	m_direct_cmd_list->Draw(frame_idx, 4, 1);
 	m_direct_cmd_list->Close(frame_idx);
 
