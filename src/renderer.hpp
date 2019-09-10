@@ -6,6 +6,8 @@
 
 #pragma once
 
+#define IMGUI
+
 #include <vector>
 #include <cstdint>
 #include <chrono>
@@ -61,7 +63,9 @@ private:
 
 	bool m_temp = false;
 
+#ifdef IMGUI
 	ImGuiImpl* imgui_impl;
+#endif
 
 	std::chrono::time_point<std::chrono::high_resolution_clock> m_start;
 };

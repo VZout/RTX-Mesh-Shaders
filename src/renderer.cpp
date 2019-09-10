@@ -27,7 +27,6 @@
 #include "imgui/imgui_impl_glfw.hpp"
 #include "imgui/imgui_impl_vulkan.hpp"
 
-#include <chrono>
 #include <iostream>
 
 Renderer::Renderer()
@@ -39,7 +38,9 @@ Renderer::~Renderer()
 {
 	WaitForAllPreviousWork();
 
+#ifdef IMGUI
 	delete imgui_impl;
+#endif
 
 	ImGui_ImplGlfw_Shutdown();
 
@@ -135,7 +136,6 @@ void Renderer::Init(Application* app)
 
 	m_start = std::chrono::high_resolution_clock::now();
 
-#define IMGUI
 #ifdef IMGUI
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
