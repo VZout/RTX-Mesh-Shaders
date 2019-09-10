@@ -6,6 +6,8 @@
 
 #include "application.hpp"
 
+#include <iostream>
+
 Application::Application(std::string const & name)
 	: m_window(nullptr), m_name(name)
 {
@@ -78,6 +80,39 @@ std::uint32_t Application::GetHeight() const
 	glfwGetWindowSize(m_window, &_, &height);
 
 	return static_cast<std::uint32_t>(height);
+}
+
+bool Application::IsFullscreen() const
+{
+	return glfwGetWindowMonitor(m_window) != nullptr;
+}
+
+void Application::SetFullscreen(bool value)
+{
+	if (IsFullscreen() == value)
+	{
+		std::cout << "Window is already in that mode. nothing is being done" << std::endl;
+		return;
+	}
+
+	if (value)
+	{
+		// backup window position and window size
+		glfwGetWindowPos(m_window, &prev_x, &prev_y);
+		glfwGetWindowSize(m_window, &prev_width, &prev_height);
+
+		// get resolution of monitor
+		const auto monitor = glfwGetPrimaryMonitor();
+		const auto mode = glfwGetVideoMode(monitor);
+
+		// Switch to full screen
+		glfwSetWindowMonitor(m_window, monitor, 0, 0, mode->width, mode->height, 0 );
+	}
+	else
+	{
+		// restore last window size and position
+		glfwSetWindowMonitor(m_window, nullptr, prev_x, prev_y, prev_width, prev_height, 0 );
+	}
 }
 
 void Application::SetVisibility(bool value)

@@ -30,6 +30,11 @@
 #include <chrono>
 #include <iostream>
 
+Renderer::Renderer()
+{
+
+}
+
 Renderer::~Renderer()
 {
 	WaitForAllPreviousWork();
@@ -42,7 +47,6 @@ Renderer::~Renderer()
 	{
 		delete cb;
 	}
-	delete m_vertex_buffer;
 	delete m_viewport;
 	for (auto& fence : m_present_fences)
 	{
@@ -113,20 +117,9 @@ void Renderer::Init(Application* app)
 	m_pipeline->SetViewport(m_viewport);
 	m_pipeline->AddShader(m_vs);
 	m_pipeline->AddShader(m_ps);
-	m_pipeline->SetInputLayout(Vertex2D::GetInputLayout());
 	m_pipeline->SetRenderTarget(m_render_window);
 	m_pipeline->SetRootSignature(m_root_signature);
 	m_pipeline->Compile();
-
-	const std::vector<Vertex2D> vertices =
-	{
-		{{-1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
-		{{-1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}},
-		{{1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}},
-		{{1.0f, -1.0f}, {0.0f, 0.0f, 1.0f}}
-	};
-
-	m_vertex_buffer = new gfx::StagingBuffer(m_context, (void*)vertices.data(), vertices.size(), sizeof(Vertex2D), gfx::enums::BufferUsageFlag::VERTEX_BUFFER);
 
 	gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
 	descriptor_heap_desc.m_versions = gfx::settings::num_back_buffers;
@@ -140,15 +133,6 @@ void Renderer::Init(Application* app)
 		m_desc_heap->CreateSRVFromCB(m_cbs[i], 0, i);
 	}
 
-	// Upload
-	m_direct_cmd_list->Begin(0);
-	m_direct_cmd_list->StageBuffer(m_vertex_buffer, 0);
-	m_direct_cmd_list->Close(0);
-	m_direct_queue->Execute({ m_direct_cmd_list }, nullptr, 0);
-	m_direct_queue->Wait();
-	m_vertex_buffer->FreeStagingResources();
-	std::cout << "Finished Uploading Resources" << std::endl;
-
 	m_start = std::chrono::high_resolution_clock::now();
 
 #define IMGUI
@@ -157,12 +141,9 @@ void Renderer::Init(Application* app)
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
-	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
 	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
 	io.ConfigDockingWithShift = true;
-	//io.ConfigViewportsNoAutoMerge = true;
-	//io.ConfigViewportsNoTaskBarIcon = true;
 
 	ImGui_ImplGlfw_InitForVulkan(app->GetWindow(), true);
 
@@ -193,7 +174,6 @@ void Renderer::Render()
 	m_direct_cmd_list->BindRenderTargetVersioned(m_render_window, frame_idx);
 
 	m_direct_cmd_list->BindPipelineState(m_pipeline, frame_idx);
-	m_direct_cmd_list->BindVertexBuffer(m_vertex_buffer, frame_idx);
 	m_direct_cmd_list->BindDescriptorTable(m_root_signature, m_desc_heap, 0, frame_idx);
 	m_direct_cmd_list->Draw(frame_idx, 4, 1);
 
@@ -204,9 +184,11 @@ void Renderer::Render()
 
 	ImGui::Begin("Whatsup");
 	ImGui::Text("Hey this is my framerate: %.0f", ImGui::GetIO().Framerate);
+	ImGui::ToggleButton("Toggle", &m_temp);
 	ImGui::End();
 
-	ImGui::Begin("Letsgo");
+	ImGui::Begin("Vulkan Details");
+
 	ImGui::End();
 
 	// Render to generate draw buffers
