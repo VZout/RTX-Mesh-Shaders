@@ -4,3 +4,7 @@
 [submodule "external/glm"]
 	path = external/glm
 	url = https://github.com/g-truc/glm
+[submodule "external/imgui"]
+	path = external/imgui
+	url = https://github.com/ocornut/imgui.git
+	branch = docking

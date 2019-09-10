@@ -3,8 +3,8 @@
 #include "context.hpp"
 #include "gfx_settings.hpp"
 
-gfx::RootSignature::RootSignature(Context* context)
-	: m_context(context), m_pipeline_layout(VK_NULL_HANDLE), m_pipeline_layout_info()
+gfx::RootSignature::RootSignature(Context* context, Desc desc)
+	: m_context(context), m_pipeline_layout(VK_NULL_HANDLE), m_pipeline_layout_info(), m_desc(desc)
 {
 
 }
@@ -24,23 +24,19 @@ void gfx::RootSignature::Compile()
 {
 	auto logical_device = m_context->m_logical_device;
 
-	m_descriptor_set_layouts.resize(1);
-	m_layout_bindings.resize(1);
+	m_descriptor_set_layouts.resize(m_desc.m_parameters.size());
 
-	m_layout_bindings[0].binding = 0;
-	m_layout_bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	m_layout_bindings[0].descriptorCount = 1;
-	m_layout_bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	m_layout_bindings[0].pImmutableSamplers = nullptr;
-
-	VkDescriptorSetLayoutCreateInfo descriptor_set_create_info = {};
-	descriptor_set_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	descriptor_set_create_info.bindingCount = m_layout_bindings.size();
-	descriptor_set_create_info.pBindings = m_layout_bindings.data();
-
-	if (vkCreateDescriptorSetLayout(logical_device, &descriptor_set_create_info, nullptr, &m_descriptor_set_layouts[0]) != VK_SUCCESS)
+	for (auto i = 0; i < m_descriptor_set_layouts.size(); i++)
 	{
-		throw std::runtime_error("failed to create descriptor set layout!");
+		VkDescriptorSetLayoutCreateInfo descriptor_set_create_info = {};
+		descriptor_set_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		descriptor_set_create_info.bindingCount = m_desc.m_parameters.size();
+		descriptor_set_create_info.pBindings = m_desc.m_parameters.data();
+
+		if (vkCreateDescriptorSetLayout(logical_device, &descriptor_set_create_info, nullptr, &m_descriptor_set_layouts[i]) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create descriptor set layout!");
+		}
 	}
 
 	m_pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

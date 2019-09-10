@@ -26,15 +26,22 @@ namespace gfx
 	{
 		friend class CommandList;
 	public:
-		explicit DescriptorHeap(Context* context, RootSignature* root_signature);
+		struct Desc
+		{
+			std::uint32_t m_num_descriptors = 1;
+			std::uint32_t m_versions = 1;
+		};
+
+		explicit DescriptorHeap(Context* context, RootSignature* root_signature, Desc desc);
 		~DescriptorHeap();
 
-		void CreateSRVFromCB(GPUBuffer* buffer, std::uint32_t handle);
+		void CreateSRVFromCB(GPUBuffer* buffer, std::uint32_t handle, std::uint32_t frame_idx);
 
 	private:
+		Desc m_desc;
 		VkDescriptorPoolCreateInfo m_descriptor_pool_create_info;
-		VkDescriptorPool m_descriptor_pool;
-		std::vector<VkDescriptorSet> m_descriptor_sets;
+		std::vector<VkDescriptorPool> m_descriptor_pools;
+		std::vector<std::vector<VkDescriptorSet>> m_descriptor_sets; // first array is versions second array is sets
 
 		Context* m_context;
 	};
