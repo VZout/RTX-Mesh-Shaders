@@ -22,6 +22,8 @@ public:
 	void Close();
 	[[nodiscard]] std::uint32_t GetWidth() const;
 	[[nodiscard]] std::uint32_t GetHeight() const;
+	bool IsFullscreen() const;
+	void SetFullscreen(bool value);
 	void SetVisibility(bool value);
 	HWND GetNativeHandle();
 	GLFWwindow* GetWindow();
@@ -40,6 +42,10 @@ protected:
 
 	GLFWwindow* m_window;
 	const std::string m_name;
+
+private:
+	int prev_x, prev_y, prev_width, prev_height;
+
 };
 
 #define ENTRY(AppType, width, height) \

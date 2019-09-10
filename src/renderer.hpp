@@ -35,7 +35,7 @@ namespace gfx
 class Renderer
 {
 public:
-	Renderer() = default;
+	Renderer();
 	~Renderer();
 
 	void Init(Application* app);
@@ -54,11 +54,12 @@ private:
 	gfx::Shader* m_vs;
 	gfx::Shader* m_ps;
 	gfx::Viewport* m_viewport;
-	gfx::StagingBuffer* m_vertex_buffer;
 	gfx::DescriptorHeap* m_desc_heap;
 	std::vector<gfx::GPUBuffer*> m_cbs;
 	gfx::PipelineState* m_pipeline;
 	gfx::RootSignature* m_root_signature;
+
+	bool m_temp = false;
 
 	ImGuiImpl* imgui_impl;
 

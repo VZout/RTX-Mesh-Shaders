@@ -14,7 +14,7 @@
 #include "fence.hpp"
 #include "gfx_settings.hpp"
 
-gfx::RenderWindow::RenderWindow(Context* context) : RenderTarget(context), m_frame_idx(0)
+gfx::RenderWindow::RenderWindow(Context* context) : RenderTarget(context), m_frame_idx(0), m_swapchain_create_info()
 {
 	auto app = context->m_app;
 	CreateSwapchain(app->GetWidth(), app->GetHeight());
@@ -171,26 +171,25 @@ void gfx::RenderWindow::CreateSwapchain(std::uint32_t width, std::uint32_t heigh
 
 	auto capabilities = m_context->m_swapchain_support_details.m_capabilities;
 
-	VkSwapchainCreateInfoKHR create_info = {};
-	create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	create_info.surface = m_context->m_surface;
-	create_info.minImageCount = num_back_buffers;
-	create_info.imageFormat = surface_format.format;
-	create_info.imageColorSpace = surface_format.colorSpace;
-	create_info.imageExtent.width = width;
-	create_info.imageExtent.height = height;
-	create_info.imageArrayLayers = 1;
-	create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	create_info.queueFamilyIndexCount = 0;
-	create_info.pQueueFamilyIndices = nullptr;
-	create_info.preTransform = capabilities.currentTransform;
-	create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-	create_info.presentMode = present_mode;
-	create_info.clipped = VK_TRUE;
-	create_info.oldSwapchain = VK_NULL_HANDLE;
+	m_swapchain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	m_swapchain_create_info.surface = m_context->m_surface;
+	m_swapchain_create_info.minImageCount = num_back_buffers;
+	m_swapchain_create_info.imageFormat = surface_format.format;
+	m_swapchain_create_info.imageColorSpace = surface_format.colorSpace;
+	m_swapchain_create_info.imageExtent.width = width;
+	m_swapchain_create_info.imageExtent.height = height;
+	m_swapchain_create_info.imageArrayLayers = 1;
+	m_swapchain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	m_swapchain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	m_swapchain_create_info.queueFamilyIndexCount = 0;
+	m_swapchain_create_info.pQueueFamilyIndices = nullptr;
+	m_swapchain_create_info.preTransform = capabilities.currentTransform;
+	m_swapchain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	m_swapchain_create_info.presentMode = present_mode;
+	m_swapchain_create_info.clipped = VK_TRUE;
+	m_swapchain_create_info.oldSwapchain = VK_NULL_HANDLE; // TODO: Do i want this for rebuild?
 
-	if (vkCreateSwapchainKHR(m_context->m_logical_device, &create_info, nullptr, &m_swapchain) != VK_SUCCESS) {
+	if (vkCreateSwapchainKHR(m_context->m_logical_device, &m_swapchain_create_info, nullptr, &m_swapchain) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create swap chain!");
 	}
 }

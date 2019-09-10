@@ -42,6 +42,7 @@ namespace gfx
 		void CreateFrameBuffers();
 
 		std::uint32_t m_frame_idx;
+		VkSwapchainCreateInfoKHR m_swapchain_create_info;
 		VkSwapchainKHR m_swapchain;
 		std::vector<VkImage> m_swapchain_images;
 		std::vector<VkImageView> m_swapchain_image_views;
