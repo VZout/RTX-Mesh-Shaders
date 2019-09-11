@@ -42,10 +42,10 @@ namespace gfx
 		void Wait();
 
 	private:
+		Context* m_context;
+
 		CommandQueueType m_type;
 		VkQueue m_queue;
-
-		Context* m_context;
 	};
 
 } /* gfx */

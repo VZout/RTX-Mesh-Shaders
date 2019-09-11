@@ -6,7 +6,6 @@
 
 #include "context.hpp"
 
-#include <iostream>
 #include <vector>
 #include <GLFW/glfw3.h>
 #include <map>
@@ -15,18 +14,48 @@
 
 #include "../application.hpp"
 #include "gfx_settings.hpp"
+#include "../util/log.hpp"
 
 namespace internal
 {
 
 	static VKAPI_ATTR VkBool32 VKAPI_CALL ValidationLayerCallback(
-			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-			VkDebugUtilsMessageTypeFlagsEXT messageType,
-			const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-			void* pUserData)
+			VkDebugUtilsMessageSeverityFlagBitsEXT severity,
+			VkDebugUtilsMessageTypeFlagsEXT type,
+			const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
+			[[maybe_unused]] void* user_data)
 	{
 
-		std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+		std::string prefix = "";
+
+		switch(type)
+		{
+			case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT:
+			default:
+				prefix += "[VALIDATION:COMMON]";
+				break;
+			case VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT :
+				prefix += "[VALIDATION:SPEC]";
+				break;
+			case VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT :
+				prefix += "[VALIDATION:PERF]";
+				break;
+		}
+
+		switch(severity)
+		{
+			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+				LOG("{} Validation Layer: {}", prefix, callback_data->pMessage);
+				break;
+			default:
+			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+				LOGW("{} Validation Layer: {}", prefix, callback_data->pMessage);
+				break;
+			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+				LOGE("{} Validation Layer: {}", prefix, callback_data->pMessage);
+				break;
+		}
+
 
 		return VK_FALSE;
 	}
@@ -67,11 +96,19 @@ namespace internal
 } /* internal */
 
 gfx::Context::Context(Application* app)
-	: m_app_info(), m_instance_create_info(), m_instance(VK_NULL_HANDLE),
-	m_debug_messenger(), m_debug_messenger_create_info(),
-	m_logical_device(VK_NULL_HANDLE), m_physical_device(VK_NULL_HANDLE),
-	m_physical_device_properties(), m_physical_device_features(),
-	m_surface(VK_NULL_HANDLE), m_surface_create_info(), m_app(app)
+	: m_app_info(),
+	m_instance_create_info(),
+	m_instance(VK_NULL_HANDLE),
+	m_debug_messenger_create_info(),
+	m_debug_messenger(),
+	m_logical_device(VK_NULL_HANDLE),
+	m_physical_device(VK_NULL_HANDLE),
+	m_physical_device_features(),
+	m_physical_device_properties(),
+	m_physical_device_mem_properties(),
+	m_surface(VK_NULL_HANDLE),
+	m_surface_create_info(),
+	m_app(app)
 {
 	std::uint32_t glfw_extension_count;
 	const char** glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
@@ -85,7 +122,7 @@ gfx::Context::Context(Application* app)
 		m_debug_messenger_create_info = internal::GetDebugMessengerCreateInfo();
 		if (!HasValidationLayerSupport())
 		{
-			std::cout << "Requested validation layers but doesn't support it" << std::endl;
+			LOGE("Requested validation layers but doesn't support it");
 		}
 		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 	}
@@ -108,7 +145,7 @@ gfx::Context::Context(Application* app)
 	auto result = vkCreateInstance(&m_instance_create_info, nullptr, &m_instance);
 	if (result != VK_SUCCESS)
 	{
-		throw std::runtime_error("Failed to create a Vulkan instance.");
+		LOGC("Failed to create a Vulkan instance.");
 	}
 
 	if (gfx::settings::enable_validation_layers)
@@ -220,7 +257,7 @@ std::uint32_t gfx::Context::FindMemoryType(std::uint32_t filter, VkMemoryPropert
 		}
 	}
 
-	throw std::runtime_error("failed to find suitable memory type!");
+	LOGC("failed to find suitable memory type!");
 }
 
 void gfx::Context::CreateSurface()
@@ -231,7 +268,7 @@ void gfx::Context::CreateSurface()
 
 	if (vkCreateWin32SurfaceKHR(m_instance, &m_surface_create_info, nullptr, &m_surface) != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to create window surface!");
+		LOGC("failed to create window surface!");
 	}
 }
 
@@ -259,7 +296,7 @@ void gfx::Context::CreateLogicalDevice()
 
 	if (vkCreateDevice(m_physical_device, &create_info, nullptr, &m_logical_device) != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to create logical device!");
+		LOGC("failed to create logical device!");
 	}
 }
 
@@ -272,7 +309,7 @@ VkPhysicalDevice gfx::Context::FindPhysicalDevice()
 
 	if (device_count == 0)
 	{
-		throw std::runtime_error("failed to find GPUs with Vulkan support!");
+		LOGC("failed to find GPUs with Vulkan support!");
 	}
 
 	std::vector<VkPhysicalDevice> devices(device_count);
@@ -293,7 +330,7 @@ VkPhysicalDevice gfx::Context::FindPhysicalDevice()
 	}
 	else
 	{
-		throw std::runtime_error("failed to find a suitable GPU!");
+		LOGC("failed to find a suitable GPU!");
 	}
 
 	return retval;
@@ -393,7 +430,7 @@ gfx::QueueFamilyIndices gfx::Context::FindQueueFamilies(VkPhysicalDevice device)
 	std::vector<VkQueueFamilyProperties> families(family_count);
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &family_count, families.data());
 
-	for (std::int32_t i = 0; i < families.size(); i++)
+	for (std::size_t i = 0; i < families.size(); i++)
 	{
 		VkBool32 present_support = false;
 		vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_surface, &present_support);
@@ -412,7 +449,7 @@ void gfx::Context::EnableDebugCallback()
 {
 	if (internal::CreateDebugUtilsMessengerEXT(m_instance, &m_debug_messenger_create_info, nullptr, &m_debug_messenger) != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to set up debug messenger!");
+		LOGC("failed to set up debug messenger!");
 	}
 }
 

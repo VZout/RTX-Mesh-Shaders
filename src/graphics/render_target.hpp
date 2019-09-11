@@ -46,4 +46,4 @@ namespace gfx
 		Context* m_context;
 	};
 
-}; /* gfx */
+} /* gfx */

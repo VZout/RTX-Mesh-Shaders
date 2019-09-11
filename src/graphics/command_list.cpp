@@ -30,7 +30,7 @@ gfx::CommandList::CommandList(CommandQueue* queue)
 	}
 
 	m_cmd_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	m_cmd_pool_create_info.queueFamilyIndex = m_context->GetDirectQueueFamilyIdx();
+	m_cmd_pool_create_info.queueFamilyIndex = queue_family_idx;
 	m_cmd_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 	if (vkCreateCommandPool(logical_device, &m_cmd_pool_create_info, nullptr, &m_cmd_pool) != VK_SUCCESS)

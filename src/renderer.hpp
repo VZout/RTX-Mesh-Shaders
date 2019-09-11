@@ -52,7 +52,7 @@ private:
 	gfx::CommandList* m_direct_cmd_list;
 	std::vector<gfx::Fence*> m_present_fences;
 
-	// Temporary
+	// TODO Temporary
 	gfx::Shader* m_vs;
 	gfx::Shader* m_ps;
 	gfx::Viewport* m_viewport;

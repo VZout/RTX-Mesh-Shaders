@@ -52,8 +52,6 @@ void gfx::RenderWindow::AquireBackBuffer(Fence* fence)
 
 void gfx::RenderWindow::Present(CommandQueue* queue, Fence* fence)
 {
-	auto logical_device = m_context->m_logical_device;
-
 	VkPresentInfoKHR present_info = {};
 	present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 	present_info.waitSemaphoreCount = 1;

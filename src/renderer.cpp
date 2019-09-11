@@ -6,6 +6,7 @@
 
 #include "renderer.hpp"
 
+#include "util/log.hpp"
 #include "application.hpp"
 #include "vertex.hpp"
 #include "buffer_definitions.hpp"
@@ -26,8 +27,6 @@
 #include "imgui/imgui_style.hpp"
 #include "imgui/imgui_impl_glfw.hpp"
 #include "imgui/imgui_impl_vulkan.hpp"
-
-#include <iostream>
 
 Renderer::Renderer() : m_context(nullptr), m_direct_queue(nullptr), m_render_window(nullptr), m_direct_cmd_list(nullptr)
 {
@@ -68,7 +67,7 @@ void Renderer::Init(Application* app)
 {
 	m_context = new gfx::Context(app);
 
-	std::cout << "Initialized Vulkan" << std::endl;
+	LOG("Initialized Vulkan");
 
 	auto supported_extensions = m_context->GetSupportedExtensions();
 	auto supported_device_extensions = m_context->GetSupportedDeviceExtensions();
@@ -77,14 +76,14 @@ void Renderer::Init(Application* app)
 	{
 		for (auto extension : extensions)
 		{
-			std::cout << "\t- " << extension.extensionName << " (" << std::to_string(extension.specVersion) << ")" << std::endl;
+			LOG("\t- {} ({})", extension.extensionName, std::to_string(extension.specVersion));
 		}
 	};
 
-	std::cout << "Supported Instance Extensions:" << std::endl;
+	LOG("Supported Instance Extensions:");
 	print_extensions_func(supported_extensions);
 
-	std::cout << "Supported Device Extensions:" << std::endl;
+	LOG("Supported Device Extensions:");
 	print_extensions_func(supported_device_extensions);
 
 	m_render_window = new gfx::RenderWindow(m_context);
@@ -127,7 +126,7 @@ void Renderer::Init(Application* app)
 	descriptor_heap_desc.m_num_descriptors = 1;
 	m_desc_heap = new gfx::DescriptorHeap(m_context, m_root_signature, descriptor_heap_desc);
 	m_cbs.resize(gfx::settings::num_back_buffers);
-	for (auto i = 0; i < gfx::settings::num_back_buffers; i++)
+	for (std::uint32_t i = 0; i < gfx::settings::num_back_buffers; i++)
 	{
 		m_cbs[i] = new gfx::GPUBuffer(m_context, sizeof(cb::Basic), gfx::enums::BufferUsageFlag::CONSTANT_BUFFER);
 		m_cbs[i]->Map();
@@ -152,10 +151,10 @@ void Renderer::Init(Application* app)
 
 	imgui_impl = new ImGuiImpl();
 	imgui_impl->InitImGuiResources(m_context, m_render_window, m_direct_queue);
-	std::cout << "Finished Initializing ImGui" << std::endl;
+	LOG("Finished Initializing ImGui");
 #endif
 
-	std::cout << "Finished Initializing Renderer" << std::endl;
+	LOG("Finished Initializing Renderer");
 }
 
 void Renderer::Render()
