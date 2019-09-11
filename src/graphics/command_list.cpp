@@ -6,6 +6,7 @@
 
 #include "command_list.hpp"
 
+#include "../util/log.hpp"
 #include "context.hpp"
 #include "gfx_settings.hpp"
 #include "descriptor_heap.hpp"
@@ -26,7 +27,7 @@ gfx::CommandList::CommandList(CommandQueue* queue)
 			queue_family_idx = m_context->GetDirectQueueFamilyIdx();
 			break;
 		default:
-			throw std::runtime_error("Tried to create a command queue with a unsupported type");
+			LOGC("Tried to create a command queue with a unsupported type");
 	}
 
 	m_cmd_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -35,7 +36,7 @@ gfx::CommandList::CommandList(CommandQueue* queue)
 
 	if (vkCreateCommandPool(logical_device, &m_cmd_pool_create_info, nullptr, &m_cmd_pool) != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to create command pool!");
+		LOGC("Failed to create command pool.");
 	}
 
 	// Create the actual command buffers
@@ -50,7 +51,7 @@ gfx::CommandList::CommandList(CommandQueue* queue)
 
 	if (vkAllocateCommandBuffers(logical_device, &allocation_info, m_cmd_buffers.data()) != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to allocate command buffers!");
+		LOGC("Failed to allocate command buffers.");
 	}
 }
 
@@ -73,7 +74,7 @@ void gfx::CommandList::Begin(std::uint32_t frame_idx)
 	if (vkResetCommandBuffer(m_cmd_buffers[frame_idx], 0) != VK_SUCCESS ||
 		vkBeginCommandBuffer(m_cmd_buffers[frame_idx], &begin_info) != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to begin recording command buffer!");
+		LOGC("failed to begin recording command buffer!");
 	}
 }
 
@@ -87,7 +88,7 @@ void gfx::CommandList::Close(std::uint32_t frame_idx)
 
 	if (vkEndCommandBuffer(m_cmd_buffers[frame_idx]) != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to record command buffer!");
+		LOGC("failed to record command buffer!");
 	}
 }
 
