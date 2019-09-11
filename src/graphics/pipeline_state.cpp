@@ -5,6 +5,8 @@
  */
 
 #include "pipeline_state.hpp"
+
+#include "../util/log.hpp"
 #include "context.hpp"
 #include "viewport.hpp"
 #include "root_signature.hpp"
@@ -134,7 +136,7 @@ void gfx::PipelineState::Compile()
 
 	if (vkCreateGraphicsPipelines(logical_device, VK_NULL_HANDLE, 1, &m_create_info, nullptr, &m_pipeline) != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to create graphics pipeline!");
+		LOGC("failed to create graphics pipeline!");
 	}
 }
 

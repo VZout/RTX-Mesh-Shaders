@@ -4,8 +4,6 @@
  *  \copyright GNU General Public License v3.0
  */
 
-#include <iostream>
-
 #include "scene_graph.hpp"
 #include "application.hpp"
 #include "renderer.hpp"

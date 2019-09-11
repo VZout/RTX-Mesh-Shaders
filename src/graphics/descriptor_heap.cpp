@@ -4,6 +4,7 @@
 #include "gfx_settings.hpp"
 #include "root_signature.hpp"
 #include "gpu_buffers.hpp"
+#include "../util/log.hpp"
 
 gfx::DescriptorHeap::DescriptorHeap(Context* context, RootSignature* root_signature, Desc desc)
 	: m_context(context), m_desc(desc), m_descriptor_pool_create_info()
@@ -29,7 +30,7 @@ gfx::DescriptorHeap::DescriptorHeap(Context* context, RootSignature* root_signat
 		if (vkCreateDescriptorPool(logical_device, &m_descriptor_pool_create_info, nullptr, &m_descriptor_pools[version]) !=
 		    VK_SUCCESS)
 		{
-			throw std::runtime_error("failed to create descriptor pool!");
+			LOGC("failed to create descriptor pool!");
 		}
 
 		if (!root_signature) continue;
@@ -50,7 +51,7 @@ gfx::DescriptorHeap::DescriptorHeap(Context* context, RootSignature* root_signat
 		m_descriptor_sets[version].resize(desc.m_num_descriptors);
 		if (vkAllocateDescriptorSets(logical_device, &alloc_info, m_descriptor_sets[version].data()) != VK_SUCCESS)
 		{
-			throw std::runtime_error("failed to allocate descriptor sets!");
+			LOGC("failed to allocate descriptor sets!");
 		}
 	}
 }

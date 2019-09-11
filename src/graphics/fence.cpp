@@ -6,6 +6,7 @@
 
 #include "fence.hpp"
 
+#include "../util/log.hpp"
 #include "context.hpp"
 
 gfx::Fence::Fence(Context* context)
@@ -24,7 +25,7 @@ gfx::Fence::Fence(Context* context)
 	    vkCreateSemaphore(logical_device, &semaphore_info, nullptr, &m_signal_semaphore) != VK_SUCCESS ||
 	    vkCreateFence(logical_device, &fence_info, nullptr, &m_fence) != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to create semaphores!");
+		LOGC("failed to create semaphores!");
 	}
 }
 

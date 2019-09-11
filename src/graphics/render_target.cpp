@@ -9,6 +9,7 @@
 #include <stdexcept>
 
 #include "context.hpp"
+#include "../util/log.hpp"
 
 gfx::RenderTarget::RenderTarget(Context* context)
 	: m_context(context), m_color_attachment(), m_subpass(),
@@ -83,7 +84,7 @@ void gfx::RenderTarget::CreateRenderPass(VkFormat format)
 
 	if (vkCreateRenderPass(logical_device, &m_render_pass_create_info, nullptr, &m_render_pass) != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to create render pass!");
+		LOGC("failed to create render pass!");
 	}
 
 }

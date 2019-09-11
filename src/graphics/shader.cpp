@@ -5,9 +5,11 @@
  */
 
 #include "shader.hpp"
-#include "context.hpp"
 
 #include <fstream>
+
+#include "context.hpp"
+#include "../util/log.hpp"
 
 gfx::Shader::Shader(Context* context)
 	: m_context(context), m_module(VK_NULL_HANDLE), m_shader_stage_create_info()
@@ -30,7 +32,7 @@ void gfx::Shader::Load(std::string const& path)
 	std::ifstream file(path.c_str(), std::ios::ate | std::ios::binary);
 	if (!file.is_open())
 	{
-		throw std::runtime_error("failed to open file!");
+		LOGC("failed to open shader file: {}", path);
 	}
 
 	// Determine file size
@@ -62,7 +64,7 @@ void gfx::Shader::Compile(gfx::ShaderType type)
 		case ShaderType::MESH: vulkan_shader_type = VK_SHADER_STAGE_MESH_BIT_NV;
 			break;
 		default:
-			throw std::runtime_error("Tried to compile a shader with a unknown shader type.");
+			LOGC("Tried to compile a shader with a unknown shader type ({})", m_path);
 	}
 
 	auto logical_device = m_context->m_logical_device;
@@ -73,7 +75,7 @@ void gfx::Shader::Compile(gfx::ShaderType type)
 	create_info.pCode = reinterpret_cast<const uint32_t*>(m_data.data());
 
 	if (vkCreateShaderModule(logical_device, &create_info, nullptr, &m_module) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create shader module!");
+		LOGC("Failed to create shader module! ({})", m_path);
 	}
 
 	m_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;

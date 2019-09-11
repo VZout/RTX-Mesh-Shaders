@@ -1,12 +1,12 @@
 #include "imgui_impl_vulkan.hpp"
 
-#include <stdio.h>
 #include <array>
-
-#include "../graphics/command_list.hpp"
 #include <imgui.h>
 
-#define VK_CHECK_RESULT(result) if (result != VK_SUCCESS) throw std::runtime_error("fucking imgui");
+#include "../graphics/command_list.hpp"
+#include "../util/log.hpp"
+
+#define VK_CHECK_RESULT(result) if (result != VK_SUCCESS) LOGE("Something went wrong with imgui");
 
 namespace internal
 {

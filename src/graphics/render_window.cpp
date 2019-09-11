@@ -9,6 +9,7 @@
 #include <array>
 
 #include "../application.hpp"
+#include "../util/log.hpp"
 #include "context.hpp"
 #include "command_queue.hpp"
 #include "fence.hpp"
@@ -46,7 +47,7 @@ void gfx::RenderWindow::AquireBackBuffer(Fence* fence)
 
 	if (m_frame_idx != new_frame_idx)
 	{
-		std::runtime_error("Render window frame index is out of sync with the swap chain!");
+		LOGE("Render window frame index is out of sync with the swap chain!");
 	}
 }
 
@@ -112,7 +113,7 @@ VkSurfaceFormatKHR gfx::RenderWindow::PickSurfaceFormat()
 		}
 	}
 
-	throw std::runtime_error("Can't create swapchain with unsuported format or unsupported color space");
+	LOGC("Can't create swapchain with unsuported format or unsupported color space");
 }
 
 VkPresentModeKHR gfx::RenderWindow::PickPresentMode()
@@ -127,7 +128,7 @@ VkPresentModeKHR gfx::RenderWindow::PickPresentMode()
 		}
 	}
 
-	throw std::runtime_error("Can't create swapchain with unsuported present mode");
+	LOGC("Can't create swapchain with unsuported present mode");
 }
 
 VkExtent2D gfx::RenderWindow::ComputeSwapchainExtend()
@@ -155,7 +156,7 @@ std::uint32_t gfx::RenderWindow::ComputeNumBackBuffers()
 
 	if (gfx::settings::num_back_buffers < capabilities.minImageCount || gfx::settings::num_back_buffers > capabilities.maxImageCount)
 	{
-		throw std::runtime_error("Invalid number of back buffers");
+		LOGC("Invalid number of back buffers");
 	}
 
 	return gfx::settings::num_back_buffers;
@@ -188,7 +189,7 @@ void gfx::RenderWindow::CreateSwapchain(std::uint32_t width, std::uint32_t heigh
 	m_swapchain_create_info.oldSwapchain = VK_NULL_HANDLE; // TODO: Do i want this for rebuild?
 
 	if (vkCreateSwapchainKHR(m_context->m_logical_device, &m_swapchain_create_info, nullptr, &m_swapchain) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create swap chain!");
+		LOGC("failed to create swap chain!");
 	}
 }
 
@@ -226,7 +227,7 @@ void gfx::RenderWindow::CreateSwapchainImageViews()
 		create_info.subresourceRange.layerCount = 1;
 
 		if (vkCreateImageView(logical_device, &create_info, nullptr, &m_swapchain_image_views[i]) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create image views!");
+			LOGC("failed to create image views!");
 		}
 	}
 }
@@ -256,7 +257,7 @@ void gfx::RenderWindow::CreateFrameBuffers()
 		buffer_info.layers = 1;
 
 		if (vkCreateFramebuffer(logical_device, &buffer_info, nullptr, &m_frame_buffers[i]) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create framebuffer!");
+			LOGC("failed to create framebuffer!");
 		}
 	}
 }

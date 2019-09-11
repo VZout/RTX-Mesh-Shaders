@@ -6,6 +6,7 @@
 
 #include "gpu_buffers.hpp"
 
+#include "../util/log.hpp"
 #include "context.hpp"
 
 gfx::GPUBuffer::GPUBuffer(gfx::Context* context, std::uint64_t size)
@@ -63,7 +64,7 @@ void gfx::GPUBuffer::Update(void* data, std::uint64_t size)
 {
 	if (!m_mapped)
 	{
-		throw std::runtime_error("Can't update a buffer that is not mapped.");
+		LOGC("Can't update a buffer that is not mapped.");
 	}
 
 	memcpy(m_mapped_data, data, static_cast<std::size_t>(size));
@@ -83,7 +84,7 @@ void gfx::GPUBuffer::CreateBufferAndMemory(VkDeviceSize size, VkBufferUsageFlags
 
 	if (vkCreateBuffer(logical_device, &buffer_create_info, nullptr, &buffer) != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to create vertex buffer!");
+		LOGC("failed to create vertex buffer!");
 	}
 
 	// Get buffer memory requirements
@@ -98,13 +99,13 @@ void gfx::GPUBuffer::CreateBufferAndMemory(VkDeviceSize size, VkBufferUsageFlags
 
 	if (vkAllocateMemory(logical_device, &buffer_alloc_info, nullptr, &memory) != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to allocate vertex buffer memory!");
+		LOGC("failed to allocate vertex buffer memory!");
 	}
 
 	// Bind the buffer to the memory allocation
 	if (vkBindBufferMemory(logical_device, buffer, memory, 0))
 	{
-		throw std::runtime_error("Failed to map buffer to memory.");
+		LOGC("Failed to map buffer to memory.");
 	}
 }
 
@@ -114,7 +115,7 @@ void gfx::GPUBuffer::Map_Internal(VkDeviceMemory memory)
 
 	if (vkMapMemory(logical_device, memory, 0, m_size, 0, &m_mapped_data) != VK_SUCCESS)
 	{
-		throw std::runtime_error("Failed to map staging buffer");
+		LOGC("Failed to map staging buffer");
 	}
 
 	m_mapped = true;
