@@ -6,7 +6,7 @@
 
 #include "application.hpp"
 
-#include <iostream>
+#include "util/log.hpp"
 
 Application::Application(std::string const & name)
 	: m_window(nullptr), m_name(name)
@@ -22,7 +22,7 @@ Application::~Application()
 	Destroy();
 }
 
-void Application::KeyCallback_Internal(GLFWwindow* window, int key, int scan_code, int action, int mods)
+void Application::KeyCallback_Internal(GLFWwindow* window, int key, [[maybe_unused]] int scan_code, int action, [[maybe_unused]] int mods)
 {
 	static_cast<Application*>(glfwGetWindowUserPointer(window))->KeyCallback(key, action);
 }
@@ -91,7 +91,7 @@ void Application::SetFullscreen(bool value)
 {
 	if (IsFullscreen() == value)
 	{
-		std::cout << "Window is already in that mode. nothing is being done" << std::endl;
+		LOGW("Window is already in that mode. nothing is being done");
 		return;
 	}
 

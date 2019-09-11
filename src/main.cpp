@@ -13,12 +13,14 @@
 class Demo : public Application
 {
 public:
-	Demo() : Application("Mesh Shaders Demo")
+	Demo()
+		: Application("Mesh Shaders Demo"),
+		m_renderer(nullptr)
 	{
 
 	}
 
-	~Demo()
+	~Demo() final
 	{
 		delete m_renderer;
 	}

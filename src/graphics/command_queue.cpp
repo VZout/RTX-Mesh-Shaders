@@ -9,9 +9,10 @@
 #include "command_list.hpp"
 #include "context.hpp"
 #include "fence.hpp"
+#include "../util/log.hpp"
 
 gfx::CommandQueue::CommandQueue(Context* context, CommandQueueType queue_type)
-	: m_queue(VK_NULL_HANDLE), m_context(context), m_type(queue_type)
+	: m_context(context), m_type(queue_type), m_queue(VK_NULL_HANDLE)
 {
 	std::uint32_t queue_family_idx = 0;
 
@@ -21,7 +22,8 @@ gfx::CommandQueue::CommandQueue(Context* context, CommandQueueType queue_type)
 			queue_family_idx = context->GetDirectQueueFamilyIdx();
 			break;
 		default:
-			throw std::runtime_error("Tried to create a command queue with a unsupported type");
+			LOGC("Tried to create a command queue with a unsupported type");
+			break;
 	}
 
 	vkGetDeviceQueue(context->m_logical_device, queue_family_idx, 0, &m_queue);
@@ -58,7 +60,7 @@ void gfx::CommandQueue::Execute(std::vector<CommandList*> cmd_lists, Fence* fenc
 
 	if (vkQueueSubmit(m_queue, 1, &submit_info, fence ? fence->m_fence : VK_NULL_HANDLE) != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to submit draw command buffer!");
+		LOGC("failed to submit draw command buffer!");
 	}
 }
 

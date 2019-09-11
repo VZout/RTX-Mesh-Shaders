@@ -47,13 +47,14 @@ namespace gfx
 				std::uint32_t first_idx = 0, std::uint32_t vertex_offset = 0, std::uint32_t first_instance = 0);
 
 	private:
+		Context* m_context;
+		CommandQueue* m_queue;
+
 		VkCommandPool m_cmd_pool;
 		VkCommandPoolCreateInfo m_cmd_pool_create_info;
 		std::vector<VkCommandBuffer> m_cmd_buffers;
 		std::vector<bool> m_bound_render_target;
 
-		CommandQueue* m_queue;
-		Context* m_context;
 	};
 
 } /* gfx */

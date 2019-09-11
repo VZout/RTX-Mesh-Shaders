@@ -32,8 +32,8 @@ protected:
 	virtual void Init() = 0;
 	virtual void Loop() = 0;
 
-	virtual void ResizeCallback(std::uint32_t width, std::uint32_t height) { /* Do nothing if its not overriden */ };
-	virtual void KeyCallback(int key, int action) { /* Do nothing if its not overridden */ };
+	virtual void ResizeCallback([[maybe_unused]] std::uint32_t width, [[maybe_unused]] std::uint32_t height) { /* Do nothing if its not overriden */ };
+	virtual void KeyCallback([[maybe_unused]] int key, [[maybe_unused]] int action) { /* Do nothing if its not overridden */ };
 
 	static void KeyCallback_Internal(GLFWwindow* window, int key, int scan_code, int action, int mods);
 	static void ResizeCallback_Internal(GLFWwindow* window, int width, int height);
