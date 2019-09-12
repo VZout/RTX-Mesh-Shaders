@@ -30,12 +30,13 @@ namespace gfx
 		void Compile();
 
 	private:
+		Context* m_context;
+
 		Desc m_desc;
 		std::vector<VkDescriptorSetLayout> m_descriptor_set_layouts;
-		VkPipelineLayoutCreateInfo m_pipeline_layout_info;
 		VkPipelineLayout m_pipeline_layout;
+		VkPipelineLayoutCreateInfo m_pipeline_layout_info;
 
-		Context* m_context;
 	};
 
 } /* gfx */

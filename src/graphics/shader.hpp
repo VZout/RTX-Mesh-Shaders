@@ -39,13 +39,14 @@ namespace gfx
 		void LoadAndCompile(std::string const & path, ShaderType type);
 
 	private:
+		Context* m_context;
+
 		std::string m_path;
 		ShaderType m_type;
-		VkPipelineShaderStageCreateInfo m_shader_stage_create_info;
 		std::vector<char> m_data; // Cleared after `Shader::Compile`.
 		VkShaderModule m_module;
+		VkPipelineShaderStageCreateInfo m_shader_stage_create_info;
 
-		Context* m_context;
 	};
 
 } /* gfx */

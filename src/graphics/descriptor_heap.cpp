@@ -25,7 +25,7 @@ gfx::DescriptorHeap::DescriptorHeap(Context* context, RootSignature* root_signat
 
 	m_descriptor_sets.resize(desc.m_versions);
 
-	for (auto version = 0; version < desc.m_versions; version++)
+	for (auto version = 0u; version < desc.m_versions; version++)
 	{
 		if (vkCreateDescriptorPool(logical_device, &m_descriptor_pool_create_info, nullptr, &m_descriptor_pools[version]) !=
 		    VK_SUCCESS)
@@ -37,7 +37,7 @@ gfx::DescriptorHeap::DescriptorHeap(Context* context, RootSignature* root_signat
 
 		// Create the descriptor tables
 		std::vector<VkDescriptorSetLayout> layouts(desc.m_num_descriptors);
-		for (auto i = 0; i < desc.m_num_descriptors; i++)
+		for (auto i = 0u; i < desc.m_num_descriptors; i++)
 		{
 			layouts[i] = root_signature->m_descriptor_set_layouts[i];
 		}

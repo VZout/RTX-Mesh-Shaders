@@ -42,12 +42,13 @@ namespace gfx
 		void CreateSRVFromCB(GPUBuffer* buffer, std::uint32_t handle, std::uint32_t frame_idx);
 
 	private:
+		Context* m_context;
+
 		Desc m_desc;
 		VkDescriptorPoolCreateInfo m_descriptor_pool_create_info;
 		std::vector<VkDescriptorPool> m_descriptor_pools;
 		std::vector<std::vector<VkDescriptorSet>> m_descriptor_sets; // first array is versions second array is sets
 
-		Context* m_context;
 	};
 
 } /* gfx */

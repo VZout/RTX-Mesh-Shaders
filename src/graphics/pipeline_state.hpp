@@ -40,7 +40,8 @@ namespace gfx
 		void Recompile();
 
 	private:
-		InputLayout m_input_layout;
+		Context* m_context;
+
 		std::vector<VkPipelineShaderStageCreateInfo> m_shader_info;
 		VkPipelineVertexInputStateCreateInfo m_vertex_input_info;
 		VkPipelineInputAssemblyStateCreateInfo m_ia_info;
@@ -54,8 +55,7 @@ namespace gfx
 		RenderTarget* m_render_target;
 		VkGraphicsPipelineCreateInfo m_create_info;
 		VkPipeline m_pipeline;
-
-		Context* m_context;
+		InputLayout m_input_layout;
 	};
 
 } /* gfx */
