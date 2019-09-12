@@ -5,7 +5,7 @@
 #include "../util/log.hpp"
 
 gfx::RootSignature::RootSignature(Context* context, Desc desc)
-	: m_context(context), m_pipeline_layout(VK_NULL_HANDLE), m_pipeline_layout_info(), m_desc(desc)
+	: m_context(context), m_desc(desc), m_pipeline_layout(VK_NULL_HANDLE), m_pipeline_layout_info()
 {
 
 }

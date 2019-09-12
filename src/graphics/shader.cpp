@@ -12,7 +12,7 @@
 #include "../util/log.hpp"
 
 gfx::Shader::Shader(Context* context)
-	: m_context(context), m_module(VK_NULL_HANDLE), m_shader_stage_create_info()
+	: m_context(context), m_path("unset"), m_module(VK_NULL_HANDLE), m_shader_stage_create_info()
 {
 
 }

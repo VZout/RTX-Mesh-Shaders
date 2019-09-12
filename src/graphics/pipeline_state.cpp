@@ -15,9 +15,19 @@
 #include "render_target.hpp"
 
 gfx::PipelineState::PipelineState(Context* context)
-	: m_context(context), m_vertex_input_info(), m_ia_info(), m_viewport_info(), m_raster_info(),
-	m_ms_info(), m_color_blend_attachment_info(), m_color_blend_info(), m_layout(VK_NULL_HANDLE),
-	m_root_signature(nullptr), m_render_target(nullptr), m_create_info(), m_pipeline(VK_NULL_HANDLE),
+	: m_context(context),
+	m_vertex_input_info(),
+	m_ia_info(),
+	m_viewport_info(),
+	m_raster_info(),
+	m_ms_info(),
+	m_color_blend_attachment_info(),
+	m_color_blend_info(),
+	m_layout(VK_NULL_HANDLE),
+	m_root_signature(nullptr),
+	m_render_target(nullptr),
+	m_create_info(),
+	m_pipeline(VK_NULL_HANDLE),
 	m_input_layout()
 {
 	// Input Assembler
