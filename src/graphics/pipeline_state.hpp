@@ -48,6 +48,7 @@ namespace gfx
 		VkPipelineViewportStateCreateInfo m_viewport_info;
 		VkPipelineRasterizationStateCreateInfo m_raster_info;
 		VkPipelineMultisampleStateCreateInfo m_ms_info;
+		VkPipelineDepthStencilStateCreateInfo m_depth_stencil_info;
 		VkPipelineColorBlendAttachmentState m_color_blend_attachment_info;
 		VkPipelineColorBlendStateCreateInfo m_color_blend_info;
 		VkPipelineLayout m_layout;

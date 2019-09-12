@@ -39,13 +39,13 @@ namespace gfx
 		void Map_Internal(VkDeviceMemory memory);
 		void Unmap_Internal(VkDeviceMemory memory);
 
+		Context* m_context;
+
 		std::uint64_t m_size;
 		bool m_mapped;
 		void* m_mapped_data;
 		VkBuffer m_buffer;
 		VkDeviceMemory m_buffer_memory;
-
-		Context* m_context;
 	};
 
 	class StagingBuffer : public GPUBuffer

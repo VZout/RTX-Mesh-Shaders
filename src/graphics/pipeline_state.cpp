@@ -21,6 +21,7 @@ gfx::PipelineState::PipelineState(Context* context)
 	m_viewport_info(),
 	m_raster_info(),
 	m_ms_info(),
+	m_depth_stencil_info(),
 	m_color_blend_attachment_info(),
 	m_color_blend_info(),
 	m_layout(VK_NULL_HANDLE),
@@ -32,7 +33,7 @@ gfx::PipelineState::PipelineState(Context* context)
 {
 	// Input Assembler
 	m_ia_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	m_ia_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+	m_ia_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 	m_ia_info.primitiveRestartEnable = VK_FALSE;
 
 	// Rasterizer
@@ -42,7 +43,7 @@ gfx::PipelineState::PipelineState(Context* context)
 	m_raster_info.polygonMode = VK_POLYGON_MODE_FILL;
 	m_raster_info.lineWidth = 1.0f;
 	m_raster_info.cullMode = gfx::settings::cull_mode;
-	m_raster_info.frontFace = VK_FRONT_FACE_CLOCKWISE;
+	m_raster_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	m_raster_info.depthBiasEnable = VK_FALSE;
 	m_raster_info.depthBiasConstantFactor = 0.0f;
 	m_raster_info.depthBiasClamp = 0.0f;
@@ -56,6 +57,18 @@ gfx::PipelineState::PipelineState(Context* context)
 	m_ms_info.pSampleMask = nullptr;
 	m_ms_info.alphaToCoverageEnable = VK_FALSE;
 	m_ms_info.alphaToOneEnable = VK_FALSE;
+
+	// Depth Stencil
+	m_depth_stencil_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	m_depth_stencil_info.depthTestEnable = VK_TRUE;
+	m_depth_stencil_info.depthWriteEnable = VK_TRUE;
+	m_depth_stencil_info.depthCompareOp = VK_COMPARE_OP_LESS;
+	m_depth_stencil_info.depthBoundsTestEnable = VK_FALSE;
+	m_depth_stencil_info.minDepthBounds = 0.0f; // Optional
+	m_depth_stencil_info.maxDepthBounds = 1.0f; // Optional
+	m_depth_stencil_info.stencilTestEnable = VK_FALSE;
+	m_depth_stencil_info.front = {};
+	m_depth_stencil_info.back = {};
 
 	// Color Blend Attachment
 	m_color_blend_attachment_info.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -134,7 +147,7 @@ void gfx::PipelineState::Compile()
 	m_create_info.pViewportState = &m_viewport_info;
 	m_create_info.pRasterizationState = &m_raster_info;
 	m_create_info.pMultisampleState = &m_ms_info;
-	m_create_info.pDepthStencilState = nullptr;
+	m_create_info.pDepthStencilState = &m_depth_stencil_info;
 	m_create_info.pColorBlendState = &m_color_blend_info;
 	m_create_info.pDynamicState = nullptr;
 	m_create_info.layout = m_root_signature->m_pipeline_layout;

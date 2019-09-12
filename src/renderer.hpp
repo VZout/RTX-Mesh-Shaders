@@ -14,6 +14,8 @@
 
 class Application;
 class ImGuiImpl;
+class ModelData;
+class TinyGLTFModelLoader;
 
 namespace gfx
 {
@@ -31,6 +33,7 @@ namespace gfx
 	class StagingBuffer;
 	class Fence;
 	class DescriptorHeap;
+	class VkModelPool;
 
 } /* gfx */
 
@@ -60,6 +63,9 @@ private:
 	std::vector<gfx::GPUBuffer*> m_cbs;
 	gfx::PipelineState* m_pipeline;
 	gfx::RootSignature* m_root_signature;
+	TinyGLTFModelLoader* m_model_loader;
+	ModelData* m_model;
+	gfx::VkModelPool* m_model_pool;
 
 	bool m_temp = false;
 

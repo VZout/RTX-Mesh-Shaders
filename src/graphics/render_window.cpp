@@ -15,7 +15,8 @@
 #include "fence.hpp"
 #include "gfx_settings.hpp"
 
-gfx::RenderWindow::RenderWindow(Context* context) : RenderTarget(context), m_frame_idx(0), m_swapchain_create_info()
+gfx::RenderWindow::RenderWindow(Context* context)
+	: RenderTarget(context), m_frame_idx(0), m_swapchain_create_info()
 {
 	auto app = context->m_app;
 	CreateSwapchain(app->GetWidth(), app->GetHeight());
@@ -23,7 +24,11 @@ gfx::RenderWindow::RenderWindow(Context* context) : RenderTarget(context), m_fra
 	GetSwapchainImages();
 	CreateSwapchainImageViews();
 
-	CreateRenderPass(VK_FORMAT_B8G8R8A8_UNORM);
+	CreateDepthBuffer();
+	CreateDepthBufferView();
+
+	CreateRenderPass(VK_FORMAT_B8G8R8A8_UNORM, m_depth_buffer_create_info.format);
+
 	CreateFrameBuffers();
 }
 
@@ -82,6 +87,11 @@ void gfx::RenderWindow::Resize(std::uint32_t width, std::uint32_t height)
 		vkDestroyImageView(logical_device, view, nullptr);
 	}
 
+	// Clean depth buffer
+	vkDestroyImageView(logical_device, m_depth_buffer_view, nullptr);
+	vkDestroyImage(logical_device, m_depth_buffer, nullptr);
+	vkFreeMemory(logical_device, m_depth_buffer_memory, nullptr);
+
 	vkDestroySwapchainKHR(logical_device, m_swapchain, nullptr);
 
 	// Recreate
@@ -92,6 +102,8 @@ void gfx::RenderWindow::Resize(std::uint32_t width, std::uint32_t height)
 
 	CreateRenderPass(VK_FORMAT_B8G8R8A8_UNORM);
 	CreateFrameBuffers();
+	CreateDepthBuffer();
+	CreateDepthBufferView();
 
 	m_frame_idx = 0;
 }
@@ -164,6 +176,9 @@ std::uint32_t gfx::RenderWindow::ComputeNumBackBuffers()
 
 void gfx::RenderWindow::CreateSwapchain(std::uint32_t width, std::uint32_t height)
 {
+	m_width = width;
+	m_height = height;
+
 	auto surface_format = PickSurfaceFormat();
 	auto present_mode = PickPresentMode();
 	auto num_back_buffers = ComputeNumBackBuffers();
@@ -235,23 +250,22 @@ void gfx::RenderWindow::CreateSwapchainImageViews()
 void gfx::RenderWindow::CreateFrameBuffers()
 {
 	auto logical_device = m_context->m_logical_device;
-	m_width = m_context->m_app->GetWidth();
-	m_height = m_context->m_app->GetHeight();
 
 	m_frame_buffers.resize(m_swapchain_image_views.size());
 
 	for (std::size_t i = 0; i < m_swapchain_image_views.size(); i++)
 	{
-		VkImageView attachments[] =
+		std::vector<VkImageView> attachments =
 		{
-				m_swapchain_image_views[i]
+				m_swapchain_image_views[i],
+				m_depth_buffer_view
 		};
 
 		VkFramebufferCreateInfo buffer_info = {};
 		buffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		buffer_info.renderPass = m_render_pass;
-		buffer_info.attachmentCount = 1;
-		buffer_info.pAttachments = attachments;
+		buffer_info.attachmentCount = attachments.size();
+		buffer_info.pAttachments = attachments.data();
 		buffer_info.width = m_width;
 		buffer_info.height = m_height;
 		buffer_info.layers = 1;

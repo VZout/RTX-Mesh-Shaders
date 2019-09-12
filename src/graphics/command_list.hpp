@@ -39,8 +39,10 @@ namespace gfx
 		void BindRenderTargetVersioned(RenderTarget* render_target, std::uint32_t frame_idx);
 		void BindPipelineState(PipelineState* pipeline, std::uint32_t frame_idx);
 		void BindVertexBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx);
+		void BindIndexBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx);
 		void BindDescriptorTable(RootSignature* root_signature, DescriptorHeap* heap, std::uint32_t handle, std::uint32_t frame_idx);
 		void StageBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx);
+		void TransitionDepth(RenderTarget* render_target, VkImageLayout from, VkImageLayout to, std::uint32_t frame_idx);
 		void Draw(std::uint32_t frame_idx, std::uint32_t vertex_count, std::uint32_t instance_count,
 				std::uint32_t first_vertex = 0, std::uint32_t first_instance = 0);
 		void DrawIndexed(std::uint32_t frame_idx, std::uint32_t idx_count, std::uint32_t instance_count,

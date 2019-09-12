@@ -14,6 +14,9 @@ namespace cb
 	struct Basic
 	{
 		float m_time;
+		alignas(16) glm::mat4 m_model;
+		alignas(16) glm::mat4 m_view;
+		alignas(16) glm::mat4 m_proj;
 	};
 
 } /* CB */
