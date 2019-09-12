@@ -30,20 +30,26 @@ namespace gfx
 		std::uint32_t GetHeight();
 
 	protected:
-		void CreateRenderPass(VkFormat format);
+		VkFormat PickDepthFormat();
+		virtual void CreateRenderPass(VkFormat format, VkFormat depth_format = VK_FORMAT_UNDEFINED);
+		void CreateDepthBuffer();
+		void CreateDepthBufferView();
+
+		Context* m_context;
 
 		// Frame Buffers
 		std::vector<VkFramebuffer> m_frame_buffers;
 
 		// Render pass
-		VkAttachmentDescription m_color_attachment;
 		VkSubpassDescription m_subpass;
 		VkRenderPass m_render_pass;
 		VkRenderPassCreateInfo m_render_pass_create_info;
+		VkImageCreateInfo m_depth_buffer_create_info;
+		VkImage m_depth_buffer;
+		VkDeviceMemory m_depth_buffer_memory;
+		VkImageView m_depth_buffer_view;
 		std::uint32_t m_width;
 		std::uint32_t m_height;
-
-		Context* m_context;
 	};
 
 } /* gfx */

@@ -116,7 +116,8 @@ target_include_directories(Test PUBLIC
 	external/glfw/include
 	external/vulkan/include external/glm/glm
 	external/imgui
-	external/fmt/include)
+	external/fmt/include
+	external/tinygltf)
 
 # Compile GLSL Shaders Into SPRIV
 if (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "AMD64")
@@ -143,3 +144,8 @@ add_custom_target(
     )
 
 add_dependencies(Test Shaders)
+
+# Copy external resources
+add_custom_command(TARGET Test PRE_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_directory
+		${CMAKE_SOURCE_DIR}/resources/ $<TARGET_FILE_DIR:Test>)

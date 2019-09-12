@@ -8,9 +8,11 @@
 
 #include "util/log.hpp"
 #include "application.hpp"
+#include "tinygltf_model_loader.hpp"
 #include "vertex.hpp"
 #include "buffer_definitions.hpp"
 #include "graphics/context.hpp"
+#include "graphics/vk_model_pool.hpp"
 #include "graphics/command_queue.hpp"
 #include "graphics/render_window.hpp"
 #include "graphics/shader.hpp"
@@ -27,6 +29,10 @@
 #include "imgui/imgui_style.hpp"
 #include "imgui/imgui_impl_glfw.hpp"
 #include "imgui/imgui_impl_vulkan.hpp"
+#define GLM_FORCE_RADIANS
+#include <glm.hpp>
+#include <gtc/matrix_transform.hpp>
+
 
 Renderer::Renderer() : m_context(nullptr), m_direct_queue(nullptr), m_render_window(nullptr), m_direct_cmd_list(nullptr)
 {
@@ -52,6 +58,8 @@ Renderer::~Renderer()
 	{
 		delete fence;
 	}
+	delete m_model_loader;
+	delete m_model_pool;
 	delete m_root_signature;
 	delete m_pipeline;
 	delete m_vs;
@@ -98,8 +106,8 @@ void Renderer::Init(Application* app)
 
 	m_vs = new gfx::Shader(m_context);
 	m_ps = new gfx::Shader(m_context);
-	m_vs->LoadAndCompile("shaders/triangle.vert.spv", gfx::ShaderType::VERTEX);
-	m_ps->LoadAndCompile("shaders/triangle.frag.spv", gfx::ShaderType::PIXEL);
+	m_vs->LoadAndCompile("shaders/basic.vert.spv", gfx::ShaderType::VERTEX);
+	m_ps->LoadAndCompile("shaders/basic.frag.spv", gfx::ShaderType::PIXEL);
 
 	m_viewport = new gfx::Viewport(app->GetWidth(), app->GetHeight());
 
@@ -116,6 +124,7 @@ void Renderer::Init(Application* app)
 	m_pipeline = new gfx::PipelineState(m_context);
 	m_pipeline->SetViewport(m_viewport);
 	m_pipeline->AddShader(m_vs);
+	m_pipeline->SetInputLayout(Vertex::GetInputLayout());
 	m_pipeline->AddShader(m_ps);
 	m_pipeline->SetRenderTarget(m_render_window);
 	m_pipeline->SetRootSignature(m_root_signature);
@@ -154,6 +163,25 @@ void Renderer::Init(Application* app)
 	LOG("Finished Initializing ImGui");
 #endif
 
+	m_model_loader = new TinyGLTFModelLoader();
+	m_model = m_model_loader->Load("scene.gltf");
+	m_model_pool = new gfx::VkModelPool(m_context);
+	m_model_pool->Load<Vertex>(m_model);
+
+	m_direct_cmd_list->Begin(0);
+
+	// make sure the data depth buffer is ready for present
+	m_direct_cmd_list->TransitionDepth(m_render_window, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0);
+
+	// Upload data to the gpu
+	m_model_pool->Stage(m_direct_cmd_list, 0);
+	m_direct_cmd_list->Close(0);
+
+	m_direct_queue->Execute({ m_direct_cmd_list }, nullptr, 0);
+	m_direct_queue->Wait();
+	m_model_pool->PostStage();
+	LOG("Finished Uploading Resources");
+
 	LOG("Finished Initializing Renderer");
 }
 
@@ -166,15 +194,28 @@ void Renderer::Render()
 
 	auto diff = std::chrono::high_resolution_clock::now() - m_start;
 	float t = diff.count();
-	cb::Basic basic_cb_data { t };
+	cb::Basic basic_cb_data;
+	basic_cb_data.m_time = t;
+	float size = 0.01;
+	basic_cb_data.m_model = glm::mat4(1);
+	basic_cb_data.m_model = glm::scale(basic_cb_data.m_model, glm::vec3(size));
+	basic_cb_data.m_model = glm::rotate(basic_cb_data.m_model, glm::radians(t * 0.0000001f), glm::vec3(0, 1, 0));
+	basic_cb_data.m_model = glm::rotate(basic_cb_data.m_model, glm::radians(-90.f), glm::vec3(1, 0, 0));
+	basic_cb_data.m_view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	basic_cb_data.m_proj = glm::perspective(glm::radians(45.0f), (float) m_render_window->GetWidth() / (float) m_render_window->GetHeight(), 0.01f, 1000.0f);
+	basic_cb_data.m_proj[1][1] *= -1;
 	m_cbs[frame_idx]->Update(&basic_cb_data, sizeof(cb::Basic));
 
 	m_direct_cmd_list->Begin(frame_idx);
 	m_direct_cmd_list->BindRenderTargetVersioned(m_render_window, frame_idx);
-
 	m_direct_cmd_list->BindPipelineState(m_pipeline, frame_idx);
 	m_direct_cmd_list->BindDescriptorTable(m_root_signature, m_desc_heap, 0, frame_idx);
-	m_direct_cmd_list->Draw(frame_idx, 4, 1);
+	for (std::size_t i = 0; i < m_model_pool->m_vertex_buffers.size(); i++)
+	{
+		m_direct_cmd_list->BindVertexBuffer(m_model_pool->m_vertex_buffers[i], frame_idx);
+		m_direct_cmd_list->BindIndexBuffer(m_model_pool->m_index_buffers[i], frame_idx);
+		m_direct_cmd_list->DrawIndexed(frame_idx, m_model->m_meshes[i].m_indices.size(), 1);
+	}
 
 #ifdef IMGUI
 	// imgui itself code

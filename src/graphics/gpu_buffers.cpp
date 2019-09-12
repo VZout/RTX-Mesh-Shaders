@@ -20,8 +20,6 @@ gfx::GPUBuffer::GPUBuffer(Context* context, std::uint64_t size, enums::BufferUsa
 		: m_context(context), m_size(size), m_mapped(false), m_mapped_data(nullptr), m_buffer(VK_NULL_HANDLE),
 		  m_buffer_memory(VK_NULL_HANDLE)
 {
-	auto logical_device = m_context->m_logical_device;
-
 	// Create default buffer
 	CreateBufferAndMemory(m_size, (int)usage, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 	                      m_buffer, m_buffer_memory);
@@ -31,8 +29,6 @@ gfx::GPUBuffer::GPUBuffer(Context* context, void* data, std::uint64_t size, std:
 	: m_context(context), m_size(size * stride), m_mapped(false), m_mapped_data(nullptr), m_buffer(VK_NULL_HANDLE),
 	m_buffer_memory(VK_NULL_HANDLE)
 {
-	auto logical_device = m_context->m_logical_device;
-
 	// Create default buffer
 	CreateBufferAndMemory(m_size, (int)usage, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 	                      m_buffer, m_buffer_memory);
