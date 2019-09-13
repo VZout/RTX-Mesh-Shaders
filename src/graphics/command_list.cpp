@@ -13,6 +13,7 @@
 #include "render_target.hpp"
 #include "pipeline_state.hpp"
 #include "root_signature.hpp"
+#include "gpu_buffers.hpp"
 
 gfx::CommandList::CommandList(CommandQueue* queue)
 	: m_context(queue->m_context), m_queue(queue), m_cmd_pool(VK_NULL_HANDLE), m_cmd_pool_create_info()
@@ -131,9 +132,25 @@ void gfx::CommandList::BindIndexBuffer(StagingBuffer* staging_buffer, std::uint3
 	vkCmdBindIndexBuffer(m_cmd_buffers[frame_idx], staging_buffer->m_buffer, offset, VkIndexType::VK_INDEX_TYPE_UINT32);
 }
 
-void gfx::CommandList::BindDescriptorTable(RootSignature* root_signature, DescriptorHeap* heap, std::uint32_t handle, std::uint32_t frame_idx)
+void gfx::CommandList::BindDescriptorHeap(RootSignature* root_signature, DescriptorHeap* heap, std::uint32_t frame_idx)
 {
-	vkCmdBindDescriptorSets(m_cmd_buffers[frame_idx], VK_PIPELINE_BIND_POINT_GRAPHICS, root_signature->m_pipeline_layout, 0, 1, &heap->m_descriptor_sets[frame_idx][handle], 0, nullptr);
+	if (!heap->m_queued_writes[frame_idx].empty())
+	{
+		auto logical_device = m_context->m_logical_device;
+		vkUpdateDescriptorSets(logical_device, static_cast<std::uint32_t>(2), heap->m_queued_writes[frame_idx].data(), 0, nullptr);
+
+		// destroy the buffer or image infos we allocated some where else
+		for (auto& write : heap->m_queued_writes[frame_idx])
+		{
+			if (write.pImageInfo) delete write.pImageInfo;
+			if (write.pBufferInfo) delete write.pBufferInfo;
+		}
+
+		heap->m_queued_writes[frame_idx].clear();
+	}
+
+	vkCmdBindDescriptorSets(m_cmd_buffers[frame_idx], VK_PIPELINE_BIND_POINT_GRAPHICS, root_signature->m_pipeline_layout,
+			0, heap->m_descriptor_sets[frame_idx].size(), heap->m_descriptor_sets[frame_idx].data(), 0, nullptr);
 }
 
 void gfx::CommandList::StageBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx)
@@ -143,6 +160,36 @@ void gfx::CommandList::StageBuffer(StagingBuffer* staging_buffer, std::uint32_t 
 	copy_region.dstOffset = 0;
 	copy_region.size = staging_buffer->m_size;
 	vkCmdCopyBuffer(m_cmd_buffers[frame_idx], staging_buffer->m_staging_buffer, staging_buffer->m_buffer, 1, &copy_region);
+}
+
+void gfx::CommandList::StageTexture(StagingTexture* texture, std::uint32_t frame_idx)
+{
+	VkBufferImageCopy region = {};
+	region.bufferOffset = 0;
+	region.bufferRowLength = 0;
+	region.bufferImageHeight = 0;
+
+	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	region.imageSubresource.mipLevel = 0;
+	region.imageSubresource.baseArrayLayer = 0;
+	region.imageSubresource.layerCount = 1;
+
+	region.imageOffset = {0, 0, 0};
+	region.imageExtent = {
+		texture->m_desc.m_width,
+		texture->m_desc.m_height,
+		1
+	};
+
+	vkCmdCopyBufferToImage(
+		m_cmd_buffers[frame_idx],
+		texture->m_buffer,
+		texture->m_texture,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		1,
+		&region
+	);
+
 }
 
 void gfx::CommandList::TransitionDepth(RenderTarget* render_target, VkImageLayout from, VkImageLayout to, std::uint32_t frame_idx)
@@ -160,6 +207,78 @@ void gfx::CommandList::TransitionDepth(RenderTarget* render_target, VkImageLayou
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 
 		if (enums::FormatHasStencilComponent(render_target->m_depth_buffer_create_info.format))
+		{
+			barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+		}
+	}
+	else
+	{
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	}
+
+	barrier.subresourceRange.baseMipLevel = 0;
+	barrier.subresourceRange.levelCount = 1;
+	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.layerCount = 1;
+
+	VkPipelineStageFlags source_stage;
+	VkPipelineStageFlags destination_stage;
+
+	if (from == VK_IMAGE_LAYOUT_UNDEFINED && to == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+	{
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+		source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		destination_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}
+	else if (from == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && to == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+	{
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}
+	else if (from == VK_IMAGE_LAYOUT_UNDEFINED && to == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+	{
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+		source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		destination_stage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	}
+	else
+	{
+		LOGE("unsupported layout transition!");
+	}
+
+	vkCmdPipelineBarrier(
+			m_cmd_buffers[frame_idx],
+			source_stage, destination_stage,
+			0,
+			0, nullptr,
+			0, nullptr,
+			1, &barrier
+	);
+}
+
+// TODO: Duplicate of transition depth
+void gfx::CommandList::TransitionTexture(StagingTexture* texture, VkImageLayout from, VkImageLayout to, std::uint32_t frame_idx)
+{
+	VkImageMemoryBarrier barrier = {};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.oldLayout = from;
+	barrier.newLayout = to;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image = texture->m_texture;
+
+	if (to == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+	{
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+		if (enums::FormatHasStencilComponent(texture->m_desc.m_format))
 		{
 			barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 		}

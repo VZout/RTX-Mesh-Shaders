@@ -6,10 +6,33 @@
 
 #pragma once
 
-#include <string>
 #include <vector>
 #include <vec3.hpp>
 #include <vec4.hpp>
+
+struct TextureData
+{
+	std::uint32_t m_width;
+	std::uint32_t m_height;
+	std::uint32_t m_channels;
+	std::vector<unsigned char> m_pixels;
+};
+
+struct MaterialData
+{
+	TextureData m_albedo_texture;
+	TextureData m_metallic_texture;
+	TextureData m_roughness_texture;
+	TextureData m_ambient_occlusion_texture;
+	TextureData m_normal_map_texture;
+	TextureData m_emissive_texture;
+
+	float m_base_color[3];
+	float m_base_metallic;
+	float m_base_roughness;
+	float m_base_transparency;
+	float m_base_emissive;
+};
 
 struct MeshData
 {
@@ -31,20 +54,5 @@ struct MeshData
 struct ModelData
 {
 	std::vector<MeshData> m_meshes;
-};
-
-class ModelLoader
-{
-public:
-	explicit ModelLoader(std::vector<std::string> const & supported_formats);
-	virtual ~ModelLoader();
-
-	ModelData* Load(std::string const & path);
-	void Remove(ModelData* model_data);
-
-protected:
-	virtual ModelData* LoadFromDisc(std::string const & path) = 0;
-
-	std::vector<std::string> m_supported_formats;
-	std::vector<ModelData*> m_loaded_models;
+	std::vector<MaterialData> m_materials;
 };

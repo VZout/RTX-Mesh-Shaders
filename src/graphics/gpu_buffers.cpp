@@ -42,8 +42,8 @@ gfx::GPUBuffer::~GPUBuffer()
 {
 	auto logical_device = m_context->m_logical_device;
 
-	vkDestroyBuffer(logical_device, m_buffer, nullptr);
-	vkFreeMemory(logical_device, m_buffer_memory, nullptr);
+	if (m_buffer != VK_NULL_HANDLE) vkDestroyBuffer(logical_device, m_buffer, nullptr);
+	if (m_buffer_memory != VK_NULL_HANDLE) vkFreeMemory(logical_device, m_buffer_memory, nullptr);
 }
 
 void gfx::GPUBuffer::Map()
@@ -131,8 +131,6 @@ gfx::StagingBuffer::StagingBuffer(Context* context, void* data, std::uint64_t si
 {
 	m_size = size * stride;
 
-	auto logical_device = m_context->m_logical_device;
-
 	// Create staging buffer
 	CreateBufferAndMemory(m_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 	                      m_staging_buffer, m_staging_buffer_memory);
@@ -172,4 +170,90 @@ void gfx::StagingBuffer::FreeStagingResources()
 	vkFreeMemory(logical_device, m_staging_buffer_memory, nullptr);
 	m_staging_buffer = VK_NULL_HANDLE;
 	m_staging_buffer_memory = VK_NULL_HANDLE;
+}
+
+gfx::StagingTexture::StagingTexture(Context* context, Desc desc)
+		: GPUBuffer(context, desc.m_width * desc.m_height * 4), m_desc(desc),
+		  m_texture(VK_NULL_HANDLE), m_texture_memory(VK_NULL_HANDLE)
+{
+	CreateBufferAndMemory(m_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			m_buffer, m_buffer_memory);
+
+	CreateImageAndMemory(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_texture, m_texture_memory);
+}
+
+gfx::StagingTexture::StagingTexture(Context* context, Desc desc, unsigned char* pixels)
+		: GPUBuffer(context, desc.m_width * desc.m_height * 4), m_desc(desc),
+		  m_texture(VK_NULL_HANDLE), m_texture_memory(VK_NULL_HANDLE)
+{
+	CreateBufferAndMemory(m_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+	                      m_buffer, m_buffer_memory);
+
+	CreateImageAndMemory(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+	                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_texture, m_texture_memory);
+
+	Map();
+	Update(pixels, m_size);
+	Unmap();
+}
+
+gfx::StagingTexture::~StagingTexture()
+{
+	auto logical_device = m_context->m_logical_device;
+
+	if (m_texture) vkDestroyBuffer(logical_device, m_texture, nullptr);
+	if (m_texture_memory) vkFreeMemory(logical_device, m_texture_memory, nullptr);
+}
+
+void gfx::StagingTexture::FreeStagingResources()
+{
+	auto logical_device = m_context->m_logical_device;
+
+	if (m_buffer != VK_NULL_HANDLE) vkDestroyBuffer(logical_device, m_buffer, nullptr);
+	if (m_buffer_memory != VK_NULL_HANDLE) vkFreeMemory(logical_device, m_buffer_memory, nullptr);
+	m_buffer = VK_NULL_HANDLE;
+	m_buffer_memory = VK_NULL_HANDLE;
+}
+
+void gfx::StagingTexture::CreateImageAndMemory(VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
+                               VkImage& image, VkDeviceMemory memory)
+{
+	auto logical_device = m_context->m_logical_device;
+
+	VkImageCreateInfo image_info = {};
+	image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	image_info.imageType = VK_IMAGE_TYPE_2D;
+	image_info.extent.width = m_desc.m_width;
+	image_info.extent.height = m_desc.m_height;
+	image_info.extent.depth = m_desc.m_depth;
+	image_info.mipLevels = m_desc.m_mip_levels;
+	image_info.arrayLayers = m_desc.m_array_size;
+	image_info.format = m_desc.m_format;
+	image_info.tiling = tiling;
+	image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	image_info.usage = usage;
+	image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	image_info.samples = VK_SAMPLE_COUNT_1_BIT;
+	image_info.flags = 0;
+
+	if (vkCreateImage(logical_device, &image_info, nullptr, &image) != VK_SUCCESS)
+	{
+		LOGC("Failed to create texture");
+	}
+
+	VkMemoryRequirements memory_requirements;
+	vkGetImageMemoryRequirements(logical_device, image, &memory_requirements);
+
+	VkMemoryAllocateInfo alloc_info = {};
+	alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	alloc_info.allocationSize = memory_requirements.size;
+	alloc_info.memoryTypeIndex = m_context->FindMemoryType(memory_requirements.memoryTypeBits, properties);
+
+	if (vkAllocateMemory(logical_device, &alloc_info, nullptr, &memory) != VK_SUCCESS)
+	{
+		LOGC("failed to allocate image memory!");
+	}
+
+	vkBindImageMemory(logical_device, image, memory, 0);
 }

@@ -10,11 +10,11 @@
 
 #include "resource_structs.hpp"
 
-class TinyGLTFModelLoader : public ResourceLoader<ModelData>
+class STBImageLoader : public ResourceLoader<TextureData>
 {
 public:
-	TinyGLTFModelLoader();
-	~TinyGLTFModelLoader() final = default;
+	STBImageLoader();
+	~STBImageLoader() final = default;
 
 	AnonResource LoadFromDisc(std::string const & path) final;
 };

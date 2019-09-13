@@ -33,7 +33,6 @@
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
 
-
 Renderer::Renderer() : m_context(nullptr), m_direct_queue(nullptr), m_render_window(nullptr), m_direct_cmd_list(nullptr)
 {
 
@@ -57,6 +56,10 @@ Renderer::~Renderer()
 	for (auto& fence : m_present_fences)
 	{
 		delete fence;
+	}
+	for (auto& texture : m_textures)
+	{
+		delete texture;
 	}
 	delete m_model_loader;
 	delete m_model_pool;
@@ -112,12 +115,17 @@ void Renderer::Init(Application* app)
 	m_viewport = new gfx::Viewport(app->GetWidth(), app->GetHeight());
 
 	gfx::RootSignature::Desc root_signature_desc;
-	root_signature_desc.m_parameters.resize(1);
-	root_signature_desc.m_parameters[0].binding = 0;
+	root_signature_desc.m_parameters.resize(2);
+	root_signature_desc.m_parameters[0].binding = 0; // root parameter 0
 	root_signature_desc.m_parameters[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	root_signature_desc.m_parameters[0].descriptorCount = 1;
 	root_signature_desc.m_parameters[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 	root_signature_desc.m_parameters[0].pImmutableSamplers = nullptr;
+	root_signature_desc.m_parameters[1].binding = 1; // root parameter 1
+	root_signature_desc.m_parameters[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	root_signature_desc.m_parameters[1].descriptorCount = 2;
+	root_signature_desc.m_parameters[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	root_signature_desc.m_parameters[1].pImmutableSamplers = nullptr;
 	m_root_signature = new gfx::RootSignature(m_context, root_signature_desc);
 	m_root_signature->Compile();
 
@@ -132,7 +140,7 @@ void Renderer::Init(Application* app)
 
 	gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
 	descriptor_heap_desc.m_versions = gfx::settings::num_back_buffers;
-	descriptor_heap_desc.m_num_descriptors = 1;
+	descriptor_heap_desc.m_num_descriptors = 4;
 	m_desc_heap = new gfx::DescriptorHeap(m_context, m_root_signature, descriptor_heap_desc);
 	m_cbs.resize(gfx::settings::num_back_buffers);
 	for (std::uint32_t i = 0; i < gfx::settings::num_back_buffers; i++)
@@ -168,10 +176,29 @@ void Renderer::Init(Application* app)
 	m_model_pool = new gfx::VkModelPool(m_context);
 	m_model_pool->Load<Vertex>(m_model);
 
+	m_textures.resize(m_model->m_materials.size());
+	for (std::size_t i = 0; i < m_textures.size(); i++)
+	{
+		auto texture_data = m_model->m_materials[i].m_albedo_texture;
+		gfx::StagingTexture::Desc texture_desc;
+		texture_desc.m_width = texture_data.m_width;
+		texture_desc.m_height = texture_data.m_height;
+		texture_desc.m_format = VK_FORMAT_R8G8B8A8_UNORM;
+		m_textures[i] = new gfx::StagingTexture(m_context, texture_desc, texture_data.m_pixels.data());
+	}
+
 	m_direct_cmd_list->Begin(0);
 
 	// make sure the data depth buffer is ready for present
 	m_direct_cmd_list->TransitionDepth(m_render_window, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0);
+
+	// Make the staging texture ready for write. than stage. than transition to read optimal
+	for (auto& texture : m_textures)
+	{
+		m_direct_cmd_list->TransitionTexture(texture, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0);
+		m_direct_cmd_list->StageTexture(texture, 0);
+		m_direct_cmd_list->TransitionTexture(texture, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0);
+	}
 
 	// Upload data to the gpu
 	m_model_pool->Stage(m_direct_cmd_list, 0);
@@ -180,6 +207,17 @@ void Renderer::Init(Application* app)
 	m_direct_queue->Execute({ m_direct_cmd_list }, nullptr, 0);
 	m_direct_queue->Wait();
 	m_model_pool->PostStage();
+	for (auto& texture : m_textures)
+	{
+		texture->FreeStagingResources();
+	}
+
+	// Create texture shader resource views
+	for (std::uint32_t i = 0; i < gfx::settings::num_back_buffers; i++)
+	{
+		m_desc_heap->CreateSRVSetFromTexture({ m_textures[0], m_textures[1] }, 1, i); // + 1 becasue 0 is uniform
+	}
+
 	LOG("Finished Uploading Resources");
 
 	LOG("Finished Initializing Renderer");
@@ -209,7 +247,7 @@ void Renderer::Render()
 	m_direct_cmd_list->Begin(frame_idx);
 	m_direct_cmd_list->BindRenderTargetVersioned(m_render_window, frame_idx);
 	m_direct_cmd_list->BindPipelineState(m_pipeline, frame_idx);
-	m_direct_cmd_list->BindDescriptorTable(m_root_signature, m_desc_heap, 0, frame_idx);
+	m_direct_cmd_list->BindDescriptorHeap(m_root_signature, m_desc_heap, frame_idx);
 	for (std::size_t i = 0; i < m_model_pool->m_vertex_buffers.size(); i++)
 	{
 		m_direct_cmd_list->BindVertexBuffer(m_model_pool->m_vertex_buffers[i], frame_idx);

@@ -12,7 +12,6 @@
 #include <cstdint>
 
 #include "command_queue.hpp"
-#include "gpu_buffers.hpp"
 
 class ImGuiImpl;
 
@@ -23,6 +22,8 @@ namespace gfx
 	class RootSignature;
 	class DescriptorHeap;
 	class PipelineState;
+	class StagingTexture;
+	class StagingBuffer;
 
 	class CommandList
 	{
@@ -40,9 +41,11 @@ namespace gfx
 		void BindPipelineState(PipelineState* pipeline, std::uint32_t frame_idx);
 		void BindVertexBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx);
 		void BindIndexBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx);
-		void BindDescriptorTable(RootSignature* root_signature, DescriptorHeap* heap, std::uint32_t handle, std::uint32_t frame_idx);
+		void BindDescriptorHeap(RootSignature* root_signature, DescriptorHeap* heap, std::uint32_t frame_idx);
 		void StageBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx);
+		void StageTexture(StagingTexture* texture, std::uint32_t frame_idx);
 		void TransitionDepth(RenderTarget* render_target, VkImageLayout from, VkImageLayout to, std::uint32_t frame_idx);
+		void TransitionTexture(StagingTexture* texture, VkImageLayout from, VkImageLayout to, std::uint32_t frame_idx);
 		void Draw(std::uint32_t frame_idx, std::uint32_t vertex_count, std::uint32_t instance_count,
 				std::uint32_t first_vertex = 0, std::uint32_t first_instance = 0);
 		void DrawIndexed(std::uint32_t frame_idx, std::uint32_t idx_count, std::uint32_t instance_count,

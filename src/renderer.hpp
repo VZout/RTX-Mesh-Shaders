@@ -34,6 +34,7 @@ namespace gfx
 	class Fence;
 	class DescriptorHeap;
 	class VkModelPool;
+	class StagingTexture;
 
 } /* gfx */
 
@@ -65,6 +66,7 @@ private:
 	gfx::RootSignature* m_root_signature;
 	TinyGLTFModelLoader* m_model_loader;
 	ModelData* m_model;
+	std::vector<gfx::StagingTexture*> m_textures;
 	gfx::VkModelPool* m_model_pool;
 
 	bool m_temp = false;

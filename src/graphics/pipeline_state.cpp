@@ -59,6 +59,7 @@ gfx::PipelineState::PipelineState(Context* context)
 	m_ms_info.alphaToOneEnable = VK_FALSE;
 
 	// Depth Stencil
+	m_depth_stencil_info = {};
 	m_depth_stencil_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 	m_depth_stencil_info.depthTestEnable = VK_TRUE;
 	m_depth_stencil_info.depthWriteEnable = VK_TRUE;
@@ -139,6 +140,7 @@ void gfx::PipelineState::Compile()
 	m_vertex_input_info.vertexAttributeDescriptionCount = m_input_layout.second.size();
 	m_vertex_input_info.pVertexAttributeDescriptions = m_input_layout.second.data();
 
+	m_create_info = {};
 	m_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 	m_create_info.stageCount = m_shader_info.size();
 	m_create_info.pStages = m_shader_info.data();
