@@ -100,10 +100,12 @@ void gfx::RenderWindow::Resize(std::uint32_t width, std::uint32_t height)
 	GetSwapchainImages();
 	CreateSwapchainImageViews();
 
-	CreateRenderPass(VK_FORMAT_B8G8R8A8_UNORM);
-	CreateFrameBuffers();
 	CreateDepthBuffer();
 	CreateDepthBufferView();
+
+	CreateRenderPass(VK_FORMAT_B8G8R8A8_UNORM, m_depth_buffer_create_info.format);
+
+	CreateFrameBuffers();
 
 	m_frame_idx = 0;
 }

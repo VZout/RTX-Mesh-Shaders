@@ -68,15 +68,15 @@ void gfx::RenderTarget::CreateRenderPass(VkFormat format, VkFormat depth_format)
 	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
 	// We always have a color attachment
-	std::vector<VkAttachmentDescription> color_attachment(1);
-	color_attachment[0].format = format;
-	color_attachment[0].samples = VK_SAMPLE_COUNT_1_BIT;
-	color_attachment[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	color_attachment[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	color_attachment[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	color_attachment[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
-	color_attachment[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	color_attachment[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	VkAttachmentDescription color_attachment = {};
+	color_attachment.format = format;
+	color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+	color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
 	VkAttachmentDescription depth_attachment = {};
 	VkAttachmentReference depth_attachment_ref = {};
@@ -101,6 +101,7 @@ void gfx::RenderTarget::CreateRenderPass(VkFormat format, VkFormat depth_format)
 	attachment_ref.attachment = 0;
 	attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+	m_subpass = {};
 	m_subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	m_subpass.colorAttachmentCount  = 1;
 	m_subpass.pColorAttachments = &attachment_ref;
@@ -156,12 +157,12 @@ void gfx::RenderTarget::CreateDepthBuffer()
 	VkMemoryRequirements memory_requirements;
 	vkGetImageMemoryRequirements(logical_device, m_depth_buffer, &memory_requirements);
 
-	VkMemoryAllocateInfo allocInfo = {};
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = memory_requirements.size;
-	allocInfo.memoryTypeIndex = m_context->FindMemoryType(memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	VkMemoryAllocateInfo alloc_info = {};
+	alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	alloc_info.allocationSize = memory_requirements.size;
+	alloc_info.memoryTypeIndex = m_context->FindMemoryType(memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-	if (vkAllocateMemory(logical_device, &allocInfo, nullptr, &m_depth_buffer_memory) != VK_SUCCESS)
+	if (vkAllocateMemory(logical_device, &alloc_info, nullptr, &m_depth_buffer_memory) != VK_SUCCESS)
 	{
 		LOGC("failed to allocate image memory!");
 	}

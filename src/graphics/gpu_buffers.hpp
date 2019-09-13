@@ -64,4 +64,34 @@ namespace gfx
 		VkDeviceMemory m_staging_buffer_memory;
 	};
 
+	class StagingTexture : public GPUBuffer
+	{
+		friend class DescriptorHeap;
+		friend class CommandList;
+	public:
+		struct Desc
+		{
+			VkFormat m_format;
+
+			std::uint32_t m_width = 0u;
+			std::uint32_t m_height = 0u;
+			std::uint32_t m_depth = 1u;
+			std::uint32_t m_array_size = 1u;
+			std::uint32_t m_mip_levels = 1u;
+		};
+
+		StagingTexture(Context* context, Desc desc);
+		StagingTexture(Context* context, Desc desc, unsigned char* pixels);
+		~StagingTexture() final;
+
+		void FreeStagingResources();
+
+	private:
+		void CreateImageAndMemory(VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
+		                 VkImage& image, VkDeviceMemory memory);
+		Desc m_desc;
+		VkImage m_texture;
+		VkDeviceMemory m_texture_memory;
+	};
+
 } /* gfx */

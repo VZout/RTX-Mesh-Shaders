@@ -1,6 +1,8 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
+layout(set = 1, binding = 1) uniform sampler2D ts_albedo[2];
+
 layout(location = 0) in float g_time;
 layout(location = 1) in vec2 g_uv;
 layout(location = 2) in vec3 g_normal;
@@ -27,6 +29,8 @@ void main()
     const vec3 light_pos = vec3(0, 0, -10);
     const vec3 view_pos = vec3(2, 2, 2);
 
+    vec3 albedo = texture(ts_albedo[1], g_uv).xyz;
+
     // diffuse
     vec3 norm = normalize(g_normal);
     vec3 light_dir = normalize(light_pos - g_frag_pos);
@@ -39,6 +43,6 @@ void main()
     float spec = pow(max(dot(view_dir, reflect_dir), 0.0), 32);
     vec3 specular = specular_strength * spec * light_color;
 
-    vec3 color = ambient + diffuse + specular;
+    vec3 color = (ambient + diffuse + specular) * albedo;
     out_color = vec4(color, 1);
 }

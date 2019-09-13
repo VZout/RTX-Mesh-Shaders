@@ -20,9 +20,10 @@
 #include <utility>
 
 #include "util/log.hpp"
+#include "resource_structs.hpp"
 
 TinyGLTFModelLoader::TinyGLTFModelLoader()
-	: ModelLoader(std::vector<std::string>{ ".gltf" })
+	: ResourceLoader(std::vector<std::string>{ ".gltf" })
 {
 
 }
@@ -86,6 +87,72 @@ inline std::pair<std::vector<glm::vec3>, std::vector<glm::vec3>> ComputeTangents
 	}
 
 	return { tanA, tanB };
+}
+
+inline void LoadMaterial(ModelData* model, tinygltf::Model tg_model, tinygltf::Material mat)
+{
+	MaterialData mat_data;
+
+	auto set_img_data = [&](auto& target, auto source)
+	{
+		target.m_pixels = source.image;
+		target.m_width = source.width;
+		target.m_height = source.height;
+		target.m_channels = source.component;
+	};
+
+	for (auto value : mat.values)
+	{
+		if (value.first == "baseColorTexture")
+		{
+			auto img = tg_model.images[value.second.json_double_value.begin()->second];
+			set_img_data(mat_data.m_albedo_texture, img);
+
+		}
+		else if (value.first == "metallicRoughnessTexture")
+		{
+			auto img = tg_model.images[value.second.json_double_value.begin()->second];
+			set_img_data(mat_data.m_metallic_texture, img);
+			set_img_data(mat_data.m_roughness_texture, img);
+
+		}
+		else if (value.first == "roughnessFactor")
+		{
+			auto factor = value.second.Factor();
+			mat_data.m_base_roughness = factor;
+		}
+		else if (value.first == "metallicFactor")
+		{
+			auto factor = value.second.Factor();
+			mat_data.m_base_metallic = factor;
+		}
+	}
+
+	for (auto value : mat.additionalValues)
+	{
+		if (value.first == "normalTexture")
+		{
+			auto img = tg_model.images[value.second.json_double_value.begin()->second];
+			set_img_data(mat_data.m_normal_map_texture, img);
+		}
+		else if (value.first == "occlusionTexture")
+		{
+			auto img = tg_model.images[value.second.json_double_value.begin()->second];
+			set_img_data(mat_data.m_ambient_occlusion_texture, img);
+		}
+		else if (value.first == "emissiveTexture")
+		{
+			auto img = tg_model.images[value.second.json_double_value.begin()->second];
+			set_img_data(mat_data.m_emissive_texture, img);
+		}
+		else if (value.first == "emissiveFactor")
+		{
+			auto factor = value.second.ColorFactor();
+			mat_data.m_base_emissive = factor[0] + factor[1] + factor[2];
+		}
+	}
+
+	model->m_materials.push_back(mat_data);
 }
 
 inline void LoadMesh(ModelData* model, tinygltf::Model const & tg_model, tinygltf::Node const & node, glm::mat4 parent_transform)
@@ -175,7 +242,7 @@ inline void LoadMesh(ModelData* model, tinygltf::Model const & tg_model, tinyglt
 	}
 }
 
-ModelData* TinyGLTFModelLoader::LoadFromDisc(std::string const & path)
+TinyGLTFModelLoader::AnonResource TinyGLTFModelLoader::LoadFromDisc(std::string const & path)
 {
 	tinygltf::Model tg_model;
 	tinygltf::TinyGLTF loader;
@@ -197,7 +264,12 @@ ModelData* TinyGLTFModelLoader::LoadFromDisc(std::string const & path)
 		LOGE("TinyGLTF Error: {}", err);
 	}
 
-	auto model = new ModelData();
+	auto model = std::make_unique<ModelData>();
+
+	for (auto mat : tg_model.materials)
+	{
+		LoadMaterial(model.get(), tg_model, mat);
+	}
 
 	std::function<void(int, glm::mat4)> recursive_func = [&](int node_id, glm::mat4 parent_transform)
 	{
@@ -253,14 +325,13 @@ ModelData* TinyGLTFModelLoader::LoadFromDisc(std::string const & path)
 			transform[3][1] = matrix[13];
 			transform[3][2] = matrix[14];
 			transform[3][3] = matrix[15];
-			//glm::transpose(transform);
 		}
 
 		parent_transform = parent_transform * transform;
 
 		if (node.mesh > -1)
 		{
-			LoadMesh(model, tg_model, node, parent_transform);
+			LoadMesh(model.get(), tg_model, node, parent_transform);
 		}
 
 		for (auto child_id : node.children)

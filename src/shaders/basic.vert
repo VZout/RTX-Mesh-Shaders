@@ -24,5 +24,6 @@ void main()
     g_frag_pos = vec3(ubo.model * vec4(pos, 1.0));
     g_time = ubo.time;
     g_uv = uv;
+    g_uv.y *= -1;
     g_normal = mat3(ubo.model) * normal;
 }

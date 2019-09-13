@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "model_loader.hpp"
+#include "resource_structs.hpp"
 
 #include "util/log.hpp"
 

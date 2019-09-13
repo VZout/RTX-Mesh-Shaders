@@ -41,6 +41,7 @@ namespace gfx
 		friend class Fence;
 		friend class GPUBuffer;
 		friend class StagingBuffer;
+		friend class StagingTexture;
 		friend class DescriptorHeap;
 
 		friend class ::ImGuiImpl; // TODO: probably dont want this
