@@ -12,6 +12,8 @@
 #include "stb_image_loader.hpp"
 #include "tinygltf_model_loader.hpp"
 #include "vertex.hpp"
+#include "frame_graph/frame_graph.hpp"
+#include "scene_graph/scene_graph.hpp"
 #include "buffer_definitions.hpp"
 #include "graphics/context.hpp"
 #include "graphics/vk_model_pool.hpp"
@@ -28,15 +30,8 @@
 #include "graphics/gpu_buffers.hpp"
 #include "graphics/fence.hpp"
 #include "graphics/descriptor_heap.hpp"
-#include <imgui.h>
-#include "imgui/imgui_style.hpp"
-#include "imgui/imgui_impl_glfw.hpp"
-#include "imgui/imgui_impl_vulkan.hpp"
-#define GLM_FORCE_RADIANS
-#include <glm.hpp>
-#include <gtc/matrix_transform.hpp>
 
-Renderer::Renderer() : m_context(nullptr), m_direct_queue(nullptr), m_render_window(nullptr), m_direct_cmd_list(nullptr)
+Renderer::Renderer() : m_application(nullptr), m_context(nullptr), m_direct_queue(nullptr), m_render_window(nullptr), m_direct_cmd_list(nullptr)
 {
 	TexturePool::RegisterLoader<STBImageLoader>();
 }
@@ -45,16 +40,6 @@ Renderer::~Renderer()
 {
 	WaitForAllPreviousWork();
 
-#ifdef IMGUI
-	delete imgui_impl;
-#endif
-
-	ImGui_ImplGlfw_Shutdown();
-
-	for (auto& cb : m_cbs)
-	{
-		delete cb;
-	}
 	delete m_viewport;
 	for (auto& fence : m_present_fences)
 	{
@@ -76,10 +61,8 @@ Renderer::~Renderer()
 
 void Renderer::Init(Application* app)
 {
+	m_application = app;
 	m_context = new gfx::Context(app);
-
-	m_cb_sets.resize(gfx::settings::num_back_buffers);
-	m_material_sets.resize(gfx::settings::num_back_buffers);
 
 	LOG("Initialized Vulkan");
 
@@ -145,59 +128,17 @@ void Renderer::Init(Application* app)
 	descriptor_heap_desc.m_versions = gfx::settings::num_back_buffers;
 	descriptor_heap_desc.m_num_descriptors = 100;
 	m_desc_heap = new gfx::DescriptorHeap(m_context, descriptor_heap_desc);
-	m_cbs.resize(gfx::settings::num_back_buffers);
-	for (std::uint32_t i = 0; i < gfx::settings::num_back_buffers; i++)
-	{
-		m_cbs[i] = new gfx::GPUBuffer(m_context, sizeof(cb::Basic), gfx::enums::BufferUsageFlag::CONSTANT_BUFFER);
-		m_cbs[i]->Map();
-
-
-		m_cb_sets[i].push_back(m_desc_heap->CreateSRVFromCB(m_cbs[i], m_root_signature, 0, i));
-	}
-
-	m_start = std::chrono::high_resolution_clock::now();
-
-#ifdef IMGUI
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
-	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
-	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
-	io.ConfigDockingWithShift = true;
-
-	ImGui_ImplGlfw_InitForVulkan(app->GetWindow(), true);
-
-	// Setup Dear ImGui style
-	ImGui::StyleColorsCherry();
-
-	imgui_impl = new ImGuiImpl();
-	imgui_impl->InitImGuiResources(m_context, m_render_window, m_direct_queue);
-	LOG("Finished Initializing ImGui");
-#endif
 
 	m_model_loader = new TinyGLTFModelLoader();
-	m_model = m_model_loader->Load("scene.gltf");
 	m_model_pool = new gfx::VkModelPool(m_context);
-	m_model_pool->Load<Vertex>(m_model);
 
 	m_texture_pool = new gfx::VkTexturePool(m_context);
-	std::vector<std::uint32_t> texture_handles;
-	for (std::size_t i = 0; i < m_model->m_materials.size(); i++)
-	{
-		auto albedo_data = m_model->m_materials[i].m_albedo_texture;
-		auto normal_data = m_model->m_materials[i].m_normal_map_texture;
 
-		auto albedo_id = m_texture_pool->Load(albedo_data);
-		auto normal_id = m_texture_pool->Load(normal_data);
+	LOG("Finished Initializing Renderer");
+}
 
-		auto textures = m_texture_pool->GetTextures({ albedo_id, normal_id });
-		for (auto frame_idx = 0u; frame_idx < gfx::settings::num_back_buffers; frame_idx++)
-		{
-			m_material_sets[frame_idx].push_back(m_desc_heap->CreateSRVSetFromTexture(textures, m_root_signature, 1, frame_idx)); // + 1 becasue 0 is uniform
-		}
-	}
-
+void Renderer::Upload()
+{
 	m_direct_cmd_list->Begin(0);
 
 	// make sure the data depth buffer is ready for present
@@ -214,83 +155,19 @@ void Renderer::Init(Application* app)
 	m_texture_pool->PostStage();
 
 	LOG("Finished Uploading Resources");
-
-	LOG("Finished Initializing Renderer");
 }
 
-void Renderer::Render()
+void Renderer::Render(sg::SceneGraph& sg, fg::FrameGraph& fg)
 {
 	auto frame_idx = m_render_window->GetFrameIdx();
 
 	m_present_fences[frame_idx]->Wait();
 	m_render_window->AquireBackBuffer(m_present_fences[frame_idx]);
 
-	auto diff = std::chrono::high_resolution_clock::now() - m_start;
-	float t = diff.count();
-	cb::Basic basic_cb_data;
-	basic_cb_data.m_time = t;
-	float size = 0.01;
-	basic_cb_data.m_model = glm::mat4(1);
-	basic_cb_data.m_model = glm::scale(basic_cb_data.m_model, glm::vec3(size));
-	basic_cb_data.m_model = glm::rotate(basic_cb_data.m_model, glm::radians(t * 0.0000001f), glm::vec3(0, 1, 0));
-	basic_cb_data.m_model = glm::rotate(basic_cb_data.m_model, glm::radians(-90.f), glm::vec3(1, 0, 0));
-	basic_cb_data.m_view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	basic_cb_data.m_proj = glm::perspective(glm::radians(45.0f), (float) m_render_window->GetWidth() / (float) m_render_window->GetHeight(), 0.01f, 1000.0f);
-	basic_cb_data.m_proj[1][1] *= -1;
-	m_cbs[frame_idx]->Update(&basic_cb_data, sizeof(cb::Basic));
+	fg.Execute(sg);
 
-	m_direct_cmd_list->Begin(frame_idx);
-	m_direct_cmd_list->BindRenderTargetVersioned(m_render_window, frame_idx);
-	m_direct_cmd_list->BindPipelineState(m_pipeline, frame_idx);
-	for (std::size_t i = 0; i < m_model_pool->m_vertex_buffers.size(); i++)
-	{
-		m_direct_cmd_list->BindDescriptorHeap(m_root_signature, m_desc_heap, { m_cb_sets[frame_idx][0], m_material_sets[frame_idx][i] } , frame_idx);
-		m_direct_cmd_list->BindVertexBuffer(m_model_pool->m_vertex_buffers[i], frame_idx);
-		m_direct_cmd_list->BindIndexBuffer(m_model_pool->m_index_buffers[i], frame_idx);
-		m_direct_cmd_list->DrawIndexed(frame_idx, m_model->m_meshes[i].m_indices.size(), 1);
-	}
-
-#ifdef IMGUI
-	// imgui itself code
-	ImGui_ImplGlfw_NewFrame();
-	ImGui::NewFrame();
-
-	ImGui::DockSpaceOverViewport(ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
-
-	if (ImGui::BeginMainMenuBar())
-	{
-		if (ImGui::BeginMenu("File"))
-		{
-			ImGui::EndMenu();
-		}
-
-		if (ImGui::BeginMenu("About"))
-		{
-			ImGui::EndMenu();
-		}
-
-		ImGui::EndMainMenuBar();
-	}
-
-	ImGui::Begin("Whatsup");
-	ImGui::Text("Hey this is my framerate: %.0f", ImGui::GetIO().Framerate);
-	ImGui::ToggleButton("Toggle", &m_temp);
-	ImGui::End();
-
-	ImGui::Begin("Vulkan Details");
-
-	ImGui::End();
-
-	// Render to generate draw buffers
-	ImGui::Render();
-
-	imgui_impl->UpdateBuffers();
-	imgui_impl->Draw(m_direct_cmd_list, frame_idx);
-#endif
-
-	m_direct_cmd_list->Close(frame_idx);
-
-	m_direct_queue->Execute({ m_direct_cmd_list }, m_present_fences[frame_idx], frame_idx);
+	auto fg_cmd_lists = fg.GetAllCommandLists<gfx::CommandList>();
+	m_direct_queue->Execute(fg_cmd_lists, m_present_fences[frame_idx], frame_idx);
 
 	m_render_window->Present(m_direct_queue, m_present_fences[frame_idx]);
 }
@@ -313,4 +190,94 @@ void Renderer::Resize(std::uint32_t width, std::uint32_t height)
 	m_render_window->Resize(width, height);
 	m_pipeline->SetRenderTarget(m_render_window);
 	m_pipeline->Recompile();
+}
+
+Application* Renderer::GetApp()
+{
+	return m_application;
+}
+
+std::uint32_t Renderer::GetFrameIdx()
+{
+	return m_render_window->GetFrameIdx();
+}
+
+ModelPool* Renderer::GetModelPool()
+{
+	return m_model_pool;
+}
+
+TexturePool* Renderer::GetTexturePool()
+{
+	return m_texture_pool;
+}
+
+gfx::CommandList* Renderer::CreateDirectCommandList(std::uint32_t num_versions)
+{
+	return new gfx::CommandList(m_direct_queue);
+}
+
+gfx::CommandList* Renderer::CreateCopyCommandList(std::uint32_t num_versions)
+{
+	return new gfx::CommandList(m_direct_queue);
+}
+
+gfx::CommandList* Renderer::CreateComputeCommandList(std::uint32_t num_versions)
+{
+	return new gfx::CommandList(m_direct_queue);
+}
+
+void Renderer::ResetCommandList(gfx::CommandList* cmd_list)
+{
+	// Nothing to be done for a vulkan command list
+}
+
+void Renderer::StartRenderTask(gfx::CommandList* cmd_list, std::pair<gfx::RenderTarget*, RenderTargetProperties> render_target)
+{
+	auto frame_idx = m_render_window->GetFrameIdx();
+	auto desc = render_target.second;
+
+	cmd_list->Begin(frame_idx);
+	if (render_target.second.m_is_render_window)
+	{
+		cmd_list->BindRenderTargetVersioned(render_target.first, frame_idx, desc.m_clear, desc.m_clear_depth);
+	}
+	else
+	{
+		LOGW("Coming soon");
+	}
+}
+
+void Renderer::StopRenderTask(gfx::CommandList* cmd_list, std::pair<gfx::RenderTarget*, RenderTargetProperties> render_target)
+{
+	// COMING SOON
+}
+
+void Renderer::CloseCommandList(gfx::CommandList* cmd_list)
+{
+	auto frame_idx = m_render_window->GetFrameIdx();
+
+	cmd_list->Close(frame_idx);
+}
+
+void Renderer::DestroyCommandList(gfx::CommandList* cmd_list)
+{
+	delete cmd_list;
+}
+
+gfx::RenderTarget* Renderer::CreateRenderTarget(RenderTargetProperties const & properties)
+{
+	if (properties.m_is_render_window)
+	{
+		return m_render_window;
+	}
+	else
+	{
+		LOGW("Coming soon!");
+	}
+}
+
+void Renderer::DestroyRenderTarget(gfx::RenderTarget* render_target)
+{
+	delete render_target;
 }

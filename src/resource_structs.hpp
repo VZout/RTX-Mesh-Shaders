@@ -9,6 +9,7 @@
 #include <vector>
 #include <vec3.hpp>
 #include <vec4.hpp>
+#include <optional>
 
 struct TextureData
 {
@@ -55,4 +56,33 @@ struct ModelData
 {
 	std::vector<MeshData> m_meshes;
 	std::vector<MaterialData> m_materials;
+};
+
+struct RenderTargetProperties
+{
+	/*using IsRenderWindow = util::NamedType<bool>;
+	using Width = util::NamedType<std::optional<unsigned int>>;
+	using Height = util::NamedType<std::optional<unsigned int>>;
+	using ExecuteResourceState = util::NamedType<std::optional<ResourceState>>;
+	using FinishedResourceState = util::NamedType<std::optional<wr::ResourceState>>;
+	using CreateDSVBuffer = util::NamedType<bool>;
+	using DSVFormat = util::NamedType<Format>;
+	using RTVFormats = util::NamedType<std::array<Format, 8>>;
+	using NumRTVFormats = util::NamedType<unsigned int>;
+	using ResolutionScalar = util::NamedType<float>;*/
+
+	bool m_is_render_window;
+	std::optional<std::uint32_t> m_width;
+	std::optional<std::uint32_t> m_height;
+	//ExecuteResourceState m_state_execute;
+	//FinishedResourceState m_state_finished;
+	//CreateDSVBuffer m_create_dsv_buffer;
+	//DSVFormat m_dsv_format;
+	//RTVFormats m_rtv_formats;
+	//NumRTVFormats m_num_rtv_formats;
+
+	bool m_clear = false;
+	bool m_clear_depth = false;
+
+	float m_resolution_scale = 1;
 };
