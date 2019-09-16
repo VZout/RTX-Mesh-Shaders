@@ -10,7 +10,7 @@
 // in the pool we create sets for the different type of descriptors
 // in these sets we create multiple descriptors of the same type as the corresponding set.
 
-gfx::DescriptorHeap::DescriptorHeap(Context* context, RootSignature* root_signature, Desc desc)
+gfx::DescriptorHeap::DescriptorHeap(Context* context, Desc desc)
 	: m_context(context), m_desc(desc), m_descriptor_pool_create_info()
 {
 	auto logical_device = m_context->m_logical_device;
@@ -27,7 +27,7 @@ gfx::DescriptorHeap::DescriptorHeap(Context* context, RootSignature* root_signat
 	m_descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	m_descriptor_pool_create_info.poolSizeCount = pool_sizes.size();
 	m_descriptor_pool_create_info.pPoolSizes = pool_sizes.data();
-	m_descriptor_pool_create_info.maxSets = pool_sizes.size();
+	m_descriptor_pool_create_info.maxSets = desc.m_num_descriptors;
 
 	m_descriptor_sets.resize(desc.m_versions);
 	m_queued_writes.resize(desc.m_versions);
@@ -38,27 +38,6 @@ gfx::DescriptorHeap::DescriptorHeap(Context* context, RootSignature* root_signat
 		    VK_SUCCESS)
 		{
 			LOGC("failed to create descriptor pool!");
-		}
-
-		if (!root_signature) continue;
-
-		// Create the descriptor tables
-		std::vector<VkDescriptorSetLayout> layouts(root_signature->m_descriptor_set_layouts.size());
-		for (auto i = 0u; i < root_signature->m_descriptor_set_layouts.size(); i++)
-		{
-			layouts[i] = root_signature->m_descriptor_set_layouts[i];
-		}
-
-		VkDescriptorSetAllocateInfo alloc_info = {};
-		alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		alloc_info.descriptorPool = m_descriptor_pools[version];
-		alloc_info.descriptorSetCount = pool_sizes.size();
-		alloc_info.pSetLayouts = layouts.data();
-
-		m_descriptor_sets[version].resize(pool_sizes.size());
-		if (vkAllocateDescriptorSets(logical_device, &alloc_info, m_descriptor_sets[version].data()) != VK_SUCCESS)
-		{
-			LOGC("failed to allocate descriptor sets!");
 		}
 	}
 }
@@ -83,17 +62,35 @@ gfx::DescriptorHeap::~DescriptorHeap()
 	}
 }
 
-void gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, std::uint32_t handle, std::uint32_t frame_idx)
+std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx)
 {
+	auto logical_device = m_context->m_logical_device;
+
+	// Create the descriptor sets
+	VkDescriptorSetAllocateInfo alloc_info = {};
+	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	alloc_info.descriptorPool = m_descriptor_pools[frame_idx];
+	alloc_info.descriptorSetCount = 1;
+	alloc_info.pSetLayouts = &root_signature->m_descriptor_set_layouts[handle];
+
+	VkDescriptorSet descriptor_set;
+	if (vkAllocateDescriptorSets(logical_device, &alloc_info, &descriptor_set) != VK_SUCCESS)
+	{
+		LOGC("failed to allocate descriptor sets!");
+	}
+	m_descriptor_sets[frame_idx].push_back(descriptor_set);
+
 	auto buffer_info = new VkDescriptorBufferInfo();
 	// Command list will destroy it later.
 	buffer_info->buffer = buffer->m_buffer;
 	buffer_info->offset = 0;
 	buffer_info->range = buffer->m_size;
 
+	auto descriptor_set_id = m_descriptor_sets[frame_idx].size() - 1;
+
 	VkWriteDescriptorSet descriptor_write = {};
 	descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptor_write.dstSet = m_descriptor_sets[frame_idx][0];  // TODO: Don't use 0 but get the set that corresponds to the correct descriptor type.
+	descriptor_write.dstSet = m_descriptor_sets[frame_idx][descriptor_set_id];  // TODO: Don't use 0 but get the set that corresponds to the correct descriptor type.
 	descriptor_write.dstBinding = handle;
 	descriptor_write.dstArrayElement = 0;
 	descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -103,12 +100,27 @@ void gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, std::uint32_t handl
 	descriptor_write.pTexelBufferView = nullptr;
 
 	m_queued_writes[frame_idx].push_back(descriptor_write);
+
+	return descriptor_set_id;
 }
 
-
-void gfx::DescriptorHeap::CreateSRVSetFromTexture(std::vector<StagingTexture*> texture, std::uint32_t handle, std::uint32_t frame_idx)
+std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromTexture(std::vector<StagingTexture*> texture, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx)
 {
 	auto logical_device = m_context->m_logical_device;
+
+	// Create the descriptor sets
+	VkDescriptorSetAllocateInfo alloc_info = {};
+	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	alloc_info.descriptorPool = m_descriptor_pools[frame_idx];
+	alloc_info.descriptorSetCount = 1;
+	alloc_info.pSetLayouts = &root_signature->m_descriptor_set_layouts[handle];
+
+	VkDescriptorSet descriptor_set;
+	if (vkAllocateDescriptorSets(logical_device, &alloc_info, &descriptor_set) != VK_SUCCESS)
+	{
+		LOGC("failed to allocate descriptor sets!");
+	}
+	m_descriptor_sets[frame_idx].push_back(descriptor_set);
 
 	// sampler
 	VkSamplerCreateInfo sampler_info = {};
@@ -169,9 +181,11 @@ void gfx::DescriptorHeap::CreateSRVSetFromTexture(std::vector<StagingTexture*> t
 	void* final_info = malloc(sizeof(VkDescriptorImageInfo) * image_infos.size());
 	std::memcpy(final_info, image_infos.data(), sizeof(VkDescriptorImageInfo) * image_infos.size());
 
+	auto descriptor_set_id = m_descriptor_sets[frame_idx].size() - 1;
+
 	VkWriteDescriptorSet descriptor_write = {};
 	descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptor_write.dstSet = m_descriptor_sets[frame_idx][1]; // TODO: Don't use 1 but get the set that corresponds to the correct descriptor type.
+	descriptor_write.dstSet = m_descriptor_sets[frame_idx][descriptor_set_id]; // TODO: Don't use 1 but get the set that corresponds to the correct descriptor type.
 	descriptor_write.dstBinding = handle;
 	descriptor_write.dstArrayElement = 0;
 	descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -181,11 +195,27 @@ void gfx::DescriptorHeap::CreateSRVSetFromTexture(std::vector<StagingTexture*> t
 	descriptor_write.pTexelBufferView = nullptr;
 
 	m_queued_writes[frame_idx].push_back(descriptor_write);
+
+	return descriptor_set_id;
 }
 
-void gfx::DescriptorHeap::CreateSRVFromTexture(StagingTexture* texture, std::uint32_t handle, std::uint32_t frame_idx)
+std::uint32_t gfx::DescriptorHeap::CreateSRVFromTexture(StagingTexture* texture, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx)
 {
 	auto logical_device = m_context->m_logical_device;
+
+	// Create the descriptor sets
+	VkDescriptorSetAllocateInfo alloc_info = {};
+	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	alloc_info.descriptorPool = m_descriptor_pools[frame_idx];
+	alloc_info.descriptorSetCount = 1;
+	alloc_info.pSetLayouts = &root_signature->m_descriptor_set_layouts[handle];
+
+	VkDescriptorSet descriptor_set;
+	if (vkAllocateDescriptorSets(logical_device, &alloc_info, &descriptor_set) != VK_SUCCESS)
+	{
+		LOGC("failed to allocate descriptor sets!");
+	}
+	m_descriptor_sets[frame_idx].push_back(descriptor_set);
 
 	// image view
 	VkImageViewCreateInfo view_info = {};
@@ -238,9 +268,11 @@ void gfx::DescriptorHeap::CreateSRVFromTexture(StagingTexture* texture, std::uin
 	image_info->imageView = new_view;
 	image_info->sampler = new_sampler;
 
+	auto descriptor_set_id = m_descriptor_sets[frame_idx].size() - 1;
+
 	VkWriteDescriptorSet descriptor_write = {};
 	descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptor_write.dstSet = m_descriptor_sets[frame_idx][1]; // TODO: Don't use 1 but get the set that corresponds to the correct descriptor type.
+	descriptor_write.dstSet = m_descriptor_sets[frame_idx][descriptor_set_id]; // TODO: Don't use 1 but get the set that corresponds to the correct descriptor type.
 	descriptor_write.dstBinding = handle;
 	descriptor_write.dstArrayElement = 0;
 	descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -250,4 +282,6 @@ void gfx::DescriptorHeap::CreateSRVFromTexture(StagingTexture* texture, std::uin
 	descriptor_write.pTexelBufferView = nullptr;
 
 	m_queued_writes[frame_idx].push_back(descriptor_write);
+
+	return descriptor_set_id;
 }

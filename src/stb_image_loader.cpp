@@ -24,11 +24,12 @@ STBImageLoader::AnonResource STBImageLoader::LoadFromDisc(std::string const & pa
 	int width = 0, height = 0, channels = 0;
 	unsigned char* x = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
-	if (!x || width <= 0 || height <=0 || channels <= 0) {
+	if (!x || width <= 0 || height <=0 || channels <= 0)
+	{
 		LOGC("STB Failed to load texture.");
 	}
 
-	texture->m_pixels = std::vector<unsigned char>(x, x + sizeof(x) / sizeof(x[0]));
+	texture->m_pixels = std::vector<unsigned char>(x, (x + width * height * 4)); // TODO: Unhardcode the 4. This will fuck me with different formats.
 	texture->m_width = static_cast<std::uint32_t>(width);
 	texture->m_height = static_cast<std::uint32_t>(height);
 	texture->m_channels = static_cast<std::uint32_t>(channels);

@@ -8,7 +8,6 @@
 
 #include "../model_pool.hpp"
 
-
 namespace gfx
 {
 

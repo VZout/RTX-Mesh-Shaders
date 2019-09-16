@@ -37,12 +37,12 @@ namespace gfx
 			std::uint32_t m_versions = 1;
 		};
 
-		explicit DescriptorHeap(Context* context, RootSignature* root_signature, Desc desc);
+		explicit DescriptorHeap(Context* context, Desc desc);
 		~DescriptorHeap();
 
-		void CreateSRVFromCB(GPUBuffer* buffer, std::uint32_t handle, std::uint32_t frame_idx);
-		void CreateSRVFromTexture(StagingTexture* texture, std::uint32_t handle, std::uint32_t frame_idx);
-		void CreateSRVSetFromTexture(std::vector<StagingTexture*> texture, std::uint32_t handle, std::uint32_t frame_idx);
+		std::uint32_t CreateSRVFromCB(GPUBuffer* buffer, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx);
+		std::uint32_t CreateSRVFromTexture(StagingTexture* texture, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx);
+		std::uint32_t CreateSRVSetFromTexture(std::vector<StagingTexture*> texture, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx);
 
 	private:
 		Context* m_context;
