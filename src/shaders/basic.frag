@@ -24,12 +24,12 @@ void main()
 {
     // constants
     const float specular_strength = 0.5;
-    const float ambient = 0.1;
+    const float ambient = 0.4;
     const vec3 light_color = vec3(1);
-    const vec3 light_pos = vec3(0, 0, -10);
+    const vec3 light_pos = vec3(2, 2, 2);
     const vec3 view_pos = vec3(2, 2, 2);
 
-    vec3 albedo = texture(ts_albedo[1], g_uv).xyz;
+    vec3 albedo = texture(ts_albedo[0], g_uv).xyz;
 
     // diffuse
     vec3 norm = normalize(g_normal);

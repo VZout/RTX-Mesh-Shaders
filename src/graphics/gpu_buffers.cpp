@@ -202,7 +202,7 @@ gfx::StagingTexture::~StagingTexture()
 {
 	auto logical_device = m_context->m_logical_device;
 
-	if (m_texture) vkDestroyBuffer(logical_device, m_texture, nullptr);
+	if (m_texture) vkDestroyImage(logical_device, m_texture, nullptr);
 	if (m_texture_memory) vkFreeMemory(logical_device, m_texture_memory, nullptr);
 }
 

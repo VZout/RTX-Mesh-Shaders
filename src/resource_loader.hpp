@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <algorithm>
 
 template<typename T>
 class ResourceLoader
@@ -41,6 +42,23 @@ public:
 		m_loaded_resources.push_back(std::move(data));
 
 		return m_loaded_resources.back().get();
+	}
+
+	bool IsSupportedExtension(std::string const & ext)
+	{
+		std::string lc_ext = ext;
+		std::transform(lc_ext.begin(), lc_ext.end(), lc_ext.begin(), ::tolower);
+		for (auto supported_extension : m_supported_formats)
+		{
+			std::transform(supported_extension.begin(), supported_extension.end(), supported_extension.begin(), ::tolower);
+
+			if (supported_extension == ext)
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 protected:

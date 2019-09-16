@@ -8,11 +8,14 @@
 
 #include "util/log.hpp"
 #include "application.hpp"
+#include "texture_pool.hpp"
+#include "stb_image_loader.hpp"
 #include "tinygltf_model_loader.hpp"
 #include "vertex.hpp"
 #include "buffer_definitions.hpp"
 #include "graphics/context.hpp"
 #include "graphics/vk_model_pool.hpp"
+#include "graphics/vk_texture_pool.hpp"
 #include "graphics/command_queue.hpp"
 #include "graphics/render_window.hpp"
 #include "graphics/shader.hpp"
@@ -35,7 +38,7 @@
 
 Renderer::Renderer() : m_context(nullptr), m_direct_queue(nullptr), m_render_window(nullptr), m_direct_cmd_list(nullptr)
 {
-
+	TexturePool::RegisterLoader<STBImageLoader>();
 }
 
 Renderer::~Renderer()
@@ -57,11 +60,8 @@ Renderer::~Renderer()
 	{
 		delete fence;
 	}
-	for (auto& texture : m_textures)
-	{
-		delete texture;
-	}
 	delete m_model_loader;
+	delete m_texture_pool;
 	delete m_model_pool;
 	delete m_root_signature;
 	delete m_pipeline;
@@ -77,6 +77,9 @@ Renderer::~Renderer()
 void Renderer::Init(Application* app)
 {
 	m_context = new gfx::Context(app);
+
+	m_cb_sets.resize(gfx::settings::num_back_buffers);
+	m_material_sets.resize(gfx::settings::num_back_buffers);
 
 	LOG("Initialized Vulkan");
 
@@ -140,14 +143,16 @@ void Renderer::Init(Application* app)
 
 	gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
 	descriptor_heap_desc.m_versions = gfx::settings::num_back_buffers;
-	descriptor_heap_desc.m_num_descriptors = 4;
-	m_desc_heap = new gfx::DescriptorHeap(m_context, m_root_signature, descriptor_heap_desc);
+	descriptor_heap_desc.m_num_descriptors = 100;
+	m_desc_heap = new gfx::DescriptorHeap(m_context, descriptor_heap_desc);
 	m_cbs.resize(gfx::settings::num_back_buffers);
 	for (std::uint32_t i = 0; i < gfx::settings::num_back_buffers; i++)
 	{
 		m_cbs[i] = new gfx::GPUBuffer(m_context, sizeof(cb::Basic), gfx::enums::BufferUsageFlag::CONSTANT_BUFFER);
 		m_cbs[i]->Map();
-		m_desc_heap->CreateSRVFromCB(m_cbs[i], 0, i);
+
+
+		m_cb_sets[i].push_back(m_desc_heap->CreateSRVFromCB(m_cbs[i], m_root_signature, 0, i));
 	}
 
 	m_start = std::chrono::high_resolution_clock::now();
@@ -176,15 +181,21 @@ void Renderer::Init(Application* app)
 	m_model_pool = new gfx::VkModelPool(m_context);
 	m_model_pool->Load<Vertex>(m_model);
 
-	m_textures.resize(m_model->m_materials.size());
-	for (std::size_t i = 0; i < m_textures.size(); i++)
+	m_texture_pool = new gfx::VkTexturePool(m_context);
+	std::vector<std::uint32_t> texture_handles;
+	for (std::size_t i = 0; i < m_model->m_materials.size(); i++)
 	{
-		auto texture_data = m_model->m_materials[i].m_albedo_texture;
-		gfx::StagingTexture::Desc texture_desc;
-		texture_desc.m_width = texture_data.m_width;
-		texture_desc.m_height = texture_data.m_height;
-		texture_desc.m_format = VK_FORMAT_R8G8B8A8_UNORM;
-		m_textures[i] = new gfx::StagingTexture(m_context, texture_desc, texture_data.m_pixels.data());
+		auto albedo_data = m_model->m_materials[i].m_albedo_texture;
+		auto normal_data = m_model->m_materials[i].m_normal_map_texture;
+
+		auto albedo_id = m_texture_pool->Load(albedo_data);
+		auto normal_id = m_texture_pool->Load(normal_data);
+
+		auto textures = m_texture_pool->GetTextures({ albedo_id, normal_id });
+		for (auto frame_idx = 0u; frame_idx < gfx::settings::num_back_buffers; frame_idx++)
+		{
+			m_material_sets[frame_idx].push_back(m_desc_heap->CreateSRVSetFromTexture(textures, m_root_signature, 1, frame_idx)); // + 1 becasue 0 is uniform
+		}
 	}
 
 	m_direct_cmd_list->Begin(0);
@@ -192,31 +203,15 @@ void Renderer::Init(Application* app)
 	// make sure the data depth buffer is ready for present
 	m_direct_cmd_list->TransitionDepth(m_render_window, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0);
 
-	// Make the staging texture ready for write. than stage. than transition to read optimal
-	for (auto& texture : m_textures)
-	{
-		m_direct_cmd_list->TransitionTexture(texture, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0);
-		m_direct_cmd_list->StageTexture(texture, 0);
-		m_direct_cmd_list->TransitionTexture(texture, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0);
-	}
-
 	// Upload data to the gpu
 	m_model_pool->Stage(m_direct_cmd_list, 0);
+	m_texture_pool->Stage(m_direct_cmd_list, 0);
 	m_direct_cmd_list->Close(0);
 
 	m_direct_queue->Execute({ m_direct_cmd_list }, nullptr, 0);
 	m_direct_queue->Wait();
 	m_model_pool->PostStage();
-	for (auto& texture : m_textures)
-	{
-		texture->FreeStagingResources();
-	}
-
-	// Create texture shader resource views
-	for (std::uint32_t i = 0; i < gfx::settings::num_back_buffers; i++)
-	{
-		m_desc_heap->CreateSRVSetFromTexture({ m_textures[0], m_textures[1] }, 1, i); // + 1 becasue 0 is uniform
-	}
+	m_texture_pool->PostStage();
 
 	LOG("Finished Uploading Resources");
 
@@ -247,9 +242,9 @@ void Renderer::Render()
 	m_direct_cmd_list->Begin(frame_idx);
 	m_direct_cmd_list->BindRenderTargetVersioned(m_render_window, frame_idx);
 	m_direct_cmd_list->BindPipelineState(m_pipeline, frame_idx);
-	m_direct_cmd_list->BindDescriptorHeap(m_root_signature, m_desc_heap, frame_idx);
 	for (std::size_t i = 0; i < m_model_pool->m_vertex_buffers.size(); i++)
 	{
+		m_direct_cmd_list->BindDescriptorHeap(m_root_signature, m_desc_heap, { m_cb_sets[frame_idx][0], m_material_sets[frame_idx][i] } , frame_idx);
 		m_direct_cmd_list->BindVertexBuffer(m_model_pool->m_vertex_buffers[i], frame_idx);
 		m_direct_cmd_list->BindIndexBuffer(m_model_pool->m_index_buffers[i], frame_idx);
 		m_direct_cmd_list->DrawIndexed(frame_idx, m_model->m_meshes[i].m_indices.size(), 1);
