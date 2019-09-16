@@ -71,7 +71,7 @@ void gfx::RenderTarget::CreateRenderPass(VkFormat format, VkFormat depth_format)
 	VkAttachmentDescription color_attachment = {};
 	color_attachment.format = format;
 	color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 	color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -84,7 +84,7 @@ void gfx::RenderTarget::CreateRenderPass(VkFormat format, VkFormat depth_format)
 	{
 		depth_attachment.format = depth_format;
 		depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;

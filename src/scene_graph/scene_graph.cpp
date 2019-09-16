@@ -6,12 +6,12 @@
 
 #include "scene_graph.hpp"
 
-SceneGraph::SceneGraph()
+sg::SceneGraph::SceneGraph()
 {
 
 }
 
-NodeHandle SceneGraph::CreateNode()
+sg::NodeHandle sg::SceneGraph::CreateNode()
 {
 	NodeHandle new_node_handle = m_nodes.size();
 
@@ -29,7 +29,7 @@ NodeHandle SceneGraph::CreateNode()
 	return new_node_handle;
 }
 
-void SceneGraph::DestroyNode(NodeHandle handle)
+void sg::SceneGraph::DestroyNode(NodeHandle handle)
 {
 
 }

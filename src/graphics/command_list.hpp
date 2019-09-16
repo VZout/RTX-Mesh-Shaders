@@ -37,7 +37,7 @@ namespace gfx
 		void Begin(std::uint32_t frame_idx);
 		void Close(std::uint32_t frame_idx);
 
-		void BindRenderTargetVersioned(RenderTarget* render_target, std::uint32_t frame_idx);
+		void BindRenderTargetVersioned(RenderTarget* render_target, std::uint32_t frame_idx, bool clear = true, bool clear_depth = true);
 		void BindPipelineState(PipelineState* pipeline, std::uint32_t frame_idx);
 		void BindVertexBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx);
 		void BindIndexBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx);

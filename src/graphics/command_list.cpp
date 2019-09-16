@@ -93,7 +93,7 @@ void gfx::CommandList::Close(std::uint32_t frame_idx)
 	}
 }
 
-void gfx::CommandList::BindRenderTargetVersioned(RenderTarget* render_target, std::uint32_t frame_idx)
+void gfx::CommandList::BindRenderTargetVersioned(RenderTarget* render_target, std::uint32_t frame_idx, bool clear, bool clear_depth)
 {
 	std::array<VkClearValue, 2> clear_values = {};
 	clear_values[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -112,6 +112,28 @@ void gfx::CommandList::BindRenderTargetVersioned(RenderTarget* render_target, st
 	vkCmdBeginRenderPass(m_cmd_buffers[frame_idx], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
 	m_bound_render_target[frame_idx] = true;
+
+	std::vector<VkClearAttachment> clears;
+	if (clear)
+	{
+		clears.push_back(VkClearAttachment{VK_IMAGE_ASPECT_COLOR_BIT, 0, clear_values[0]});
+	}
+	if (clear_depth)
+	{
+		clears.push_back(VkClearAttachment{VK_IMAGE_ASPECT_DEPTH_BIT, 1, clear_values[1]});
+	}
+
+	if (!clears.empty())
+	{
+		VkRect2D rect;
+		VkClearRect clear_rect;
+		clear_rect.baseArrayLayer = 0;
+		clear_rect.layerCount = 1;
+		rect.extent = {render_target->GetWidth(), render_target->GetHeight()};
+		rect.offset = {0, 0};
+		clear_rect.rect = rect;
+		vkCmdClearAttachments(m_cmd_buffers[frame_idx], clears.size(), clears.data(), 1, &clear_rect);
+	}
 }
 
 void gfx::CommandList::BindPipelineState(gfx::PipelineState* pipeline, std::uint32_t frame_idx)
