@@ -43,6 +43,7 @@ namespace gfx
 		friend class StagingBuffer;
 		friend class StagingTexture;
 		friend class DescriptorHeap;
+		friend class VkMaterialPool;
 
 		friend class ::ImGuiImpl; // TODO: probably dont want this
 	public:

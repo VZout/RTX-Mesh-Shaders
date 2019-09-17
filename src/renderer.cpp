@@ -15,6 +15,7 @@
 #include "frame_graph/frame_graph.hpp"
 #include "scene_graph/scene_graph.hpp"
 #include "buffer_definitions.hpp"
+#include "graphics/vk_material_pool.hpp"
 #include "graphics/context.hpp"
 #include "graphics/vk_model_pool.hpp"
 #include "graphics/vk_texture_pool.hpp"
@@ -34,6 +35,7 @@
 Renderer::Renderer() : m_application(nullptr), m_context(nullptr), m_direct_queue(nullptr), m_render_window(nullptr), m_direct_cmd_list(nullptr)
 {
 	TexturePool::RegisterLoader<STBImageLoader>();
+	ModelPool::RegisterLoader<TinyGLTFModelLoader>();
 }
 
 Renderer::~Renderer()
@@ -45,9 +47,9 @@ Renderer::~Renderer()
 	{
 		delete fence;
 	}
-	delete m_model_loader;
 	delete m_texture_pool;
 	delete m_model_pool;
+	delete m_material_pool;
 	delete m_root_signature;
 	delete m_pipeline;
 	delete m_vs;
@@ -129,10 +131,9 @@ void Renderer::Init(Application* app)
 	descriptor_heap_desc.m_num_descriptors = 100;
 	m_desc_heap = new gfx::DescriptorHeap(m_context, descriptor_heap_desc);
 
-	m_model_loader = new TinyGLTFModelLoader();
 	m_model_pool = new gfx::VkModelPool(m_context);
-
 	m_texture_pool = new gfx::VkTexturePool(m_context);
+	m_material_pool = new gfx::VkMaterialPool(m_context);
 
 	LOG("Finished Initializing Renderer");
 }
@@ -174,16 +175,12 @@ void Renderer::Render(sg::SceneGraph& sg, fg::FrameGraph& fg)
 
 void Renderer::WaitForAllPreviousWork()
 {
-	for (auto& fence : m_present_fences)
-	{
-		fence->Wait();
-	}
+	m_context->WaitForDevice();
 }
 
 void Renderer::Resize(std::uint32_t width, std::uint32_t height)
 {
-	//WaitForAllPreviousWork();
-	m_context->WaitForDevice();
+	WaitForAllPreviousWork();
 
 	m_viewport->Resize(width, height);
 
@@ -210,6 +207,11 @@ ModelPool* Renderer::GetModelPool()
 TexturePool* Renderer::GetTexturePool()
 {
 	return m_texture_pool;
+}
+
+MaterialPool* Renderer::GetMaterialPool()
+{
+	return m_material_pool;
 }
 
 gfx::CommandList* Renderer::CreateDirectCommandList(std::uint32_t num_versions)

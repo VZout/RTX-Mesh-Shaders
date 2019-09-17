@@ -15,6 +15,8 @@
 #include <gtc/quaternion.hpp>
 #include <gtc/matrix_transform.hpp>
 
+#include "../model_pool.hpp"
+
 namespace sg
 {
 
@@ -52,7 +54,11 @@ namespace sg
 	struct ComponentData : internal::BaseComponentData
 	{
 		ComponentData() = default;
-		ComponentData(T value) { m_value = value; }
+		ComponentData(T value, NodeHandle handle) { m_value = value; m_node_handle = handle; }
+		void operator=(T const & value) {
+			m_value = value;
+		}
+
 		operator T() const { return m_value; }
 		T m_value;
 	};
@@ -65,14 +71,13 @@ namespace sg
 
 		NodeHandle CreateNode();
 
-		void DestroyNode(NodeHandle handle);
 		Node GetNode(NodeHandle handle);
 
 		template<typename A, typename B>
 		using Void_IsComponent = std::enable_if<std::is_same<A, B>::value, void>;
 
 		template<typename T>
-		typename Void_IsComponent<T, MeshComponent>::type PromoteNode(NodeHandle handle);
+		typename Void_IsComponent<T, MeshComponent>::type PromoteNode(NodeHandle handle, ModelHandle model_handle);
 
 		template<typename T>
 		typename Void_IsComponent<T, TransformComponent>::type PromoteNode(NodeHandle handle);
@@ -87,7 +92,7 @@ namespace sg
 		std::vector<ComponentData<bool>> m_requires_update;
 
 		// Mesh Component;
-		std::vector<ComponentData<int>> m_meshes;
+		std::vector<ComponentData<ModelHandle>> m_model_handles;
 
 	private:
 		std::vector<Node> m_nodes;
@@ -95,21 +100,20 @@ namespace sg
 	};
 
 	template<typename T>
-	typename SceneGraph::Void_IsComponent<T, MeshComponent>::type SceneGraph::PromoteNode(NodeHandle handle)
+	typename SceneGraph::Void_IsComponent<T, MeshComponent>::type SceneGraph::PromoteNode(NodeHandle handle, ModelHandle model_handle)
 	{
 		auto& node = m_nodes[handle];
-		node.m_mesh_component = m_meshes.size();
+		node.m_mesh_component = m_model_handles.size();
 
 		if (node.m_transform_component == -1)
 		{
 			PromoteNode<TransformComponent>(handle);
 		}
 
-		ComponentData<int> mesh_data = {};
-		mesh_data.m_value = handle;
-		mesh_data.m_node_handle = handle;
-
-		m_meshes.push_back(mesh_data);
+		m_model_handles.emplace_back(ComponentData<ModelHandle>(
+			model_handle,
+			handle
+		));
 	}
 
 	template<typename T>
@@ -117,15 +121,22 @@ namespace sg
 	{
 		auto& node = m_nodes[handle];
 		node.m_transform_component = m_positions.size();
-		m_positions.emplace_back(glm::vec3(0, 0, 0));
-		m_rotations.emplace_back(glm::quat(0, 0, 0, 0));
-		m_scales.emplace_back(glm::vec3(1, 1, 1));
-		m_models.emplace_back(glm::mat4(1));
-		m_requires_update.emplace_back(false);
+		m_positions.emplace_back(glm::vec3(0, 0, 0), handle);
+		m_rotations.emplace_back(glm::quat(0, 0, 0, 0), handle);
+		m_scales.emplace_back(glm::vec3(1, 1, 1), handle);
+		m_models.emplace_back(glm::mat4(1), handle);
+		m_requires_update.emplace_back(false, handle);
 	}
 
 	namespace helper
 	{
+		inline void SetPosition(SceneGraph* sg, NodeHandle handle, glm::vec3 value)
+		{
+			auto transform_handle = sg->GetNode(handle).m_transform_component;
+			sg->m_positions[transform_handle] = value;
+			sg->m_requires_update[transform_handle] = true;
+		}
+
 		inline void SetScale(SceneGraph* sg, NodeHandle handle, glm::vec3 value)
 		{
 			auto transform_handle = sg->GetNode(handle).m_transform_component;

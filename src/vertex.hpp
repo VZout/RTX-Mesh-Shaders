@@ -47,6 +47,8 @@ struct Vertex
 	glm::vec3 m_pos;
 	glm::vec2 m_uv;
 	glm::vec3 m_normal;
+	glm::vec3 m_tangent;
+	glm::vec3 m_bitangent;
 
 	static gfx::PipelineState::InputLayout GetInputLayout()
 	{
@@ -55,7 +57,7 @@ struct Vertex
 		binding_descs[0].stride = sizeof(Vertex);
 		binding_descs[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-		std::vector<VkVertexInputAttributeDescription> attribute_descs(3);
+		std::vector<VkVertexInputAttributeDescription> attribute_descs(5);
 		// position attribute
 		attribute_descs[0].binding = 0;
 		attribute_descs[0].location = 0;
@@ -71,6 +73,16 @@ struct Vertex
 		attribute_descs[2].location = 2;
 		attribute_descs[2].format = VK_FORMAT_R32G32B32_SFLOAT;
 		attribute_descs[2].offset = offsetof(Vertex, m_normal);
+		// tangent
+		attribute_descs[3].binding = 0;
+		attribute_descs[3].location = 3;
+		attribute_descs[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attribute_descs[3].offset = offsetof(Vertex, m_tangent);
+		// bitangent
+		attribute_descs[4].binding = 0;
+		attribute_descs[4].location = 4;
+		attribute_descs[4].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attribute_descs[4].offset = offsetof(Vertex, m_bitangent);
 
 		return { binding_descs, attribute_descs };
 	}

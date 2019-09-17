@@ -30,7 +30,6 @@ gfx::DescriptorHeap::DescriptorHeap(Context* context, Desc desc)
 	m_descriptor_pool_create_info.maxSets = desc.m_num_descriptors;
 
 	m_descriptor_sets.resize(desc.m_versions);
-	m_queued_writes.resize(desc.m_versions);
 
 	for (auto version = 0u; version < desc.m_versions; version++)
 	{
@@ -99,12 +98,18 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, RootSignat
 	descriptor_write.pImageInfo = nullptr;
 	descriptor_write.pTexelBufferView = nullptr;
 
-	m_queued_writes[frame_idx].push_back(descriptor_write);
+	vkUpdateDescriptorSets(logical_device, 1u, &descriptor_write, 0, nullptr);
 
 	return descriptor_set_id;
 }
 
 std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromTexture(std::vector<StagingTexture*> texture, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx)
+{
+	return CreateSRVSetFromTexture(texture, root_signature->m_descriptor_set_layouts[handle], handle, frame_idx);
+}
+
+
+std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromTexture(std::vector<StagingTexture*> texture, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx)
 {
 	auto logical_device = m_context->m_logical_device;
 
@@ -113,7 +118,7 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromTexture(std::vector<StagingTe
 	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	alloc_info.descriptorPool = m_descriptor_pools[frame_idx];
 	alloc_info.descriptorSetCount = 1;
-	alloc_info.pSetLayouts = &root_signature->m_descriptor_set_layouts[handle];
+	alloc_info.pSetLayouts = &layout;
 
 	VkDescriptorSet descriptor_set;
 	if (vkAllocateDescriptorSets(logical_device, &alloc_info, &descriptor_set) != VK_SUCCESS)
@@ -194,7 +199,7 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromTexture(std::vector<StagingTe
 	descriptor_write.pImageInfo = reinterpret_cast<VkDescriptorImageInfo*>(final_info);
 	descriptor_write.pTexelBufferView = nullptr;
 
-	m_queued_writes[frame_idx].push_back(descriptor_write);
+	vkUpdateDescriptorSets(logical_device, 1u, &descriptor_write, 0, nullptr);
 
 	return descriptor_set_id;
 }
@@ -281,7 +286,7 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVFromTexture(StagingTexture* texture,
 	descriptor_write.pImageInfo = image_info;
 	descriptor_write.pTexelBufferView = nullptr;
 
-	m_queued_writes[frame_idx].push_back(descriptor_write);
+	vkUpdateDescriptorSets(logical_device, 1u, &descriptor_write, 0, nullptr);
 
 	return descriptor_set_id;
 }

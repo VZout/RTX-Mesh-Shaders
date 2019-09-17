@@ -328,6 +328,7 @@ TinyGLTFModelLoader::AnonResource TinyGLTFModelLoader::LoadFromDisc(std::string 
 		}
 
 		parent_transform = parent_transform * transform;
+		parent_transform = glm::mat4(1); // TODO: Yeeah i fucked this hard
 
 		if (node.mesh > -1)
 		{

@@ -33,17 +33,12 @@ void sg::SceneGraph::Update()
 		auto& model = m_models[i].m_value;
 
 		model = glm::mat4(1);
-		model = glm::translate(model, m_positions[i].m_value);
-		model = glm::scale(model, m_scales[i].m_value);
+		model = glm::scale(glm::mat4(1), m_scales[i].m_value) * model;
 		model = glm::mat4_cast(m_rotations[i].m_value) * model;
+		model = glm::translate(glm::mat4(1), m_positions[i].m_value) * model;
 
 		m_requires_update[i] = false;
 	}
-
-}
-
-void sg::SceneGraph::DestroyNode(NodeHandle handle)
-{
 
 }
 

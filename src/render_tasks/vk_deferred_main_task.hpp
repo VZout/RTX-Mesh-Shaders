@@ -18,9 +18,9 @@
 #include "../texture_pool.hpp"
 #include "../vertex.hpp"
 #include "../imgui/imgui_impl_vulkan.hpp"
-#include "../tinygltf_model_loader.hpp"
 #include "../graphics/vk_model_pool.hpp"
 #include "../graphics/descriptor_heap.hpp"
+#include "../graphics/vk_material_pool.hpp"
 
 namespace tasks
 {
@@ -30,7 +30,6 @@ namespace tasks
 		std::vector<gfx::GPUBuffer*> m_cbs;
 		std::vector<std::vector<std::uint32_t>> m_cb_sets;
 		std::vector<std::vector<std::uint32_t>> m_material_sets;
-		ModelData* m_model;
 	};
 
 	namespace internal
@@ -44,12 +43,8 @@ namespace tasks
 			auto context = rs.GetContext();
 			auto desc_heap = rs.GetDescHeap();
 			auto root_sig = rs.GetRootSignature();
-			auto model_pool = rs.GetModelPool();
 			auto texture_pool = rs.GetTexturePool();
-			auto model_loader = rs.GetModelLoader();
-
-			data.m_model = model_loader->Load("scene.gltf");
-			model_pool->Load<Vertex>(data.m_model);
+			auto model_pool = rs.GetModelPool();
 
 			data.m_cb_sets.resize(gfx::settings::num_back_buffers);
 			data.m_material_sets.resize(gfx::settings::num_back_buffers);
@@ -63,23 +58,6 @@ namespace tasks
 
 				data.m_cb_sets[i].push_back(desc_heap->CreateSRVFromCB(data.m_cbs[i], root_sig, 0, i));
 			}
-
-			// Textures
-			std::vector<std::uint32_t> texture_handles;
-			for (std::size_t i = 0; i < data.m_model->m_materials.size(); i++)
-			{
-				auto albedo_data = data.m_model->m_materials[i].m_albedo_texture;
-				auto normal_data = data.m_model->m_materials[i].m_normal_map_texture;
-
-				auto albedo_id = texture_pool->Load(albedo_data);
-				auto normal_id = texture_pool->Load(normal_data);
-
-				auto textures = texture_pool->GetTextures({ albedo_id, normal_id });
-				for (auto frame_idx = 0u; frame_idx < gfx::settings::num_back_buffers; frame_idx++)
-				{
-					data.m_material_sets[frame_idx].push_back(desc_heap->CreateSRVSetFromTexture(textures, root_sig, 1, frame_idx));
-				}
-			}
 		}
 
 		inline void ExecuteDeferredMainTask(Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, fg::RenderTaskHandle handle)
@@ -89,25 +67,36 @@ namespace tasks
 			auto cmd_list = fg.GetCommandList(handle);
 			auto frame_idx = rs.GetFrameIdx();
 			auto model_pool = static_cast<gfx::VkModelPool*>(rs.GetModelPool());
-			auto texture_pool = rs.GetTexturePool();
 			auto root_sig = rs.GetRootSignature();
 			auto pipeline = rs.GetPipeline();
 			auto desc_heap = rs.GetDescHeap();
+			auto material_pool = static_cast<gfx::VkMaterialPool*>(rs.GetMaterialPool());
+
+			glm::vec3 cam_pos = glm::vec3(0, 0, -3);
 
 			cb::Basic basic_cb_data;
 			basic_cb_data.m_model = sg.m_models[0];
-			basic_cb_data.m_view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			basic_cb_data.m_view = glm::lookAt(cam_pos, cam_pos + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			basic_cb_data.m_proj = glm::perspective(glm::radians(45.0f), (float) render_window->GetWidth() / (float) render_window->GetHeight(), 0.01f, 1000.0f);
 			basic_cb_data.m_proj[1][1] *= -1;
 			data.m_cbs[frame_idx]->Update(&basic_cb_data, sizeof(cb::Basic));
 
 			cmd_list->BindPipelineState(pipeline, frame_idx);
-			for (std::size_t i = 0; i < model_pool->m_vertex_buffers.size(); i++)
+			auto model_handle = sg.m_model_handles[0].m_value;
+			for (std::size_t i = 0; i < model_handle.m_mesh_handles.size(); i++)
 			{
-				cmd_list->BindDescriptorHeap(root_sig, desc_heap, { data.m_cb_sets[frame_idx][0], data.m_material_sets[frame_idx][i] } , frame_idx);
+				auto mesh_handle = model_handle.m_mesh_handles[i];
+
+				std::vector<std::pair<gfx::DescriptorHeap*, std::uint32_t>> sets
+				{
+					{ desc_heap, data.m_cb_sets[frame_idx][0] },
+					{ material_pool->GetDescriptorHeap(), mesh_handle.m_material_handle->m_material_set_id }
+				};
+
+				cmd_list->BindDescriptorHeap(root_sig, sets, frame_idx);
 				cmd_list->BindVertexBuffer(model_pool->m_vertex_buffers[i], frame_idx);
 				cmd_list->BindIndexBuffer(model_pool->m_index_buffers[i], frame_idx);
-				cmd_list->DrawIndexed(frame_idx, data.m_model->m_meshes[i].m_indices.size(), 1);
+				cmd_list->DrawIndexed(frame_idx, mesh_handle.m_num_indices, 1);
 			}
 		}
 

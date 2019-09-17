@@ -16,6 +16,7 @@ class ModelData;
 class TinyGLTFModelLoader;
 class ModelPool;
 class TexturePool;
+class MaterialPool;
 
 namespace sg
 {
@@ -50,6 +51,7 @@ namespace gfx
 	class VkModelPool;
 	class StagingTexture;
 	class VkTexturePool;
+	class VkMaterialPool;
 
 } /* gfx */
 
@@ -68,6 +70,7 @@ public:
 	std::uint32_t GetFrameIdx();
 	ModelPool* GetModelPool();
 	TexturePool* GetTexturePool();
+	MaterialPool* GetMaterialPool();
 
 	gfx::CommandList* CreateDirectCommandList(std::uint32_t num_versions);
 	gfx::CommandList* CreateCopyCommandList(std::uint32_t num_versions);
@@ -87,7 +90,6 @@ public:
 	gfx::DescriptorHeap* GetDescHeap() { return m_desc_heap; };
 	gfx::RootSignature* GetRootSignature() { return m_root_signature; };
 	gfx::PipelineState* GetPipeline() { return m_pipeline; };
-	TinyGLTFModelLoader* GetModelLoader() { return m_model_loader; };
 
 private:
 	Application* m_application;
@@ -104,7 +106,7 @@ private:
 	gfx::DescriptorHeap* m_desc_heap;
 	gfx::PipelineState* m_pipeline;
 	gfx::RootSignature* m_root_signature;
-	TinyGLTFModelLoader* m_model_loader;
 	gfx::VkModelPool* m_model_pool;
 	gfx::VkTexturePool* m_texture_pool;
+	gfx::VkMaterialPool* m_material_pool;
 };

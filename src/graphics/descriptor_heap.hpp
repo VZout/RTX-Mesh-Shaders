@@ -43,6 +43,7 @@ namespace gfx
 		std::uint32_t CreateSRVFromCB(GPUBuffer* buffer, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx);
 		std::uint32_t CreateSRVFromTexture(StagingTexture* texture, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx);
 		std::uint32_t CreateSRVSetFromTexture(std::vector<StagingTexture*> texture, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx);
+		std::uint32_t CreateSRVSetFromTexture(std::vector<StagingTexture*> texture, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx);
 
 	private:
 		Context* m_context;
@@ -53,9 +54,6 @@ namespace gfx
 		std::vector<std::vector<VkDescriptorSet>> m_descriptor_sets; // first array is versions second array is sets
 		std::vector<VkImageView> m_image_views; // stores image views for textures.
 		std::vector<VkSampler> m_image_samplers; // store sampler for textures.
-
-		std::vector<std::vector<VkWriteDescriptorSet>> m_queued_writes; // These writes are used to update the set later when it gets bound. After updating this gets cleared. the first vector is to determine what frame_idx was used when calling createsrv
-
 	};
 
 } /* gfx */
