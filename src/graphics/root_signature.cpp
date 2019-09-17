@@ -27,14 +27,14 @@ void gfx::RootSignature::Compile()
 
 	m_descriptor_set_layouts.resize(m_desc.m_parameters.size());
 
-	for (auto& layout : m_descriptor_set_layouts)
+	for (std::size_t i = 0; i < m_descriptor_set_layouts.size(); i++)
 	{
 		VkDescriptorSetLayoutCreateInfo descriptor_set_create_info = {};
 		descriptor_set_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		descriptor_set_create_info.bindingCount = m_desc.m_parameters.size();
-		descriptor_set_create_info.pBindings = m_desc.m_parameters.data();
+		descriptor_set_create_info.bindingCount = 1;
+		descriptor_set_create_info.pBindings = &m_desc.m_parameters[i];
 
-		if (vkCreateDescriptorSetLayout(logical_device, &descriptor_set_create_info, nullptr, &layout) != VK_SUCCESS)
+		if (vkCreateDescriptorSetLayout(logical_device, &descriptor_set_create_info, nullptr, &m_descriptor_set_layouts[i]) != VK_SUCCESS)
 		{
 			LOGC("failed to create descriptor set layout!");
 		}

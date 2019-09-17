@@ -154,27 +154,14 @@ void gfx::CommandList::BindIndexBuffer(StagingBuffer* staging_buffer, std::uint3
 	vkCmdBindIndexBuffer(m_cmd_buffers[frame_idx], staging_buffer->m_buffer, offset, VkIndexType::VK_INDEX_TYPE_UINT32);
 }
 
-void gfx::CommandList::BindDescriptorHeap(RootSignature* root_signature, DescriptorHeap* heap, std::vector<std::uint32_t> sets, std::uint32_t frame_idx)
+void gfx::CommandList::BindDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets, std::uint32_t frame_idx)
 {
 	std::vector<VkDescriptorSet> descriptor_sets(sets.size());
+
 	for (std::size_t i = 0; i < sets.size(); i++)
 	{
-		descriptor_sets[i] = heap->m_descriptor_sets[frame_idx][sets[i]];
-	}
-
-	if (!heap->m_queued_writes[frame_idx].empty())
-	{
-		auto logical_device = m_context->m_logical_device;
-		vkUpdateDescriptorSets(logical_device, static_cast<std::uint32_t>(heap->m_queued_writes[frame_idx].size()), heap->m_queued_writes[frame_idx].data(), 0, nullptr);
-
-		// destroy the buffer or image infos we allocated some where else
-		for (auto& write : heap->m_queued_writes[frame_idx])
-		{
-			if (write.pImageInfo) delete write.pImageInfo;
-			if (write.pBufferInfo) delete write.pBufferInfo;
-		}
-
-		heap->m_queued_writes[frame_idx].clear();
+		auto versions = sets[i].first->m_descriptor_sets.size();
+		descriptor_sets[i] = sets[i].first->m_descriptor_sets[frame_idx % versions][sets[i].second];
 	}
 
 	vkCmdBindDescriptorSets(m_cmd_buffers[frame_idx], VK_PIPELINE_BIND_POINT_GRAPHICS, root_signature->m_pipeline_layout,

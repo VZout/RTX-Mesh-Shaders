@@ -60,12 +60,20 @@ protected:
 
 		m_renderer = new Renderer();
 		m_renderer->Init(this);
+
+		auto model_pool = m_renderer->GetModelPool();
+		auto texture_pool = m_renderer->GetTexturePool();
+		auto material_pool = m_renderer->GetMaterialPool();
+		auto model_handle = model_pool->LoadWithMaterials<Vertex>("robot/scene.gltf", material_pool, texture_pool, true);
+
 		m_frame_graph->Setup(m_renderer);
+
 		m_renderer->Upload();
 
 		m_scene_graph = new sg::SceneGraph();
 		m_node = m_scene_graph->CreateNode();
-		m_scene_graph->PromoteNode<sg::MeshComponent>(m_node);
+		m_scene_graph->PromoteNode<sg::MeshComponent>(m_node, model_handle);
+		sg::helper::SetPosition(m_scene_graph, m_node, glm::vec3(0, -1, 0));
 		sg::helper::SetScale(m_scene_graph, m_node, glm::vec3(0.01, 0.01, 0.01));
 
 		m_start = std::chrono::high_resolution_clock::now();

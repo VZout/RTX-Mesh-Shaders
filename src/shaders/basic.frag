@@ -7,6 +7,8 @@ layout(location = 0) in float g_time;
 layout(location = 1) in vec2 g_uv;
 layout(location = 2) in vec3 g_normal;
 layout(location = 3) in vec3 g_frag_pos;
+layout(location = 4) in vec3 g_tangent;
+layout(location = 5) in vec3 g_bitangent;
 
 layout(location = 0) out vec4 out_color;
 
@@ -26,13 +28,16 @@ void main()
     const float specular_strength = 0.5;
     const float ambient = 0.4;
     const vec3 light_color = vec3(1);
-    const vec3 light_pos = vec3(2, 2, 2);
-    const vec3 view_pos = vec3(2, 2, 2);
+    const vec3 light_pos = vec3(0, 0, -3);
+    const vec3 view_pos = vec3(0, 0, -3);
+
+    mat3 obj_tbn = { g_tangent, g_bitangent, g_normal };
+    vec3 obj_normal = normalize(texture(ts_albedo[1], g_uv).xyz * obj_tbn);
 
     vec3 albedo = texture(ts_albedo[0], g_uv).xyz;
 
     // diffuse
-    vec3 norm = normalize(g_normal);
+    vec3 norm = normalize(obj_normal);
     vec3 light_dir = normalize(light_pos - g_frag_pos);
     float diff = max(dot(norm, light_dir), 0.0);
     vec3 diffuse = diff * light_color;
