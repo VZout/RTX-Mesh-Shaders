@@ -8,7 +8,6 @@
 
 #define GLM_FORCE_RADIANS
 #include <glm.hpp>
-#include <chrono>
 #include <gtc/matrix_transform.hpp>
 
 #include "../application.hpp"
@@ -28,7 +27,6 @@ namespace tasks
 
 	struct DeferredMainData
 	{
-		std::chrono::time_point<std::chrono::high_resolution_clock> m_start;
 		std::vector<gfx::GPUBuffer*> m_cbs;
 		std::vector<std::vector<std::uint32_t>> m_cb_sets;
 		std::vector<std::vector<std::uint32_t>> m_material_sets;
@@ -55,7 +53,6 @@ namespace tasks
 
 			data.m_cb_sets.resize(gfx::settings::num_back_buffers);
 			data.m_material_sets.resize(gfx::settings::num_back_buffers);
-			data.m_start = std::chrono::high_resolution_clock::now();
 
 			// Descriptors uniform
 			data.m_cbs.resize(gfx::settings::num_back_buffers);
@@ -97,15 +94,8 @@ namespace tasks
 			auto pipeline = rs.GetPipeline();
 			auto desc_heap = rs.GetDescHeap();
 
-			auto diff = std::chrono::high_resolution_clock::now() - data.m_start;
-			float t = diff.count();
 			cb::Basic basic_cb_data;
-			basic_cb_data.m_time = t;
-			float size = 0.01;
-			basic_cb_data.m_model = glm::mat4(1);
-			basic_cb_data.m_model = glm::scale(basic_cb_data.m_model, glm::vec3(size));
-			basic_cb_data.m_model = glm::rotate(basic_cb_data.m_model, glm::radians(t * 0.0000001f), glm::vec3(0, 1, 0));
-			basic_cb_data.m_model = glm::rotate(basic_cb_data.m_model, glm::radians(-90.f), glm::vec3(1, 0, 0));
+			basic_cb_data.m_model = sg.m_models[0];
 			basic_cb_data.m_view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			basic_cb_data.m_proj = glm::perspective(glm::radians(45.0f), (float) render_window->GetWidth() / (float) render_window->GetHeight(), 0.01f, 1000.0f);
 			basic_cb_data.m_proj[1][1] *= -1;

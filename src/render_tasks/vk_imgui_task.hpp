@@ -26,13 +26,14 @@ namespace tasks
 #ifdef IMGUI
 		ImGuiImpl* m_imgui_impl;
 		bool m_temp;
+		util::Delegate<void()> m_render_func;
 #endif
 	};
 
 	namespace internal
 	{
 
-		inline void SetupImGuiTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
+		inline void SetupImGuiTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize, decltype(ImGuiTaskData::m_render_func) render_func)
 		{
 #ifdef IMGUI
 			if (resize)
@@ -43,6 +44,8 @@ namespace tasks
 			auto& data = fg.GetData<ImGuiTaskData>(handle);
 			auto render_window = fg.GetRenderTarget<gfx::RenderWindow>(handle);
 			auto app = rs.GetApp();
+
+			data.m_render_func = std::move(render_func);
 
 			IMGUI_CHECKVERSION();
 			ImGui::CreateContext();
@@ -74,31 +77,7 @@ namespace tasks
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
 
-			ImGui::DockSpaceOverViewport(ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
-
-			if (ImGui::BeginMainMenuBar())
-			{
-				if (ImGui::BeginMenu("File"))
-				{
-					ImGui::EndMenu();
-				}
-
-				if (ImGui::BeginMenu("About"))
-				{
-					ImGui::EndMenu();
-				}
-
-				ImGui::EndMainMenuBar();
-			}
-
-			ImGui::Begin("Whatsup");
-			ImGui::Text("Hey this is my framerate: %.0f", ImGui::GetIO().Framerate);
-			ImGui::ToggleButton("Toggle", &data.m_temp);
-			ImGui::End();
-
-			ImGui::Begin("Vulkan Details");
-
-			ImGui::End();
+			data.m_render_func();
 
 			// Render to generate draw buffers
 			ImGui::Render();
@@ -126,7 +105,7 @@ namespace tasks
 
 	} /* internal */
 
-	inline void AddImGuiTask(fg::FrameGraph& fg)
+	inline void AddImGuiTask(fg::FrameGraph& fg, decltype(ImGuiTaskData::m_render_func) const & imgui_render_func)
 	{
 		RenderTargetProperties rt_properties
 		{
@@ -138,9 +117,9 @@ namespace tasks
 		};
 
 		fg::RenderTaskDesc desc;
-		desc.m_setup_func = [](Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
+		desc.m_setup_func = [imgui_render_func](Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
 		{
-			internal::SetupImGuiTask(rs, fg, handle, resize);
+			internal::SetupImGuiTask(rs, fg, handle, resize, imgui_render_func);
 		};
 		desc.m_execute_func = [](Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, fg::RenderTaskHandle handle)
 		{
