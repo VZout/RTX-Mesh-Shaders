@@ -15,13 +15,7 @@ sg::NodeHandle sg::SceneGraph::CreateNode()
 {
 	NodeHandle new_node_handle = m_nodes.size();
 
-	Node new_node
-	{
-		.m_transform_component  = -1,
-		.m_mesh_component = -1
-	};
-
-	m_nodes.push_back({
+	m_nodes.emplace_back(Node{
 		.m_transform_component = -1,
 		.m_mesh_component = -1
 	});
@@ -29,7 +23,31 @@ sg::NodeHandle sg::SceneGraph::CreateNode()
 	return new_node_handle;
 }
 
+void sg::SceneGraph::Update()
+{
+	// Transform Component
+	for (std::size_t i = 0; i < m_requires_update.size(); i++)
+	{
+		if (!m_requires_update[i]) continue;
+
+		auto& model = m_models[i].m_value;
+
+		model = glm::mat4(1);
+		model = glm::translate(model, m_positions[i].m_value);
+		model = glm::scale(model, m_scales[i].m_value);
+		model = glm::mat4_cast(m_rotations[i].m_value) * model;
+
+		m_requires_update[i] = false;
+	}
+
+}
+
 void sg::SceneGraph::DestroyNode(NodeHandle handle)
 {
 
+}
+
+sg::Node sg::SceneGraph::GetNode(sg::NodeHandle handle)
+{
+	return m_nodes[handle];
 }

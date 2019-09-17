@@ -10,6 +10,10 @@
 #include <cstdint>
 #include <functional>
 #include <typeindex>
+#define GLM_FORCE_RADIANS
+#include <glm.hpp>
+#include <gtc/quaternion.hpp>
+#include <gtc/matrix_transform.hpp>
 
 namespace sg
 {
@@ -47,6 +51,9 @@ namespace sg
 	template<typename T>
 	struct ComponentData : internal::BaseComponentData
 	{
+		ComponentData() = default;
+		ComponentData(T value) { m_value = value; }
+		operator T() const { return m_value; }
 		T m_value;
 	};
 
@@ -54,12 +61,12 @@ namespace sg
 	{
 	public:
 		SceneGraph();
-
 		~SceneGraph() = default;
 
 		NodeHandle CreateNode();
 
 		void DestroyNode(NodeHandle handle);
+		Node GetNode(NodeHandle handle);
 
 		template<typename A, typename B>
 		using Void_IsComponent = std::enable_if<std::is_same<A, B>::value, void>;
@@ -70,12 +77,21 @@ namespace sg
 		template<typename T>
 		typename Void_IsComponent<T, TransformComponent>::type PromoteNode(NodeHandle handle);
 
+		void Update();
+
+		// Transformation Component
+		std::vector<ComponentData<glm::vec3>> m_positions;
+		std::vector<ComponentData<glm::quat>> m_rotations;
+		std::vector<ComponentData<glm::vec3>> m_scales;
+		std::vector<ComponentData<glm::mat4>> m_models;
+		std::vector<ComponentData<bool>> m_requires_update;
+
+		// Mesh Component;
+		std::vector<ComponentData<int>> m_meshes;
+
 	private:
 		std::vector<Node> m_nodes;
 
-		std::vector<ComponentData<float[3]>> m_positions;
-		std::vector<ComponentData<float[3]>> m_rotations;
-		std::vector<ComponentData<int>> m_meshes;
 	};
 
 	template<typename T>
@@ -101,6 +117,29 @@ namespace sg
 	{
 		auto& node = m_nodes[handle];
 		node.m_transform_component = m_positions.size();
+		m_positions.emplace_back(glm::vec3(0, 0, 0));
+		m_rotations.emplace_back(glm::quat(0, 0, 0, 0));
+		m_scales.emplace_back(glm::vec3(1, 1, 1));
+		m_models.emplace_back(glm::mat4(1));
+		m_requires_update.emplace_back(false);
 	}
+
+	namespace helper
+	{
+		inline void SetScale(SceneGraph* sg, NodeHandle handle, glm::vec3 value)
+		{
+			auto transform_handle = sg->GetNode(handle).m_transform_component;
+			sg->m_scales[transform_handle] = value;
+			sg->m_requires_update[transform_handle] = true;
+		}
+
+		inline void SetRotation(SceneGraph* sg, NodeHandle handle, glm::vec3 euler)
+		{
+			auto transform_handle = sg->GetNode(handle).m_transform_component;
+			sg->m_rotations[transform_handle].m_value = glm::quat(euler);
+			sg->m_requires_update[transform_handle] = true;
+		}
+
+	} /* helper */
 
 } /* sg */
