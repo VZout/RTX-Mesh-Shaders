@@ -290,16 +290,17 @@ TinyGLTFModelLoader::AnonResource TinyGLTFModelLoader::LoadFromDisc(std::string 
 			if (!translation.empty())
 			{
 				translation_mat = glm::translate(translation_mat,
-											glm::vec3{(float)translation[0], (float)translation[1], (float)translation[2]});
+						glm::vec3{(float)translation[0], (float)translation[1], (float)translation[2]});
 			}
 			if (!rotation.empty())
 			{
-				rotation_mat = glm::mat4_cast(glm::quat({ (float)rotation[0], (float)rotation[1], (float)rotation[2], (float)rotation[3] }));
+				rotation_mat = glm::rotate(
+						glm::mat4(1), (float)rotation[0], glm::vec3((float)rotation[1], (float)rotation[2], (float)rotation[3]));
 			}
 			if (!scale.empty())
 			{
 				scale_mat = glm::translate(scale_mat,
-										 glm::vec3{(float)scale[0], (float)scale[1], (float)scale[2]});
+						glm::vec3{(float)scale[0], (float)scale[1], (float)scale[2]});
 			}
 
 			transform = scale_mat * rotation_mat * translation_mat;
@@ -328,7 +329,6 @@ TinyGLTFModelLoader::AnonResource TinyGLTFModelLoader::LoadFromDisc(std::string 
 		}
 
 		parent_transform = parent_transform * transform;
-		parent_transform = glm::mat4(1); // TODO: Yeeah i fucked this hard
 
 		if (node.mesh > -1)
 		{
