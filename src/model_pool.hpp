@@ -218,8 +218,8 @@ ModelHandle ModelPool::LoadWithMaterials(ModelData* data,
 		AllocateMesh(vertices.data(), num_vertices, sizeof(V_T), indices.data(), num_indices, sizeof(I_T));
 		model_handle.m_mesh_handles.emplace_back(ModelHandle::MeshHandle{
 			.m_id = m_next_id,
-			.m_num_indices = num_indices,
-			.m_num_vertices = num_vertices,
+			.m_num_indices = static_cast<std::uint32_t>(num_indices),
+			.m_num_vertices = static_cast<std::uint32_t>(num_vertices),
 			.m_material_handle = material_handle
 		});
 		m_next_id++;
