@@ -117,15 +117,15 @@ namespace tasks
 		};
 
 		fg::RenderTaskDesc desc;
-		desc.m_setup_func = [imgui_render_func](Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
+		desc.m_setup_func = [imgui_render_func](Renderer& rs, fg::FrameGraph& fg, ::fg::RenderTaskHandle handle, bool resize)
 		{
 			internal::SetupImGuiTask(rs, fg, handle, resize, imgui_render_func);
 		};
-		desc.m_execute_func = [](Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, fg::RenderTaskHandle handle)
+		desc.m_execute_func = [](Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, ::fg::RenderTaskHandle handle)
 		{
 			internal::ExecuteImGuiTask(rs, fg, sg, handle);
 		};
-		desc.m_destroy_func = [](fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
+		desc.m_destroy_func = [](fg::FrameGraph& fg, ::fg::RenderTaskHandle handle, bool resize)
 		{
 			internal::DestroyImGuiTask(fg, handle, resize);
 		};

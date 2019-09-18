@@ -6,6 +6,8 @@
 
 #include "command_list.hpp"
 
+#include <array>
+
 #include "../util/log.hpp"
 #include "context.hpp"
 #include "gfx_settings.hpp"
