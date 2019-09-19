@@ -28,7 +28,7 @@ namespace gfx
 
 		void AquireBackBuffer(Fence* fence);
 		void Present(CommandQueue* queue, Fence* fence);
-		void Resize(std::uint32_t width, std::uint32_t height);
+		void Resize(std::uint32_t width, std::uint32_t height) final;
 		std::uint32_t GetFrameIdx();
 
 	private:

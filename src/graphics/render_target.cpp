@@ -72,6 +72,63 @@ gfx::RenderTarget::~RenderTarget()
 	}
 }
 
+void gfx::RenderTarget::Resize(std::uint32_t width, std::uint32_t height)
+{
+	auto logical_device = m_context->m_logical_device;
+	m_desc.m_width = width;
+	m_desc.m_height = height;
+
+	// cleanup // TODO: Create cleanup function.
+
+	// Clean depth buffer
+	if (m_depth_buffer_view != VK_NULL_HANDLE) vkDestroyImageView(logical_device, m_depth_buffer_view, nullptr);
+	if (m_depth_buffer != VK_NULL_HANDLE) vkDestroyImage(logical_device, m_depth_buffer, nullptr);
+	if (m_depth_buffer_memory != VK_NULL_HANDLE) vkFreeMemory(logical_device, m_depth_buffer_memory, nullptr);
+
+	std::vector<VkImage> m_images;
+	std::vector<VkDeviceMemory> m_images_memory;
+
+	for (auto& image_view : m_image_views)
+	{
+		vkDestroyImageView(logical_device, image_view, nullptr);
+	}
+	m_image_views.clear();
+
+	for (auto& image : m_images)
+	{
+		vkDestroyImage(logical_device, image, nullptr);
+	}
+	m_images.clear();
+
+	for (auto& image_memory : m_images_memory)
+	{
+		vkFreeMemory(logical_device, image_memory, nullptr);
+	}
+	m_images_memory.clear();
+
+	vkDestroyRenderPass(logical_device, m_render_pass, nullptr);
+
+	for (auto buffer : m_frame_buffers)
+	{
+		vkDestroyFramebuffer(logical_device, buffer, nullptr);
+	}
+	m_frame_buffers.clear();
+
+	// Recreate stuff TODO: This is all duplicate from the cosntructor
+	CreateImages();
+	CreateImageViews();
+
+	if (m_desc.m_depth_format != VK_FORMAT_UNDEFINED)
+	{
+		CreateDepthBuffer();
+		CreateDepthBufferView();
+	}
+
+	CreateRenderPass();
+
+	CreateFrameBuffers();
+}
+
 std::uint32_t gfx::RenderTarget::GetWidth()
 {
 	return m_desc.m_width;
