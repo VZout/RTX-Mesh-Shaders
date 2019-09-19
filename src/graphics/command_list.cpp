@@ -164,12 +164,12 @@ void gfx::CommandList::BindRenderTarget(RenderTarget* render_target, std::uint32
 	{
 		for (std::size_t i = 0; i < render_target->m_images.size(); i++)
 		{
-			clears.push_back(VkClearAttachment{VK_IMAGE_ASPECT_COLOR_BIT, i, clear_values[0]});
+			clears.push_back(VkClearAttachment{VK_IMAGE_ASPECT_COLOR_BIT, static_cast<std::uint32_t>(i), clear_values[0]});
 		}
 	}
 	if (clear_depth && render_target->m_desc.m_depth_format != VK_FORMAT_UNDEFINED)
 	{
-		clears.push_back(VkClearAttachment{VK_IMAGE_ASPECT_DEPTH_BIT, clears.size(), clear_values[1]});
+		clears.push_back(VkClearAttachment{VK_IMAGE_ASPECT_DEPTH_BIT, static_cast<std::uint32_t>(clears.size()), clear_values[1]});
 	}
 
 	if (!clears.empty())

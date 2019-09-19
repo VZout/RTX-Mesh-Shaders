@@ -1,7 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout(set = 1, binding = 1) uniform sampler2D ts_albedo[2];
+layout(set = 1, binding = 1) uniform sampler2D ts_textures[2];
 
 layout(location = 0) in float g_time;
 layout(location = 1) in vec2 g_uv;
@@ -16,9 +16,11 @@ layout(location = 2) out vec4 out_pos;
 
 void main()
 {
-    mat3 obj_tbn = { g_tangent, g_bitangent, g_normal };
-    vec3 obj_normal = normalize(texture(ts_albedo[1], g_uv).xyz * obj_tbn);
-    vec3 albedo = texture(ts_albedo[0], g_uv).xyz;
+    vec3 normal = g_normal;
+    normal.y = -normal.y;
+    mat3 TBN = { g_tangent, g_bitangent, g_normal };
+    vec3 obj_normal = normalize(texture(ts_textures[1], g_uv).xyz * TBN);
+    vec3 albedo = texture(ts_textures[0], g_uv).xyz;
 
     out_color = vec4(albedo, 1);
     out_normal = vec4(obj_normal, 1);
