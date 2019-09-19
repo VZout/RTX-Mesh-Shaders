@@ -56,6 +56,8 @@ protected:
 	{
 		m_frame_graph = new fg::FrameGraph();
 		tasks::AddDeferredMainTask(*m_frame_graph);
+		tasks::AddDeferredCompositionTask(*m_frame_graph);
+		tasks::AddCopyToBackBufferTask<tasks::DeferredCompositionData>(*m_frame_graph);
 		tasks::AddImGuiTask(*m_frame_graph, [this]() { Interface(); });
 
 		m_renderer = new Renderer();

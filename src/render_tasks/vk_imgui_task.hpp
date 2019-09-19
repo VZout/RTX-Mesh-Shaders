@@ -112,8 +112,12 @@ namespace tasks
 			.m_is_render_window = true,
 			.m_width = std::nullopt,
 			.m_height = std::nullopt,
+			.m_dsv_format = VK_FORMAT_D32_SFLOAT,
+			.m_rtv_formats = { gfx::settings::swapchain_format },
+			.m_state_execute = std::nullopt,
+			.m_state_finished = std::nullopt,
 			.m_clear = false,
-			.m_clear_depth = false,
+			.m_clear_depth = false
 		};
 
 		fg::RenderTaskDesc desc;

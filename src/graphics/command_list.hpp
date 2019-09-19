@@ -19,6 +19,7 @@ namespace gfx
 {
 	class Context;
 	class RenderTarget;
+	class RenderWindow;
 	class RootSignature;
 	class DescriptorHeap;
 	class PipelineState;
@@ -38,14 +39,19 @@ namespace gfx
 		void Close(std::uint32_t frame_idx);
 
 		void BindRenderTargetVersioned(RenderTarget* render_target, std::uint32_t frame_idx, bool clear = true, bool clear_depth = true);
+		void BindRenderTarget(RenderTarget* render_target, std::uint32_t frame_idx, bool clear = true, bool clear_depth = true);
+		void UnbindRenderTarget(std::uint32_t frame_idx);
 		void BindPipelineState(PipelineState* pipeline, std::uint32_t frame_idx);
 		void BindVertexBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx);
 		void BindIndexBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx);
 		void BindDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets, std::uint32_t frame_idx);
 		void StageBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx);
 		void StageTexture(StagingTexture* texture, std::uint32_t frame_idx);
+		void CopyRenderTargetToRenderWindow(RenderTarget* render_target, std::uint32_t rt_idx, RenderWindow* render_window, std::uint32_t frame_idx);
 		void TransitionDepth(RenderTarget* render_target, VkImageLayout from, VkImageLayout to, std::uint32_t frame_idx);
 		void TransitionTexture(StagingTexture* texture, VkImageLayout from, VkImageLayout to, std::uint32_t frame_idx);
+		void TransitionRenderTarget(RenderTarget* render_target, VkImageLayout from, VkImageLayout to, std::uint32_t frame_idx);
+		void TransitionRenderTarget(RenderTarget* render_target, std::uint32_t rt_idx, VkImageLayout from, VkImageLayout to, std::uint32_t frame_idx);
 		void Draw(std::uint32_t frame_idx, std::uint32_t vertex_count, std::uint32_t instance_count,
 				std::uint32_t first_vertex = 0, std::uint32_t first_instance = 0);
 		void DrawIndexed(std::uint32_t frame_idx, std::uint32_t idx_count, std::uint32_t instance_count,

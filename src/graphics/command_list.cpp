@@ -16,6 +16,7 @@
 #include "pipeline_state.hpp"
 #include "root_signature.hpp"
 #include "gpu_buffers.hpp"
+#include "render_window.hpp"
 
 gfx::CommandList::CommandList(CommandQueue* queue)
 	: m_context(queue->m_context), m_queue(queue), m_cmd_pool(VK_NULL_HANDLE), m_cmd_pool_create_info()
@@ -120,7 +121,7 @@ void gfx::CommandList::BindRenderTargetVersioned(RenderTarget* render_target, st
 	{
 		clears.push_back(VkClearAttachment{VK_IMAGE_ASPECT_COLOR_BIT, 0, clear_values[0]});
 	}
-	if (clear_depth)
+	if (clear_depth && render_target->m_desc.m_depth_format != VK_FORMAT_UNDEFINED)
 	{
 		clears.push_back(VkClearAttachment{VK_IMAGE_ASPECT_DEPTH_BIT, 1, clear_values[1]});
 	}
@@ -135,6 +136,61 @@ void gfx::CommandList::BindRenderTargetVersioned(RenderTarget* render_target, st
 		rect.offset = {0, 0};
 		clear_rect.rect = rect;
 		vkCmdClearAttachments(m_cmd_buffers[frame_idx], clears.size(), clears.data(), 1, &clear_rect);
+	}
+}
+
+void gfx::CommandList::BindRenderTarget(RenderTarget* render_target, std::uint32_t frame_idx, bool clear, bool clear_depth)
+{
+	std::array<VkClearValue, 2> clear_values = {};
+	clear_values[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+	clear_values[1].depthStencil = {1.0f, 0};
+
+	VkRenderPassBeginInfo render_pass_begin_info = {};
+	render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	render_pass_begin_info.renderPass = render_target->m_render_pass;
+	render_pass_begin_info.framebuffer = render_target->m_frame_buffers[0];
+	render_pass_begin_info.renderArea.offset = {0, 0};
+	render_pass_begin_info.renderArea.extent.width = render_target->GetWidth();
+	render_pass_begin_info.renderArea.extent.height = render_target->GetHeight();
+	render_pass_begin_info.clearValueCount = static_cast<std::uint32_t>(clear_values.size());
+	render_pass_begin_info.pClearValues = clear_values.data();
+
+	vkCmdBeginRenderPass(m_cmd_buffers[frame_idx], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+
+	m_bound_render_target[frame_idx] = true;
+
+	std::vector<VkClearAttachment> clears;
+	if (clear)
+	{
+		for (std::size_t i = 0; i < render_target->m_images.size(); i++)
+		{
+			clears.push_back(VkClearAttachment{VK_IMAGE_ASPECT_COLOR_BIT, i, clear_values[0]});
+		}
+	}
+	if (clear_depth && render_target->m_desc.m_depth_format != VK_FORMAT_UNDEFINED)
+	{
+		clears.push_back(VkClearAttachment{VK_IMAGE_ASPECT_DEPTH_BIT, clears.size(), clear_values[1]});
+	}
+
+	if (!clears.empty())
+	{
+		VkRect2D rect;
+		VkClearRect clear_rect;
+		clear_rect.baseArrayLayer = 0;
+		clear_rect.layerCount = 1;
+		rect.extent = {render_target->GetWidth(), render_target->GetHeight()};
+		rect.offset = {0, 0};
+		clear_rect.rect = rect;
+		vkCmdClearAttachments(m_cmd_buffers[frame_idx], clears.size(), clears.data(), 1, &clear_rect);
+	}
+}
+
+void gfx::CommandList::UnbindRenderTarget(std::uint32_t frame_idx)
+{
+	if (m_bound_render_target[frame_idx])
+	{
+		vkCmdEndRenderPass(m_cmd_buffers[frame_idx]);
+		m_bound_render_target[frame_idx] = false;
 	}
 }
 
@@ -206,7 +262,36 @@ void gfx::CommandList::StageTexture(StagingTexture* texture, std::uint32_t frame
 		1,
 		&region
 	);
+}
 
+void gfx::CommandList::CopyRenderTargetToRenderWindow(RenderTarget* render_target, std::uint32_t rt_idx, RenderWindow* render_window, std::uint32_t frame_idx)
+{
+	VkImageSubresourceLayers source_target_layers = {};
+	source_target_layers.mipLevel = 0;
+	source_target_layers.layerCount = 1;
+	source_target_layers.baseArrayLayer = 0;
+	source_target_layers.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+	VkImageCopy region = {};
+	region.dstOffset = { 0, 0, 0 };
+	region.srcOffset = { 0, 0, 0 };
+	region.dstSubresource = source_target_layers;
+	region.srcSubresource = source_target_layers;
+	region.extent = {
+			render_target->GetWidth(),
+			render_target->GetHeight(),
+			1
+	};
+
+	vkCmdCopyImage(
+			m_cmd_buffers[frame_idx],
+			render_target->m_images[rt_idx],
+			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			render_window->m_images[frame_idx],
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			1,
+			&region
+	);
 }
 
 void gfx::CommandList::TransitionDepth(RenderTarget* render_target, VkImageLayout from, VkImageLayout to, std::uint32_t frame_idx)
@@ -328,6 +413,120 @@ void gfx::CommandList::TransitionTexture(StagingTexture* texture, VkImageLayout 
 
 		source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 		destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}
+	else if (from == VK_IMAGE_LAYOUT_UNDEFINED && to == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+	{
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+		source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		destination_stage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	}
+	else
+	{
+		LOGE("unsupported layout transition!");
+	}
+
+	vkCmdPipelineBarrier(
+			m_cmd_buffers[frame_idx],
+			source_stage, destination_stage,
+			0,
+			0, nullptr,
+			0, nullptr,
+			1, &barrier
+	);
+}
+
+void gfx::CommandList::TransitionRenderTarget(RenderTarget* render_target, VkImageLayout from, VkImageLayout to, std::uint32_t frame_idx)
+{
+	for (std::size_t i = 0; i < render_target->m_images.size(); i++)
+	{
+		TransitionRenderTarget(render_target, i, from, to, frame_idx);
+	}
+}
+
+// TODO: Duplicate of transition depth
+void gfx::CommandList::TransitionRenderTarget(RenderTarget* render_target, std::uint32_t rt_idx, VkImageLayout from, VkImageLayout to, std::uint32_t frame_idx)
+{
+	VkImageMemoryBarrier barrier = {};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.oldLayout = from;
+	barrier.newLayout = to;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image = render_target->m_images[rt_idx];
+	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	barrier.subresourceRange.baseMipLevel = 0;
+	barrier.subresourceRange.levelCount = 1;
+	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.layerCount = 1;
+
+	VkPipelineStageFlags source_stage;
+	VkPipelineStageFlags destination_stage;
+
+	if (from == VK_IMAGE_LAYOUT_UNDEFINED && to == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+	{
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+		source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		destination_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}
+	else if (from == VK_IMAGE_LAYOUT_UNDEFINED && to == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+	{
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}
+	else if (from == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && to == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+	{
+		barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		barrier.dstAccessMask = 0;
+
+		source_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		destination_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+	}
+	else if (from == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR && to == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+	{
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+		source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		destination_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}
+	else if (from == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && to == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+	{
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = 0;
+
+		source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		destination_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+	}
+	else if (from == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && to == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+	{
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}
+	else if (from == VK_IMAGE_LAYOUT_UNDEFINED && to == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+	{
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+		source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		destination_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}
+	else if (from == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL && to == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+	{
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+		barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+
+		source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		destination_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	}
 	else if (from == VK_IMAGE_LAYOUT_UNDEFINED && to == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
 	{

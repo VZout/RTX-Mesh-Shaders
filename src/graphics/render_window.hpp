@@ -24,7 +24,7 @@ namespace gfx
 		friend class ::ImGuiImpl;
 	public:
 		RenderWindow(Context*  context);
-		virtual ~RenderWindow();
+		~RenderWindow() final;
 
 		void AquireBackBuffer(Fence* fence);
 		void Present(CommandQueue* queue, Fence* fence);
@@ -36,16 +36,14 @@ namespace gfx
 		VkPresentModeKHR PickPresentMode();
 		VkExtent2D ComputeSwapchainExtend();
 		std::uint32_t ComputeNumBackBuffers();
-		void CreateSwapchain(std::uint32_t width, std::uint32_t height);
+		void CreateSwapchain();
 		void GetSwapchainImages();
 		void CreateSwapchainImageViews();
-		void CreateFrameBuffers();
+		void CreateSwapchainFrameBuffers();
 
 		std::uint32_t m_frame_idx;
 		VkSwapchainCreateInfoKHR m_swapchain_create_info;
 		VkSwapchainKHR m_swapchain;
-		std::vector<VkImage> m_swapchain_images;
-		std::vector<VkImageView> m_swapchain_image_views;
 	};
 
 } /* gfx */

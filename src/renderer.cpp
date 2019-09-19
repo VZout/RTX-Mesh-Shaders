@@ -52,8 +52,12 @@ Renderer::~Renderer()
 	delete m_material_pool;
 	delete m_root_signature;
 	delete m_pipeline;
+	delete m_compo_root_signature;
+	delete m_compo_pipeline;
 	delete m_vs;
 	delete m_ps;
+	delete m_compo_vs;
+	delete m_compo_ps;
 	delete m_render_window;
 	delete m_direct_cmd_list;
 	delete m_direct_queue;
@@ -100,31 +104,69 @@ void Renderer::Init(Application* app)
 	m_vs->LoadAndCompile("shaders/basic.vert.spv", gfx::ShaderType::VERTEX);
 	m_ps->LoadAndCompile("shaders/basic.frag.spv", gfx::ShaderType::PIXEL);
 
+	m_compo_vs = new gfx::Shader(m_context);
+	m_compo_ps = new gfx::Shader(m_context);
+	m_compo_vs->LoadAndCompile("shaders/composition.vert.spv", gfx::ShaderType::VERTEX);
+	m_compo_ps->LoadAndCompile("shaders/composition.frag.spv", gfx::ShaderType::PIXEL);
+
 	m_viewport = new gfx::Viewport(app->GetWidth(), app->GetHeight());
 
-	gfx::RootSignature::Desc root_signature_desc;
-	root_signature_desc.m_parameters.resize(2);
-	root_signature_desc.m_parameters[0].binding = 0; // root parameter 0
-	root_signature_desc.m_parameters[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	root_signature_desc.m_parameters[0].descriptorCount = 1;
-	root_signature_desc.m_parameters[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	root_signature_desc.m_parameters[0].pImmutableSamplers = nullptr;
-	root_signature_desc.m_parameters[1].binding = 1; // root parameter 1
-	root_signature_desc.m_parameters[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	root_signature_desc.m_parameters[1].descriptorCount = 2;
-	root_signature_desc.m_parameters[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	root_signature_desc.m_parameters[1].pImmutableSamplers = nullptr;
-	m_root_signature = new gfx::RootSignature(m_context, root_signature_desc);
-	m_root_signature->Compile();
+	{ // basic deferred
+		gfx::RootSignature::Desc root_signature_desc;
+		root_signature_desc.m_parameters.resize(2);
+		root_signature_desc.m_parameters[0].binding = 0; // root parameter 0
+		root_signature_desc.m_parameters[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		root_signature_desc.m_parameters[0].descriptorCount = 1;
+		root_signature_desc.m_parameters[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		root_signature_desc.m_parameters[0].pImmutableSamplers = nullptr;
+		root_signature_desc.m_parameters[1].binding = 1; // root parameter 1
+		root_signature_desc.m_parameters[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		root_signature_desc.m_parameters[1].descriptorCount = 2;
+		root_signature_desc.m_parameters[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		root_signature_desc.m_parameters[1].pImmutableSamplers = nullptr;
+		m_root_signature = new gfx::RootSignature(m_context, root_signature_desc);
+		m_root_signature->Compile();
 
-	m_pipeline = new gfx::PipelineState(m_context);
-	m_pipeline->SetViewport(m_viewport);
-	m_pipeline->AddShader(m_vs);
-	m_pipeline->SetInputLayout(Vertex::GetInputLayout());
-	m_pipeline->AddShader(m_ps);
-	m_pipeline->SetRenderTarget(m_render_window);
-	m_pipeline->SetRootSignature(m_root_signature);
-	m_pipeline->Compile();
+		gfx::PipelineState::Desc pipeline_desc;
+		pipeline_desc.m_depth_format = VK_FORMAT_D32_SFLOAT;
+		pipeline_desc.m_rtv_formats = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R16G16B16A16_SFLOAT, VK_FORMAT_R16G16B16A16_SFLOAT };
+		m_pipeline = new gfx::PipelineState(m_context, pipeline_desc);
+		m_pipeline->SetViewport(m_viewport);
+		m_pipeline->SetInputLayout(Vertex::GetInputLayout());
+		m_pipeline->AddShader(m_vs);
+		m_pipeline->AddShader(m_ps);
+		m_pipeline->SetRootSignature(m_root_signature);
+		m_pipeline->Compile();
+	}
+
+	{ // deferred composition
+		gfx::RootSignature::Desc root_signature_desc;
+		root_signature_desc.m_parameters.resize(2);
+		root_signature_desc.m_parameters[0].binding = 0; // root parameter 0
+		root_signature_desc.m_parameters[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		root_signature_desc.m_parameters[0].descriptorCount = 1;
+		root_signature_desc.m_parameters[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		root_signature_desc.m_parameters[0].pImmutableSamplers = nullptr;
+		root_signature_desc.m_parameters[1].binding = 1; // root parameter 1
+		root_signature_desc.m_parameters[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		root_signature_desc.m_parameters[1].descriptorCount = 3;
+		root_signature_desc.m_parameters[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		root_signature_desc.m_parameters[1].pImmutableSamplers = nullptr;
+		m_compo_root_signature = new gfx::RootSignature(m_context, root_signature_desc);
+		m_compo_root_signature->Compile();
+
+		gfx::PipelineState::Desc pipeline_desc;
+		pipeline_desc.m_depth_format = VK_FORMAT_UNDEFINED;
+		pipeline_desc.m_rtv_formats = { VK_FORMAT_B8G8R8A8_UNORM };
+		pipeline_desc.m_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+		m_compo_pipeline = new gfx::PipelineState(m_context, pipeline_desc);
+		m_compo_pipeline->SetViewport(m_viewport);
+		//m_compo_pipeline->SetInputLayout(Vertex2D::GetInputLayout());
+		m_compo_pipeline->AddShader(m_compo_vs);
+		m_compo_pipeline->AddShader(m_compo_ps);
+		m_compo_pipeline->SetRootSignature(m_compo_root_signature);
+		m_compo_pipeline->Compile();
+	}
 
 	gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
 	descriptor_heap_desc.m_versions = gfx::settings::num_back_buffers;
@@ -185,7 +227,6 @@ void Renderer::Resize(std::uint32_t width, std::uint32_t height)
 	m_viewport->Resize(width, height);
 
 	m_render_window->Resize(width, height);
-	m_pipeline->SetRenderTarget(m_render_window);
 	m_pipeline->Recompile();
 }
 
@@ -231,28 +272,41 @@ gfx::CommandList* Renderer::CreateComputeCommandList(std::uint32_t num_versions)
 
 void Renderer::ResetCommandList(gfx::CommandList* cmd_list)
 {
-	// Nothing to be done for a vulkan command list
+	auto frame_idx = GetFrameIdx();
+
+	cmd_list->Begin(frame_idx);
 }
 
 void Renderer::StartRenderTask(gfx::CommandList* cmd_list, std::pair<gfx::RenderTarget*, RenderTargetProperties> render_target)
 {
-	auto frame_idx = m_render_window->GetFrameIdx();
+	auto frame_idx = GetFrameIdx();
 	auto desc = render_target.second;
 
-	cmd_list->Begin(frame_idx);
 	if (render_target.second.m_is_render_window)
 	{
 		cmd_list->BindRenderTargetVersioned(render_target.first, frame_idx, desc.m_clear, desc.m_clear_depth);
 	}
 	else
 	{
-		LOGW("Coming soon");
+		if (!desc.m_is_render_window, desc.m_state_execute.has_value())
+		{
+			cmd_list->TransitionRenderTarget(render_target.first, VK_IMAGE_LAYOUT_UNDEFINED, desc.m_state_execute.value(), frame_idx);
+		}
+		cmd_list->BindRenderTarget(render_target.first, frame_idx, desc.m_clear, desc.m_clear_depth);
 	}
 }
 
 void Renderer::StopRenderTask(gfx::CommandList* cmd_list, std::pair<gfx::RenderTarget*, RenderTargetProperties> render_target)
 {
-	// COMING SOON
+	auto desc = render_target.second;
+	auto frame_idx = GetFrameIdx();
+
+	cmd_list->UnbindRenderTarget(frame_idx);
+
+	if (!desc.m_is_render_window, desc.m_state_finished.has_value())
+	{
+		cmd_list->TransitionRenderTarget(render_target.first, VK_IMAGE_LAYOUT_UNDEFINED, desc.m_state_finished.value(), frame_idx);
+	}
 }
 
 void Renderer::CloseCommandList(gfx::CommandList* cmd_list)
@@ -275,11 +329,22 @@ gfx::RenderTarget* Renderer::CreateRenderTarget(RenderTargetProperties const & p
 	}
 	else
 	{
-		LOGW("Coming soon!");
+		gfx::RenderTarget::Desc desc = {};
+		desc.m_rtv_formats = properties.m_rtv_formats;
+		desc.m_depth_format = properties.m_dsv_format;
+		desc.m_width = properties.m_width.has_value() ? properties.m_width.value() : m_application->GetWidth();
+		desc.m_height = properties.m_height.has_value() ? properties.m_height.value() : m_application->GetHeight();
+		auto new_rt = new gfx::RenderTarget(m_context, desc);
+		return new_rt;
 	}
 }
 
 void Renderer::DestroyRenderTarget(gfx::RenderTarget* render_target)
 {
 	delete render_target;
+}
+
+gfx::RenderWindow* Renderer::GetRenderWindow()
+{
+	return m_render_window;
 }

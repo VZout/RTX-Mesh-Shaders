@@ -43,8 +43,6 @@ namespace tasks
 			auto context = rs.GetContext();
 			auto desc_heap = rs.GetDescHeap();
 			auto root_sig = rs.GetRootSignature();
-			auto texture_pool = rs.GetTexturePool();
-			auto model_pool = rs.GetModelPool();
 
 			data.m_cb_sets.resize(gfx::settings::num_back_buffers);
 			data.m_material_sets.resize(gfx::settings::num_back_buffers);
@@ -123,11 +121,15 @@ namespace tasks
 	{
 		RenderTargetProperties rt_properties
 		{
-			.m_is_render_window = true,
+			.m_is_render_window = false,
 			.m_width = std::nullopt,
 			.m_height = std::nullopt,
+			.m_dsv_format = VK_FORMAT_D32_SFLOAT,
+			.m_rtv_formats = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R16G16B16A16_SFLOAT, VK_FORMAT_R16G16B16A16_SFLOAT },
+			.m_state_execute = std::nullopt,
+			.m_state_finished = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			.m_clear = true,
-			.m_clear_depth = true,
+			.m_clear_depth = true
 		};
 
 		fg::RenderTaskDesc desc;

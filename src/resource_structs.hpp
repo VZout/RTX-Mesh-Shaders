@@ -10,6 +10,7 @@
 #include <vec3.hpp>
 #include <vec4.hpp>
 #include <optional>
+#include <vulkan/vulkan.h>
 
 struct TextureData
 {
@@ -74,12 +75,11 @@ struct RenderTargetProperties
 	bool m_is_render_window;
 	std::optional<std::uint32_t> m_width;
 	std::optional<std::uint32_t> m_height;
-	//ExecuteResourceState m_state_execute;
-	//FinishedResourceState m_state_finished;
 	//CreateDSVBuffer m_create_dsv_buffer;
-	//DSVFormat m_dsv_format;
-	//RTVFormats m_rtv_formats;
-	//NumRTVFormats m_num_rtv_formats;
+	VkFormat m_dsv_format;
+	std::vector<VkFormat> m_rtv_formats;
+	std::optional<VkImageLayout> m_state_execute;
+	std::optional<VkImageLayout> m_state_finished;
 
 	bool m_clear = false;
 	bool m_clear_depth = false;

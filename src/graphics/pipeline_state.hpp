@@ -7,10 +7,11 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include <optional>
 #include <vector>
+
 #include "render_target.hpp"
 #include "viewport.hpp"
-
 
 namespace gfx
 {
@@ -19,28 +20,36 @@ namespace gfx
 	class Viewport;
 	class RootSignature;
 	class Shader;
-	class RenderTarget;
 
 	class PipelineState
 	{
 		friend class CommandList;
 	public:
+		struct Desc
+		{
+			std::vector<VkFormat> m_rtv_formats;
+			VkFormat m_depth_format = VK_FORMAT_UNDEFINED;
+			VkPrimitiveTopology m_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		};
+
 		using InputLayout = std::pair<std::vector<VkVertexInputBindingDescription>, std::vector<VkVertexInputAttributeDescription>>;
 
-		explicit PipelineState(Context* context);
+		PipelineState(Context* context, Desc desc);
 		~PipelineState();
 
 		void SetViewport(Viewport* viewport);
 		void SetRootSignature(RootSignature* root_signature);
 		void AddShader(Shader* shader);
-		void SetRenderTarget(RenderTarget* target);
 		void SetInputLayout(InputLayout const & input_layout);
 
 		void Compile();
 		void Recompile();
 
 	private:
+		void CreateRenderPass();
+
 		Context* m_context;
+		Desc m_desc;
 
 		std::vector<VkPipelineShaderStageCreateInfo> m_shader_info;
 		VkPipelineVertexInputStateCreateInfo m_vertex_input_info;
@@ -49,14 +58,14 @@ namespace gfx
 		VkPipelineRasterizationStateCreateInfo m_raster_info;
 		VkPipelineMultisampleStateCreateInfo m_ms_info;
 		VkPipelineDepthStencilStateCreateInfo m_depth_stencil_info;
-		VkPipelineColorBlendAttachmentState m_color_blend_attachment_info;
+		std::vector<VkPipelineColorBlendAttachmentState> m_color_blend_attachment_info;
 		VkPipelineColorBlendStateCreateInfo m_color_blend_info;
 		VkPipelineLayout m_layout;
 		RootSignature* m_root_signature;
-		RenderTarget* m_render_target;
 		VkGraphicsPipelineCreateInfo m_create_info;
 		VkPipeline m_pipeline;
-		InputLayout m_input_layout;
+		VkRenderPass m_render_pass;
+		std::optional<InputLayout> m_input_layout;
 	};
 
 } /* gfx */

@@ -83,6 +83,7 @@ public:
 
 	gfx::RenderTarget* CreateRenderTarget(RenderTargetProperties const & properties);
 	void DestroyRenderTarget(gfx::RenderTarget* render_target);
+	gfx::RenderWindow* GetRenderWindow();
 
 	// TODO: These need to be destroyed
 	gfx::Context* GetContext() { return m_context; }
@@ -90,6 +91,8 @@ public:
 	gfx::DescriptorHeap* GetDescHeap() { return m_desc_heap; };
 	gfx::RootSignature* GetRootSignature() { return m_root_signature; };
 	gfx::PipelineState* GetPipeline() { return m_pipeline; };
+	gfx::RootSignature* GetCompoRootSignature() { return m_compo_root_signature; };
+	gfx::PipelineState* GetCompoPipeline() { return m_compo_pipeline; };
 
 private:
 	Application* m_application;
@@ -102,10 +105,14 @@ private:
 	// TODO Temporary
 	gfx::Shader* m_vs;
 	gfx::Shader* m_ps;
+	gfx::Shader* m_compo_vs;
+	gfx::Shader* m_compo_ps;
 	gfx::Viewport* m_viewport;
 	gfx::DescriptorHeap* m_desc_heap;
 	gfx::PipelineState* m_pipeline;
 	gfx::RootSignature* m_root_signature;
+	gfx::PipelineState* m_compo_pipeline;
+	gfx::RootSignature* m_compo_root_signature;
 	gfx::VkModelPool* m_model_pool;
 	gfx::VkTexturePool* m_texture_pool;
 	gfx::VkMaterialPool* m_material_pool;

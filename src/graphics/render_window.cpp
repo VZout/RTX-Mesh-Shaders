@@ -19,7 +19,13 @@ gfx::RenderWindow::RenderWindow(Context* context)
 	: RenderTarget(context), m_frame_idx(0), m_swapchain_create_info()
 {
 	auto app = context->m_app;
-	CreateSwapchain(app->GetWidth(), app->GetHeight());
+
+	m_desc.m_depth_format = VK_FORMAT_D32_SFLOAT;
+	m_desc.m_width = app->GetWidth();
+	m_desc.m_height = app->GetHeight();
+	m_desc.m_rtv_formats = { gfx::settings::swapchain_format };
+
+	CreateSwapchain();
 
 	GetSwapchainImages();
 	CreateSwapchainImageViews();
@@ -27,16 +33,16 @@ gfx::RenderWindow::RenderWindow(Context* context)
 	CreateDepthBuffer();
 	CreateDepthBufferView();
 
-	CreateRenderPass(VK_FORMAT_B8G8R8A8_UNORM, m_depth_buffer_create_info.format);
+	CreateRenderPass();
 
-	CreateFrameBuffers();
+	CreateSwapchainFrameBuffers();
 }
 
 gfx::RenderWindow::~RenderWindow()
 {
 	auto logical_device = m_context->m_logical_device;
 
-	for (auto& view : m_swapchain_image_views) {
+	for (auto& view : m_image_views) {
 		vkDestroyImageView(logical_device, view, nullptr);
 	}
 	vkDestroySwapchainKHR(logical_device, m_swapchain, nullptr);
@@ -83,7 +89,7 @@ void gfx::RenderWindow::Resize(std::uint32_t width, std::uint32_t height)
 		vkDestroyFramebuffer(logical_device, frame_buffer, nullptr);
 	}
 
-	for (auto& view : m_swapchain_image_views) {
+	for (auto& view : m_image_views) {
 		vkDestroyImageView(logical_device, view, nullptr);
 	}
 
@@ -94,8 +100,11 @@ void gfx::RenderWindow::Resize(std::uint32_t width, std::uint32_t height)
 
 	vkDestroySwapchainKHR(logical_device, m_swapchain, nullptr);
 
+	m_desc.m_width = width;
+	m_desc.m_height = height;
+
 	// Recreate
-	CreateSwapchain(width, height);
+	CreateSwapchain();
 
 	GetSwapchainImages();
 	CreateSwapchainImageViews();
@@ -103,7 +112,7 @@ void gfx::RenderWindow::Resize(std::uint32_t width, std::uint32_t height)
 	CreateDepthBuffer();
 	CreateDepthBufferView();
 
-	CreateRenderPass(VK_FORMAT_B8G8R8A8_UNORM, m_depth_buffer_create_info.format);
+	CreateRenderPass();
 
 	CreateFrameBuffers();
 
@@ -176,11 +185,8 @@ std::uint32_t gfx::RenderWindow::ComputeNumBackBuffers()
 	return gfx::settings::num_back_buffers;
 }
 
-void gfx::RenderWindow::CreateSwapchain(std::uint32_t width, std::uint32_t height)
+void gfx::RenderWindow::CreateSwapchain()
 {
-	m_width = width;
-	m_height = height;
-
 	auto surface_format = PickSurfaceFormat();
 	auto present_mode = PickPresentMode();
 	auto num_back_buffers = ComputeNumBackBuffers();
@@ -192,10 +198,10 @@ void gfx::RenderWindow::CreateSwapchain(std::uint32_t width, std::uint32_t heigh
 	m_swapchain_create_info.minImageCount = num_back_buffers;
 	m_swapchain_create_info.imageFormat = surface_format.format;
 	m_swapchain_create_info.imageColorSpace = surface_format.colorSpace;
-	m_swapchain_create_info.imageExtent.width = width;
-	m_swapchain_create_info.imageExtent.height = height;
+	m_swapchain_create_info.imageExtent.width = m_desc.m_width;
+	m_swapchain_create_info.imageExtent.height = m_desc.m_height;
 	m_swapchain_create_info.imageArrayLayers = 1;
-	m_swapchain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	m_swapchain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 	m_swapchain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	m_swapchain_create_info.queueFamilyIndexCount = 0;
 	m_swapchain_create_info.pQueueFamilyIndices = nullptr;
@@ -205,7 +211,8 @@ void gfx::RenderWindow::CreateSwapchain(std::uint32_t width, std::uint32_t heigh
 	m_swapchain_create_info.clipped = VK_TRUE;
 	m_swapchain_create_info.oldSwapchain = VK_NULL_HANDLE; // TODO: Do i want this for rebuild?
 
-	if (vkCreateSwapchainKHR(m_context->m_logical_device, &m_swapchain_create_info, nullptr, &m_swapchain) != VK_SUCCESS) {
+	if (vkCreateSwapchainKHR(m_context->m_logical_device, &m_swapchain_create_info, nullptr, &m_swapchain) != VK_SUCCESS)
+	{
 		LOGC("failed to create swap chain!");
 	}
 }
@@ -216,8 +223,8 @@ void gfx::RenderWindow::GetSwapchainImages()
 
 	auto num_back_buffers = 0u;
 	vkGetSwapchainImagesKHR(logical_device, m_swapchain, &num_back_buffers, nullptr);
-	m_swapchain_images.resize(num_back_buffers);
-	vkGetSwapchainImagesKHR(logical_device, m_swapchain, &num_back_buffers, m_swapchain_images.data());
+	m_images.resize(num_back_buffers);
+	vkGetSwapchainImagesKHR(logical_device, m_swapchain, &num_back_buffers, m_images.data());
 }
 
 
@@ -225,12 +232,12 @@ void gfx::RenderWindow::CreateSwapchainImageViews()
 {
 	auto logical_device = m_context->m_logical_device;
 
-	m_swapchain_image_views.resize(gfx::settings::num_back_buffers);
+	m_image_views.resize(gfx::settings::num_back_buffers);
 
 	for (size_t i = 0; i < gfx::settings::num_back_buffers; i++) {
 		VkImageViewCreateInfo create_info = {};
 		create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		create_info.image = m_swapchain_images[i];
+		create_info.image = m_images[i];
 		create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		create_info.format = gfx::settings::swapchain_format;
 		create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -243,23 +250,24 @@ void gfx::RenderWindow::CreateSwapchainImageViews()
 		create_info.subresourceRange.baseArrayLayer = 0;
 		create_info.subresourceRange.layerCount = 1;
 
-		if (vkCreateImageView(logical_device, &create_info, nullptr, &m_swapchain_image_views[i]) != VK_SUCCESS) {
+		if (vkCreateImageView(logical_device, &create_info, nullptr, &m_image_views[i]) != VK_SUCCESS)
+		{
 			LOGC("failed to create image views!");
 		}
 	}
 }
 
-void gfx::RenderWindow::CreateFrameBuffers()
+void gfx::RenderWindow::CreateSwapchainFrameBuffers()
 {
 	auto logical_device = m_context->m_logical_device;
 
-	m_frame_buffers.resize(m_swapchain_image_views.size());
+	m_frame_buffers.resize(m_image_views.size());
 
-	for (std::size_t i = 0; i < m_swapchain_image_views.size(); i++)
+	for (std::size_t i = 0; i < m_image_views.size(); i++)
 	{
 		std::vector<VkImageView> attachments =
 		{
-				m_swapchain_image_views[i],
+				m_image_views[i],
 				m_depth_buffer_view
 		};
 
@@ -268,11 +276,12 @@ void gfx::RenderWindow::CreateFrameBuffers()
 		buffer_info.renderPass = m_render_pass;
 		buffer_info.attachmentCount = attachments.size();
 		buffer_info.pAttachments = attachments.data();
-		buffer_info.width = m_width;
-		buffer_info.height = m_height;
+		buffer_info.width = m_desc.m_width;
+		buffer_info.height = m_desc.m_height;
 		buffer_info.layers = 1;
 
-		if (vkCreateFramebuffer(logical_device, &buffer_info, nullptr, &m_frame_buffers[i]) != VK_SUCCESS) {
+		if (vkCreateFramebuffer(logical_device, &buffer_info, nullptr, &m_frame_buffers[i]) != VK_SUCCESS)
+		{
 			LOGC("failed to create framebuffer!");
 		}
 	}
