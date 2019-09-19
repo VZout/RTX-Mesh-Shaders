@@ -28,8 +28,8 @@ void main()
     const float specular_strength = 0.5;
     const float ambient = 0.4;
     const vec3 light_color = vec3(1);
-    const vec3 light_pos = vec3(0, 0, -3);
-    const vec3 view_pos = vec3(0, 0, -3);
+    const vec3 view_pos = vec3(0, 0, -2.5);
+    const vec3 light_pos = view_pos;
 
     mat3 obj_tbn = { g_tangent, g_bitangent, g_normal };
     vec3 obj_normal = normalize(texture(ts_albedo[1], g_uv).xyz * obj_tbn);
