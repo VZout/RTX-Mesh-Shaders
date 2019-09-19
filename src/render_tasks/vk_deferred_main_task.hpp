@@ -72,7 +72,7 @@ namespace tasks
 			auto desc_heap = rs.GetDescHeap();
 			auto material_pool = static_cast<gfx::VkMaterialPool*>(rs.GetMaterialPool());
 
-			glm::vec3 cam_pos = glm::vec3(0, 0, -3);
+			glm::vec3 cam_pos = glm::vec3(0, 0, -2.5);
 
 			cb::Basic basic_cb_data;
 			basic_cb_data.m_model = sg.m_models[0];
