@@ -18,6 +18,7 @@ struct MaterialHandle
 	std::uint32_t m_material_id;
 	std::uint32_t m_albedo_texture_handle;
 	std::uint32_t m_normal_texture_handle;
+	std::uint32_t m_roughness_texture_handle;
 	std::uint32_t m_material_set_id;
 
 

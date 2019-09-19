@@ -30,6 +30,7 @@ namespace gfx
 			std::vector<VkFormat> m_rtv_formats;
 			VkFormat m_depth_format = VK_FORMAT_UNDEFINED;
 			VkPrimitiveTopology m_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+			bool m_counter_clockwise = true;
 		};
 
 		using InputLayout = std::pair<std::vector<VkVertexInputBindingDescription>, std::vector<VkVertexInputAttributeDescription>>;

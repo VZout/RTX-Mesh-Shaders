@@ -42,7 +42,7 @@ gfx::PipelineState::PipelineState(Context* context, Desc desc)
 	m_raster_info.polygonMode = VK_POLYGON_MODE_FILL;
 	m_raster_info.lineWidth = 1.0f;
 	m_raster_info.cullMode = gfx::settings::cull_mode;
-	m_raster_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+	m_raster_info.frontFace = m_desc.m_counter_clockwise ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE;
 	m_raster_info.depthBiasEnable = VK_FALSE;
 	m_raster_info.depthBiasConstantFactor = 0.0f;
 	m_raster_info.depthBiasClamp = 0.0f;

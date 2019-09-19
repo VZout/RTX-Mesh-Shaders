@@ -28,7 +28,7 @@ gfx::VkMaterialPool::VkMaterialPool(gfx::Context* context)
 	std::vector<VkDescriptorSetLayoutBinding> parameters(1);
 	parameters[0].binding = 1; // root parameter 1
 	parameters[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	parameters[0].descriptorCount = 2;
+	parameters[0].descriptorCount = 3;
 	parameters[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	parameters[0].pImmutableSamplers = nullptr;
 
@@ -71,7 +71,7 @@ gfx::DescriptorHeap* gfx::VkMaterialPool::GetDescriptorHeap()
 void gfx::VkMaterialPool::Load_Impl(MaterialHandle& handle, MaterialData const & data, TexturePool* texture_pool)
 {
 	// Textures
-	auto textures = texture_pool->GetTextures({ handle.m_albedo_texture_handle, handle.m_normal_texture_handle });
+	auto textures = texture_pool->GetTextures({ handle.m_albedo_texture_handle, handle.m_normal_texture_handle, handle.m_roughness_texture_handle });
 	auto descriptor_set_id = m_desc_heap->CreateSRVSetFromTexture(textures, m_material_set_layout, 1, 0);
 	handle.m_material_set_id = descriptor_set_id;
 	m_descriptor_sets.insert({ handle.m_material_id, descriptor_set_id }); //TODO: Unhardcode this handle (1). We want this to be a global static. see line 25

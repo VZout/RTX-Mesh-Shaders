@@ -121,7 +121,7 @@ void Renderer::Init(Application* app)
 		root_signature_desc.m_parameters[0].pImmutableSamplers = nullptr;
 		root_signature_desc.m_parameters[1].binding = 1; // root parameter 1
 		root_signature_desc.m_parameters[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		root_signature_desc.m_parameters[1].descriptorCount = 2;
+		root_signature_desc.m_parameters[1].descriptorCount = 3;
 		root_signature_desc.m_parameters[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 		root_signature_desc.m_parameters[1].pImmutableSamplers = nullptr;
 		m_root_signature = new gfx::RootSignature(m_context, root_signature_desc);
@@ -130,6 +130,7 @@ void Renderer::Init(Application* app)
 		gfx::PipelineState::Desc pipeline_desc;
 		pipeline_desc.m_depth_format = VK_FORMAT_D32_SFLOAT;
 		pipeline_desc.m_rtv_formats = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R16G16B16A16_SFLOAT, VK_FORMAT_R16G16B16A16_SFLOAT };
+		pipeline_desc.m_counter_clockwise = true;
 		m_pipeline = new gfx::PipelineState(m_context, pipeline_desc);
 		m_pipeline->SetViewport(m_viewport);
 		m_pipeline->SetInputLayout(Vertex::GetInputLayout());
@@ -159,6 +160,7 @@ void Renderer::Init(Application* app)
 		pipeline_desc.m_depth_format = VK_FORMAT_UNDEFINED;
 		pipeline_desc.m_rtv_formats = { VK_FORMAT_B8G8R8A8_UNORM };
 		pipeline_desc.m_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+		pipeline_desc.m_counter_clockwise = false;
 		m_compo_pipeline = new gfx::PipelineState(m_context, pipeline_desc);
 		m_compo_pipeline->SetViewport(m_viewport);
 		//m_compo_pipeline->SetInputLayout(Vertex2D::GetInputLayout());

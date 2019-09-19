@@ -23,6 +23,7 @@ MaterialHandle MaterialPool::Load(MaterialData const & data, TexturePool* textur
 	handle.m_material_id = new_id;
 	handle.m_albedo_texture_handle = texture_pool->Load(data.m_albedo_texture);
 	handle.m_normal_texture_handle = texture_pool->Load(data.m_normal_map_texture);
+	handle.m_roughness_texture_handle = texture_pool->Load(data.m_roughness_texture);
 
 	Load_Impl(handle, data, texture_pool);
 
