@@ -19,6 +19,7 @@ namespace gfx
 	class RootSignature;
 	class GPUBuffer;
 	class StagingTexture;
+	class RenderTarget;
 
 	class DescHeapHandle
 	{
@@ -44,6 +45,7 @@ namespace gfx
 		std::uint32_t CreateSRVFromTexture(StagingTexture* texture, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx);
 		std::uint32_t CreateSRVSetFromTexture(std::vector<StagingTexture*> texture, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx);
 		std::uint32_t CreateSRVSetFromTexture(std::vector<StagingTexture*> texture, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx);
+		std::uint32_t CreateSRVSetFromRT(RenderTarget* render_target, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx, bool include_depth = true);
 
 	private:
 		Context* m_context;

@@ -39,6 +39,7 @@ namespace internal
 				break;
 			case VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT :
 				prefix += "[VALIDATION:PERF]";
+				return VK_FALSE;
 				break;
 		}
 

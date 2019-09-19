@@ -8,3 +8,5 @@
 
 #include "vk_deferred_main_task.hpp"
 #include "vk_imgui_task.hpp"
+#include "vk_copy_to_backbuffer_task.hpp"
+#include "vk_deferred_composition.hpp"
