@@ -22,6 +22,15 @@ void main()
     vec3 obj_normal = normalize(texture(ts_textures[1], g_uv).xyz * TBN);
     vec3 albedo = texture(ts_textures[0], g_uv).xyz;
 
+    float metallic = 0;
+    float roughness = 0;
+    if (true)
+    {
+        vec2 compressed_mr = texture(ts_textures[0], g_uv).rg;
+        float roughness = compressed_mr.x;
+        float metallic = compressed_mr.y;
+    }
+
     out_color = vec4(albedo, 1);
     out_normal = vec4(obj_normal, 1);
     out_pos = vec4(g_frag_pos, 1);
