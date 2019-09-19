@@ -12,6 +12,7 @@
 #include <stack>
 #include <deque>
 #include <future>
+#include <cstdint>
 #include <any>
 
 #include "../util/log.hpp"
@@ -190,7 +191,7 @@ namespace fg
 					// Get the proper command list from the render system.
 					m_cmd_lists[i] = get_command_list_from_render_system(m_types[i]);
 #ifndef FG_MAX_PERFORMANCE
-					render_system.SetCommandListName(m_cmd_lists[i], m_names[i]);
+					//m_renderer.SetCommandListName(m_cmd_lists[i], m_names[i]);
 #endif
 
 					// Get a render target from the render system.
@@ -198,7 +199,7 @@ namespace fg
 					{
 						m_render_targets[i] = m_renderer->CreateRenderTarget(m_rt_properties[i].value());
 #ifndef FG_MAX_PERFORMANCE
-						render_system.SetRenderTargetName(m_render_targets[i], m_names[i]);
+						//m_renderer.SetRenderTargetName(m_render_targets[i], m_names[i]);
 #endif
 					}
 				}
@@ -213,7 +214,7 @@ namespace fg
 					// Get the proper command list from the render system.
 					m_cmd_lists[i] = get_command_list_from_render_system(m_types[i]);
 #ifndef FG_MAX_PERFORMANCE
-					render_system.SetCommandListName(m_cmd_lists[i], m_names[i]);
+					//render_system.SetCommandListName(m_cmd_lists[i], m_names[i]);
 #endif
 
 					// Get a render target from the render system.
@@ -221,7 +222,7 @@ namespace fg
 					{
 						m_render_targets[i] = m_renderer->CreateRenderTarget(m_rt_properties[i].value());
 #ifndef FG_MAX_PERFORMANCE
-						render_system.SetRenderTargetName(m_render_targets[i], m_names[i]);
+						//render_system.SetRenderTargetName(m_render_targets[i], m_names[i]);
 #endif
 					}
 
