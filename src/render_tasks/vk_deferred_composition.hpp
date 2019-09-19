@@ -39,14 +39,20 @@ namespace tasks
 
 		inline void SetupDeferredCompositionTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
 		{
-			if (resize) return;
-
 			auto& data = fg.GetData<DeferredCompositionData>(handle);
 			auto context = rs.GetContext();
-			auto desc_heap = rs.GetDescHeap();
 			auto root_sig = rs.GetCompoRootSignature();
-
 			auto deferred_main_rt = fg.GetPredecessorRenderTarget<DeferredMainData>();
+
+			gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
+			descriptor_heap_desc.m_versions = 1;
+			descriptor_heap_desc.m_num_descriptors = 3;
+			data.m_gbuffer_heap = new gfx::DescriptorHeap(rs.GetContext(), descriptor_heap_desc);
+			data.m_gbuffer_sets.push_back(data.m_gbuffer_heap->CreateSRVSetFromRT(deferred_main_rt, root_sig, 1, 0, false));
+
+			if (resize) return;
+
+			auto desc_heap = rs.GetDescHeap();
 
 			data.m_cb_sets.resize(gfx::settings::num_back_buffers);
 
@@ -59,12 +65,6 @@ namespace tasks
 
 				data.m_cb_sets[i].push_back(desc_heap->CreateSRVFromCB(data.m_cbs[i], root_sig, 0, i));
 			}
-
-			gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
-			descriptor_heap_desc.m_versions = 1;
-			descriptor_heap_desc.m_num_descriptors = 3;
-			data.m_gbuffer_heap = new gfx::DescriptorHeap(rs.GetContext(), descriptor_heap_desc);
-			data.m_gbuffer_sets.push_back(data.m_gbuffer_heap->CreateSRVSetFromRT(deferred_main_rt, root_sig, 1, 0, false));
 		}
 
 		inline void ExecuteDeferredCompositionTask(Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, fg::RenderTaskHandle handle)
@@ -81,10 +81,6 @@ namespace tasks
 			glm::vec3 cam_pos = glm::vec3(0, 0, -2.5);
 
 			cb::Basic basic_cb_data;
-			basic_cb_data.m_model = sg.m_models[0];
-			basic_cb_data.m_view = glm::lookAt(cam_pos, cam_pos + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			basic_cb_data.m_proj = glm::perspective(glm::radians(45.0f), (float) render_window->GetWidth() / (float) render_window->GetHeight(), 0.01f, 1000.0f);
-			basic_cb_data.m_proj[1][1] *= -1;
 			data.m_cbs[frame_idx]->Update(&basic_cb_data, sizeof(cb::Basic));
 
 			std::vector<std::pair<gfx::DescriptorHeap*, std::uint32_t>> sets
@@ -93,27 +89,22 @@ namespace tasks
 				{ data.m_gbuffer_heap, data.m_gbuffer_sets[0] },
 			};
 
-			//cmd_list->TransitionRenderTarget(deferred_main_rt, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, frame_idx);
-
 			cmd_list->BindPipelineState(pipeline, frame_idx);
 			cmd_list->BindDescriptorHeap(root_sig, sets, frame_idx);
 			cmd_list->Draw(frame_idx, 4, 1);
-
-			//cmd_list->TransitionRenderTarget(deferred_main_rt, 0, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, frame_idx);
 		}
 
 		inline void DestroyDeferredCompositionTask(fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
 		{
-			if (resize) return;
-
 			auto& data = fg.GetData<DeferredCompositionData>(handle);
+			delete data.m_gbuffer_heap;
+
+			if (resize) return;
 
 			for (auto& cb : data.m_cbs)
 			{
 				delete cb;
 			}
-
-			delete data.m_gbuffer_heap;
 		}
 
 	} /* internal */
@@ -149,7 +140,7 @@ namespace tasks
 
 		desc.m_properties = rt_properties;
 		desc.m_type = fg::RenderTaskType::DIRECT;
-		desc.m_allow_multithreading = false;
+		desc.m_allow_multithreading = true;
 
 		fg.AddTask<DeferredCompositionData>(desc, L"Deferred Composition Task", FG_DEPS<DeferredMainData>());
 	}

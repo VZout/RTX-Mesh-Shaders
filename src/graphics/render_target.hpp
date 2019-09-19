@@ -35,6 +35,7 @@ namespace gfx
 		explicit RenderTarget(Context* context);
 		RenderTarget(Context* context, Desc desc);
 		virtual ~RenderTarget();
+		virtual void Resize(std::uint32_t width, std::uint32_t height);
 
 		std::uint32_t GetWidth();
 		std::uint32_t GetHeight();

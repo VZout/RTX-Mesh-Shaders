@@ -228,6 +228,7 @@ void Renderer::Resize(std::uint32_t width, std::uint32_t height)
 
 	m_render_window->Resize(width, height);
 	m_pipeline->Recompile();
+	m_compo_pipeline->Recompile();
 }
 
 Application* Renderer::GetApp()
@@ -337,6 +338,11 @@ gfx::RenderTarget* Renderer::CreateRenderTarget(RenderTargetProperties const & p
 		auto new_rt = new gfx::RenderTarget(m_context, desc);
 		return new_rt;
 	}
+}
+
+void Renderer::ResizeRenderTarget(gfx::RenderTarget* render_target, std::uint32_t width, std::uint32_t height)
+{
+	render_target->Resize(width, height);
 }
 
 void Renderer::DestroyRenderTarget(gfx::RenderTarget* render_target)

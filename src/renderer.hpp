@@ -82,6 +82,7 @@ public:
 	void DestroyCommandList(gfx::CommandList* cmd_list);
 
 	gfx::RenderTarget* CreateRenderTarget(RenderTargetProperties const & properties);
+	void ResizeRenderTarget(gfx::RenderTarget* render_target, std::uint32_t width, std::uint32_t height);
 	void DestroyRenderTarget(gfx::RenderTarget* render_target);
 	gfx::RenderWindow* GetRenderWindow();
 

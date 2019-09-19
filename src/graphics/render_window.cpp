@@ -88,10 +88,13 @@ void gfx::RenderWindow::Resize(std::uint32_t width, std::uint32_t height)
 	for (auto& frame_buffer : m_frame_buffers) {
 		vkDestroyFramebuffer(logical_device, frame_buffer, nullptr);
 	}
+	m_frame_buffers.clear();
 
 	for (auto& view : m_image_views) {
 		vkDestroyImageView(logical_device, view, nullptr);
 	}
+	m_images.clear();
+	m_image_views.clear();
 
 	// Clean depth buffer
 	vkDestroyImageView(logical_device, m_depth_buffer_view, nullptr);
@@ -114,7 +117,7 @@ void gfx::RenderWindow::Resize(std::uint32_t width, std::uint32_t height)
 
 	CreateRenderPass();
 
-	CreateFrameBuffers();
+	CreateSwapchainFrameBuffers();
 
 	m_frame_idx = 0;
 }
