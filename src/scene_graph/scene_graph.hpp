@@ -77,10 +77,33 @@ namespace sg
 		using Void_IsComponent = std::enable_if<std::is_same<A, B>::value, void>;
 
 		template<typename T>
-		typename Void_IsComponent<T, MeshComponent>::type PromoteNode(NodeHandle handle, ModelHandle model_handle);
+		typename Void_IsComponent<T, MeshComponent>::type PromoteNode(NodeHandle handle, ModelHandle model_handle)
+		{
+			auto& node = m_nodes[handle];
+			node.m_mesh_component = m_model_handles.size();
+
+			if (node.m_transform_component == -1)
+			{
+				PromoteNode<TransformComponent>(handle);
+			}
+
+			m_model_handles.emplace_back(ComponentData<ModelHandle>(
+				model_handle,
+				handle
+			));
+		}
 
 		template<typename T>
-		typename Void_IsComponent<T, TransformComponent>::type PromoteNode(NodeHandle handle);
+		typename Void_IsComponent<T, TransformComponent>::type PromoteNode(NodeHandle handle)
+		{
+			auto& node = m_nodes[handle];
+			node.m_transform_component = m_positions.size();
+			m_positions.emplace_back(glm::vec3(0, 0, 0), handle);
+			m_rotations.emplace_back(glm::quat(0, 0, 0, 0), handle);
+			m_scales.emplace_back(glm::vec3(1, 1, 1), handle);
+			m_models.emplace_back(glm::mat4(1), handle);
+			m_requires_update.emplace_back(false, handle);
+		}
 
 		void Update();
 
@@ -98,35 +121,6 @@ namespace sg
 		std::vector<Node> m_nodes;
 
 	};
-
-	template<typename T>
-	typename SceneGraph::Void_IsComponent<T, MeshComponent>::type SceneGraph::PromoteNode(NodeHandle handle, ModelHandle model_handle)
-	{
-		auto& node = m_nodes[handle];
-		node.m_mesh_component = m_model_handles.size();
-
-		if (node.m_transform_component == -1)
-		{
-			PromoteNode<TransformComponent>(handle);
-		}
-
-		m_model_handles.emplace_back(ComponentData<ModelHandle>(
-			model_handle,
-			handle
-		));
-	}
-
-	template<typename T>
-	typename SceneGraph::Void_IsComponent<T, TransformComponent>::type SceneGraph::PromoteNode(NodeHandle handle)
-	{
-		auto& node = m_nodes[handle];
-		node.m_transform_component = m_positions.size();
-		m_positions.emplace_back(glm::vec3(0, 0, 0), handle);
-		m_rotations.emplace_back(glm::quat(0, 0, 0, 0), handle);
-		m_scales.emplace_back(glm::vec3(1, 1, 1), handle);
-		m_models.emplace_back(glm::mat4(1), handle);
-		m_requires_update.emplace_back(false, handle);
-	}
 
 	namespace helper
 	{

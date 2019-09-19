@@ -131,15 +131,15 @@ namespace tasks
 		};
 
 		fg::RenderTaskDesc desc;
-		desc.m_setup_func = [](Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
+		desc.m_setup_func = [](Renderer& rs, fg::FrameGraph& fg, ::fg::RenderTaskHandle handle, bool resize)
 		{
 			internal::SetupDeferredMainTask(rs, fg, handle, resize);
 		};
-		desc.m_execute_func = [](Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, fg::RenderTaskHandle handle)
+		desc.m_execute_func = [](Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, ::fg::RenderTaskHandle handle)
 		{
 			internal::ExecuteDeferredMainTask(rs, fg, sg, handle);
 		};
-		desc.m_destroy_func = [](fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
+		desc.m_destroy_func = [](fg::FrameGraph& fg, ::fg::RenderTaskHandle handle, bool resize)
 		{
 			internal::DestroyDeferredMainTask(fg, handle, resize);
 		};
