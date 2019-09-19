@@ -48,8 +48,7 @@ inline std::pair<std::vector<glm::vec3>, std::vector<glm::vec3>> ComputeTangents
 		glm::vec3 pos0 = mesh_data.m_positions[i0];
 		glm::vec3 pos1 = mesh_data.m_positions[i1];
 		glm::vec3 pos2 = mesh_data.m_positions[i2];
-
-		// TODO is this correct?
+		
 		auto tex0 = glm::vec2{ mesh_data.m_uvw[i0].x, mesh_data.m_uvw[i0].y };
 		auto tex1 = glm::vec2{ mesh_data.m_uvw[i1].x, mesh_data.m_uvw[i1].y };
 		auto tex2 = glm::vec2{ mesh_data.m_uvw[i2].x, mesh_data.m_uvw[i2].y };
