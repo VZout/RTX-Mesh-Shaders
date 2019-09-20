@@ -38,7 +38,7 @@ void main()
 
     if (world_pos.z == 0)
     {
-        color = vec3(0.38, 0.56, 1);
+        color = vec3(33, 27, 21) / 255.f;
     }
 
     imageStore(t_output, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1));
