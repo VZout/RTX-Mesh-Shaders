@@ -64,7 +64,7 @@ namespace gfx
 		VkDeviceMemory m_staging_buffer_memory;
 	};
 
-	class StagingTexture : public GPUBuffer
+	class Texture
 	{
 		friend class DescriptorHeap;
 		friend class CommandList;
@@ -80,18 +80,34 @@ namespace gfx
 			std::uint32_t m_mip_levels = 1u;
 		};
 
+		Texture(Context* context, Desc desc, bool uav = false);
+		virtual ~Texture();
+
+	protected:
+		void CreateImageAndMemory(VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
+		                          VkImage& image, VkDeviceMemory memory);
+	private:
+		Context* m_hidden_context;
+
+	protected:
+		Desc m_desc;
+		VkImage m_texture;
+		VkDeviceMemory m_texture_memory;
+	};
+
+	class StagingTexture : public GPUBuffer, public Texture
+	{
+		friend class DescriptorHeap;
+		friend class CommandList;
+	public:
+
 		StagingTexture(Context* context, Desc desc);
 		StagingTexture(Context* context, Desc desc, unsigned char* pixels);
-		~StagingTexture() final;
+		~StagingTexture() final = default;
 
 		void FreeStagingResources();
 
 	private:
-		void CreateImageAndMemory(VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
-		                 VkImage& image, VkDeviceMemory memory);
-		Desc m_desc;
-		VkImage m_texture;
-		VkDeviceMemory m_texture_memory;
 	};
 
 } /* gfx */

@@ -78,10 +78,12 @@ public:
 	void ResetCommandList(gfx::CommandList* cmd_list);
 	void StartRenderTask(gfx::CommandList* cmd_list, std::pair<gfx::RenderTarget*, RenderTargetProperties> render_target);
 	void StopRenderTask(gfx::CommandList* cmd_list, std::pair<gfx::RenderTarget*, RenderTargetProperties> render_target);
+	void StartComputeTask(gfx::CommandList* cmd_list, std::pair<gfx::RenderTarget*, RenderTargetProperties> render_target);
+	void StopComputeTask(gfx::CommandList* cmd_list, std::pair<gfx::RenderTarget*, RenderTargetProperties> render_target);
 	void CloseCommandList(gfx::CommandList* cmd_list);
 	void DestroyCommandList(gfx::CommandList* cmd_list);
 
-	gfx::RenderTarget* CreateRenderTarget(RenderTargetProperties const & properties);
+	gfx::RenderTarget* CreateRenderTarget(RenderTargetProperties const & properties, bool compute);
 	void ResizeRenderTarget(gfx::RenderTarget* render_target, std::uint32_t width, std::uint32_t height);
 	void DestroyRenderTarget(gfx::RenderTarget* render_target);
 	gfx::RenderWindow* GetRenderWindow();
@@ -94,6 +96,8 @@ public:
 	gfx::PipelineState* GetPipeline() { return m_pipeline; };
 	gfx::RootSignature* GetCompoRootSignature() { return m_compo_root_signature; };
 	gfx::PipelineState* GetCompoPipeline() { return m_compo_pipeline; };
+	gfx::RootSignature* GetPostRootSignature() { return m_post_root_signature; };
+	gfx::PipelineState* GetPostPipeline() { return m_post_pipeline; };
 
 private:
 	Application* m_application;
@@ -106,14 +110,16 @@ private:
 	// TODO Temporary
 	gfx::Shader* m_vs;
 	gfx::Shader* m_ps;
-	gfx::Shader* m_compo_vs;
-	gfx::Shader* m_compo_ps;
+	gfx::Shader* m_compo_cs;
+	gfx::Shader* m_post_cs;
 	gfx::Viewport* m_viewport;
 	gfx::DescriptorHeap* m_desc_heap;
 	gfx::PipelineState* m_pipeline;
 	gfx::RootSignature* m_root_signature;
 	gfx::PipelineState* m_compo_pipeline;
 	gfx::RootSignature* m_compo_root_signature;
+	gfx::PipelineState* m_post_pipeline;
+	gfx::RootSignature* m_post_root_signature;
 	gfx::VkModelPool* m_model_pool;
 	gfx::VkTexturePool* m_texture_pool;
 	gfx::VkMaterialPool* m_material_pool;

@@ -12,6 +12,7 @@
 
 #include "render_target.hpp"
 #include "viewport.hpp"
+#include "gfx_enums.hpp"
 
 namespace gfx
 {
@@ -31,6 +32,7 @@ namespace gfx
 			VkFormat m_depth_format = VK_FORMAT_UNDEFINED;
 			VkPrimitiveTopology m_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 			bool m_counter_clockwise = true;
+			enums::PipelineType m_type = enums::PipelineType::GRAPHICS_PIPE;
 		};
 
 		using InputLayout = std::pair<std::vector<VkVertexInputBindingDescription>, std::vector<VkVertexInputAttributeDescription>>;
@@ -61,9 +63,7 @@ namespace gfx
 		VkPipelineDepthStencilStateCreateInfo m_depth_stencil_info;
 		std::vector<VkPipelineColorBlendAttachmentState> m_color_blend_attachment_info;
 		VkPipelineColorBlendStateCreateInfo m_color_blend_info;
-		VkPipelineLayout m_layout;
 		RootSignature* m_root_signature;
-		VkGraphicsPipelineCreateInfo m_create_info;
 		VkPipeline m_pipeline;
 		VkRenderPass m_render_pass;
 		std::optional<InputLayout> m_input_layout;

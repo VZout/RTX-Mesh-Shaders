@@ -197,7 +197,7 @@ namespace fg
 					// Get a render target from the render system.
 					if (m_rt_properties[i].has_value())
 					{
-						m_render_targets[i] = m_renderer->CreateRenderTarget(m_rt_properties[i].value());
+						m_render_targets[i] = m_renderer->CreateRenderTarget(m_rt_properties[i].value(), m_types[i] == RenderTaskType::COMPUTE);
 #ifndef FG_MAX_PERFORMANCE
 						//m_renderer.SetRenderTargetName(m_render_targets[i], m_names[i]);
 #endif
@@ -220,7 +220,7 @@ namespace fg
 					// Get a render target from the render system.
 					if (m_rt_properties[i].has_value())
 					{
-						m_render_targets[i] = m_renderer->CreateRenderTarget(m_rt_properties[i].value());
+						m_render_targets[i] = m_renderer->CreateRenderTarget(m_rt_properties[i].value(), m_types[i] == RenderTaskType::COMPUTE);
 #ifndef FG_MAX_PERFORMANCE
 						//render_system.SetRenderTargetName(m_render_targets[i], m_names[i]);
 #endif
@@ -881,12 +881,12 @@ namespace fg
 			case RenderTaskType::COMPUTE:
 				if (rt_properties.has_value())
 				{
-					m_renderer->StartRenderTask(cmd_list, { render_target, rt_properties.value() });
+					m_renderer->StartComputeTask(cmd_list, { render_target, rt_properties.value() });
 				}
 				m_execute_funcs[handle](*m_renderer, *this, sg, handle);
 				if (rt_properties.has_value())
 				{
-					m_renderer->StopRenderTask(cmd_list, { render_target, rt_properties.value() });
+					m_renderer->StopComputeTask(cmd_list, { render_target, rt_properties.value() });
 				}
 				break;
 			case RenderTaskType::COPY:

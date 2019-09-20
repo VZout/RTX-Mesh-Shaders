@@ -56,8 +56,7 @@ Renderer::~Renderer()
 	delete m_compo_pipeline;
 	delete m_vs;
 	delete m_ps;
-	delete m_compo_vs;
-	delete m_compo_ps;
+	delete m_compo_cs;
 	delete m_render_window;
 	delete m_direct_cmd_list;
 	delete m_direct_queue;
@@ -104,10 +103,11 @@ void Renderer::Init(Application* app)
 	m_vs->LoadAndCompile("shaders/basic.vert.spv", gfx::ShaderType::VERTEX);
 	m_ps->LoadAndCompile("shaders/basic.frag.spv", gfx::ShaderType::PIXEL);
 
-	m_compo_vs = new gfx::Shader(m_context);
-	m_compo_ps = new gfx::Shader(m_context);
-	m_compo_vs->LoadAndCompile("shaders/composition.vert.spv", gfx::ShaderType::VERTEX);
-	m_compo_ps->LoadAndCompile("shaders/composition.frag.spv", gfx::ShaderType::PIXEL);
+	m_compo_cs = new gfx::Shader(m_context);
+	m_compo_cs->LoadAndCompile("shaders/composition.comp.spv", gfx::ShaderType::COMPUTE);
+
+	m_post_cs = new gfx::Shader(m_context);
+	m_post_cs->LoadAndCompile("shaders/post_processing.comp.spv", gfx::ShaderType::COMPUTE);
 
 	m_viewport = new gfx::Viewport(app->GetWidth(), app->GetHeight());
 
@@ -142,32 +142,55 @@ void Renderer::Init(Application* app)
 
 	{ // deferred composition
 		gfx::RootSignature::Desc root_signature_desc;
-		root_signature_desc.m_parameters.resize(2);
+		root_signature_desc.m_parameters.resize(3);
 		root_signature_desc.m_parameters[0].binding = 0; // root parameter 0
 		root_signature_desc.m_parameters[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		root_signature_desc.m_parameters[0].descriptorCount = 1;
-		root_signature_desc.m_parameters[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		root_signature_desc.m_parameters[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 		root_signature_desc.m_parameters[0].pImmutableSamplers = nullptr;
 		root_signature_desc.m_parameters[1].binding = 1; // root parameter 1
 		root_signature_desc.m_parameters[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		root_signature_desc.m_parameters[1].descriptorCount = 3;
-		root_signature_desc.m_parameters[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		root_signature_desc.m_parameters[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 		root_signature_desc.m_parameters[1].pImmutableSamplers = nullptr;
+		root_signature_desc.m_parameters[2].binding = 2; // root parameter 2
+		root_signature_desc.m_parameters[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		root_signature_desc.m_parameters[2].descriptorCount = 1;
+		root_signature_desc.m_parameters[2].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+		root_signature_desc.m_parameters[2].pImmutableSamplers = nullptr;
 		m_compo_root_signature = new gfx::RootSignature(m_context, root_signature_desc);
 		m_compo_root_signature->Compile();
 
 		gfx::PipelineState::Desc pipeline_desc;
-		pipeline_desc.m_depth_format = VK_FORMAT_UNDEFINED;
-		pipeline_desc.m_rtv_formats = { VK_FORMAT_B8G8R8A8_UNORM };
-		pipeline_desc.m_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-		pipeline_desc.m_counter_clockwise = false;
+		pipeline_desc.m_type = gfx::enums::PipelineType::COMPUTE_PIPE;
 		m_compo_pipeline = new gfx::PipelineState(m_context, pipeline_desc);
-		m_compo_pipeline->SetViewport(m_viewport);
-		//m_compo_pipeline->SetInputLayout(Vertex2D::GetInputLayout());
-		m_compo_pipeline->AddShader(m_compo_vs);
-		m_compo_pipeline->AddShader(m_compo_ps);
+		m_compo_pipeline->AddShader(m_compo_cs);
 		m_compo_pipeline->SetRootSignature(m_compo_root_signature);
 		m_compo_pipeline->Compile();
+	}
+
+	{ // post processing
+		gfx::RootSignature::Desc root_signature_desc;
+		root_signature_desc.m_parameters.resize(2);
+		root_signature_desc.m_parameters[0].binding = 0; // root parameter 1
+		root_signature_desc.m_parameters[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		root_signature_desc.m_parameters[0].descriptorCount = 1;
+		root_signature_desc.m_parameters[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+		root_signature_desc.m_parameters[0].pImmutableSamplers = nullptr;
+		root_signature_desc.m_parameters[1].binding = 1; // root parameter 2
+		root_signature_desc.m_parameters[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		root_signature_desc.m_parameters[1].descriptorCount = 1;
+		root_signature_desc.m_parameters[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+		root_signature_desc.m_parameters[1].pImmutableSamplers = nullptr;
+		m_post_root_signature = new gfx::RootSignature(m_context, root_signature_desc);
+		m_post_root_signature->Compile();
+
+		gfx::PipelineState::Desc pipeline_desc;
+		pipeline_desc.m_type = gfx::enums::PipelineType::COMPUTE_PIPE;
+		m_post_pipeline = new gfx::PipelineState(m_context, pipeline_desc);
+		m_post_pipeline->AddShader(m_post_cs);
+		m_post_pipeline->SetRootSignature(m_post_root_signature);
+		m_post_pipeline->Compile();
 	}
 
 	gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
@@ -291,7 +314,7 @@ void Renderer::StartRenderTask(gfx::CommandList* cmd_list, std::pair<gfx::Render
 	}
 	else
 	{
-		if (!desc.m_is_render_window, desc.m_state_execute.has_value())
+		if (!desc.m_is_render_window && desc.m_state_execute.has_value())
 		{
 			cmd_list->TransitionRenderTarget(render_target.first, VK_IMAGE_LAYOUT_UNDEFINED, desc.m_state_execute.value(), frame_idx);
 		}
@@ -306,9 +329,34 @@ void Renderer::StopRenderTask(gfx::CommandList* cmd_list, std::pair<gfx::RenderT
 
 	cmd_list->UnbindRenderTarget(frame_idx);
 
-	if (!desc.m_is_render_window, desc.m_state_finished.has_value())
+	if (!desc.m_is_render_window && desc.m_state_finished.has_value())
 	{
-		cmd_list->TransitionRenderTarget(render_target.first, VK_IMAGE_LAYOUT_UNDEFINED, desc.m_state_finished.value(), frame_idx);
+		auto old = desc.m_state_execute.has_value() ? desc.m_state_execute.value() : VK_IMAGE_LAYOUT_UNDEFINED;
+		cmd_list->TransitionRenderTarget(render_target.first, old, desc.m_state_finished.value(), frame_idx);
+	}
+}
+
+void Renderer::StartComputeTask(gfx::CommandList* cmd_list, std::pair<gfx::RenderTarget*, RenderTargetProperties> render_target)
+{
+	auto frame_idx = GetFrameIdx();
+	auto desc = render_target.second;
+
+	if (!desc.m_is_render_window && desc.m_state_execute.has_value())
+	{
+		cmd_list->TransitionRenderTarget(render_target.first, VK_IMAGE_LAYOUT_UNDEFINED, desc.m_state_execute.value(), frame_idx);
+	}
+}
+
+void Renderer::StopComputeTask(gfx::CommandList* cmd_list, std::pair<gfx::RenderTarget*, RenderTargetProperties> render_target)
+{
+	auto desc = render_target.second;
+	auto frame_idx = GetFrameIdx();
+
+
+	if (!desc.m_is_render_window && desc.m_state_finished.has_value())
+	{
+		auto old = desc.m_state_execute.has_value() ? desc.m_state_execute.value() : VK_IMAGE_LAYOUT_UNDEFINED;
+		cmd_list->TransitionRenderTarget(render_target.first, old, desc.m_state_finished.value(), frame_idx);
 	}
 }
 
@@ -324,7 +372,7 @@ void Renderer::DestroyCommandList(gfx::CommandList* cmd_list)
 	delete cmd_list;
 }
 
-gfx::RenderTarget* Renderer::CreateRenderTarget(RenderTargetProperties const & properties)
+gfx::RenderTarget* Renderer::CreateRenderTarget(RenderTargetProperties const & properties, bool compute)
 {
 	if (properties.m_is_render_window)
 	{
@@ -337,6 +385,7 @@ gfx::RenderTarget* Renderer::CreateRenderTarget(RenderTargetProperties const & p
 		desc.m_depth_format = properties.m_dsv_format;
 		desc.m_width = properties.m_width.has_value() ? properties.m_width.value() : m_application->GetWidth();
 		desc.m_height = properties.m_height.has_value() ? properties.m_height.value() : m_application->GetHeight();
+		desc.m_allow_uav = compute;
 		auto new_rt = new gfx::RenderTarget(m_context, desc);
 		return new_rt;
 	}

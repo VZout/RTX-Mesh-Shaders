@@ -172,54 +172,29 @@ void gfx::StagingBuffer::FreeStagingResources()
 	m_staging_buffer_memory = VK_NULL_HANDLE;
 }
 
-gfx::StagingTexture::StagingTexture(Context* context, Desc desc)
-		: GPUBuffer(context, desc.m_width * desc.m_height * 4), m_desc(desc),
-		  m_texture(VK_NULL_HANDLE), m_texture_memory(VK_NULL_HANDLE)
-{
-	CreateBufferAndMemory(m_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			m_buffer, m_buffer_memory);
 
-	CreateImageAndMemory(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_texture, m_texture_memory);
+gfx::Texture::Texture(gfx::Context* context, gfx::Texture::Desc desc, bool uav)
+		: m_hidden_context(context), m_desc(desc),	m_texture(VK_NULL_HANDLE), m_texture_memory(VK_NULL_HANDLE)
+{
+	if (uav)
+	{
+		CreateImageAndMemory(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+		                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_texture, m_texture_memory);
+	}
 }
 
-gfx::StagingTexture::StagingTexture(Context* context, Desc desc, unsigned char* pixels)
-		: GPUBuffer(context, desc.m_width * desc.m_height * 4), m_desc(desc),
-		  m_texture(VK_NULL_HANDLE), m_texture_memory(VK_NULL_HANDLE)
+gfx::Texture::~Texture()
 {
-	CreateBufferAndMemory(m_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-	                      m_buffer, m_buffer_memory);
-
-	CreateImageAndMemory(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-	                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_texture, m_texture_memory);
-
-	Map();
-	Update(pixels, m_size);
-	Unmap();
-}
-
-gfx::StagingTexture::~StagingTexture()
-{
-	auto logical_device = m_context->m_logical_device;
+	auto logical_device = m_hidden_context->m_logical_device;
 
 	if (m_texture) vkDestroyImage(logical_device, m_texture, nullptr);
 	if (m_texture_memory) vkFreeMemory(logical_device, m_texture_memory, nullptr);
 }
 
-void gfx::StagingTexture::FreeStagingResources()
+void gfx::Texture::CreateImageAndMemory(VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
+                                        VkImage& image, VkDeviceMemory memory)
 {
-	auto logical_device = m_context->m_logical_device;
-
-	if (m_buffer != VK_NULL_HANDLE) vkDestroyBuffer(logical_device, m_buffer, nullptr);
-	if (m_buffer_memory != VK_NULL_HANDLE) vkFreeMemory(logical_device, m_buffer_memory, nullptr);
-	m_buffer = VK_NULL_HANDLE;
-	m_buffer_memory = VK_NULL_HANDLE;
-}
-
-void gfx::StagingTexture::CreateImageAndMemory(VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
-                               VkImage& image, VkDeviceMemory memory)
-{
-	auto logical_device = m_context->m_logical_device;
+	auto logical_device = m_hidden_context->m_logical_device;
 
 	VkImageCreateInfo image_info = {};
 	image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -248,7 +223,7 @@ void gfx::StagingTexture::CreateImageAndMemory(VkImageTiling tiling, VkImageUsag
 	VkMemoryAllocateInfo alloc_info = {};
 	alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	alloc_info.allocationSize = memory_requirements.size;
-	alloc_info.memoryTypeIndex = m_context->FindMemoryType(memory_requirements.memoryTypeBits, properties);
+	alloc_info.memoryTypeIndex = m_hidden_context->FindMemoryType(memory_requirements.memoryTypeBits, properties);
 
 	if (vkAllocateMemory(logical_device, &alloc_info, nullptr, &memory) != VK_SUCCESS)
 	{
@@ -256,4 +231,38 @@ void gfx::StagingTexture::CreateImageAndMemory(VkImageTiling tiling, VkImageUsag
 	}
 
 	vkBindImageMemory(logical_device, image, memory, 0);
+}
+
+gfx::StagingTexture::StagingTexture(Context* context, Desc desc)
+		: GPUBuffer(context, desc.m_width * desc.m_height * 4), Texture(context, desc)
+{
+	CreateBufferAndMemory(m_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+	                      m_buffer, m_buffer_memory);
+
+	CreateImageAndMemory(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+	                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_texture, m_texture_memory);
+}
+
+gfx::StagingTexture::StagingTexture(Context* context, Desc desc, unsigned char* pixels)
+		: GPUBuffer(context, desc.m_width * desc.m_height * 4), Texture(context, desc)
+{
+	CreateBufferAndMemory(m_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+	                      m_buffer, m_buffer_memory);
+
+	CreateImageAndMemory(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+	                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_texture, m_texture_memory);
+
+	Map();
+	Update(pixels, m_size);
+	Unmap();
+}
+
+void gfx::StagingTexture::FreeStagingResources()
+{
+	auto logical_device = m_context->m_logical_device;
+
+	if (m_buffer != VK_NULL_HANDLE) vkDestroyBuffer(logical_device, m_buffer, nullptr);
+	if (m_buffer_memory != VK_NULL_HANDLE) vkFreeMemory(logical_device, m_buffer_memory, nullptr);
+	m_buffer = VK_NULL_HANDLE;
+	m_buffer_memory = VK_NULL_HANDLE;
 }

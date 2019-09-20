@@ -30,6 +30,7 @@ namespace gfx
 			std::uint32_t m_height;
 			std::vector<VkFormat> m_rtv_formats;
 			VkFormat m_depth_format = VK_FORMAT_UNDEFINED;
+			bool m_allow_uav = false;
 		};
 
 		explicit RenderTarget(Context* context);

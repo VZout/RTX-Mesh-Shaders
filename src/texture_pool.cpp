@@ -12,7 +12,7 @@ TexturePool::TexturePool()
 
 }
 
-std::uint32_t TexturePool::Load(std::string const& path)
+std::uint32_t TexturePool::Load(std::string const& path, bool srgb)
 {
 	auto extension = path.substr(path.find_last_of('.') + 1);
 	auto new_id = m_next_id;
@@ -22,7 +22,7 @@ std::uint32_t TexturePool::Load(std::string const& path)
 		loader->IsSupportedExtension(extension);
 		auto texture_data = loader->Load(path);
 
-		Load_Impl(*texture_data, new_id);
+		Load_Impl(*texture_data, new_id, srgb);
 
 		break;
 	}
@@ -31,10 +31,10 @@ std::uint32_t TexturePool::Load(std::string const& path)
 	return new_id;
 }
 
-std::uint32_t TexturePool::Load(TextureData const & data)
+std::uint32_t TexturePool::Load(TextureData const & data, bool srgb)
 {
 	auto new_id = m_next_id;
-	Load_Impl(data, new_id);
+	Load_Impl(data, new_id, srgb);
 
 	m_next_id++;
 	return new_id;

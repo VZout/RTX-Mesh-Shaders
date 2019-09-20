@@ -10,3 +10,4 @@
 #include "vk_imgui_task.hpp"
 #include "vk_copy_to_backbuffer_task.hpp"
 #include "vk_deferred_composition.hpp"
+#include "vk_post_processing.hpp"
