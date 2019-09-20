@@ -23,7 +23,7 @@ namespace gfx
 		void AllocateMesh(void* vertex_data, std::uint32_t num_vertices, std::uint32_t vertex_stride,
 				void* index_data, std::uint32_t num_indices, std::uint32_t index_stride) final;
 
-		void Stage(CommandList* command_list, std::uint32_t frame_idx) final;
+		void Stage(CommandList* command_list) final;
 		void PostStage() final;
 
 	protected:

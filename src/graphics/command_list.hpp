@@ -36,29 +36,29 @@ namespace gfx
 		~CommandList();
 
 		void Begin(std::uint32_t frame_idx);
-		void Close(std::uint32_t frame_idx);
+		void Close();
 
-		void BindRenderTargetVersioned(RenderTarget* render_target, std::uint32_t frame_idx, bool clear = true, bool clear_depth = true);
-		void BindRenderTarget(RenderTarget* render_target, std::uint32_t frame_idx, bool clear = true, bool clear_depth = true);
-		void UnbindRenderTarget(std::uint32_t frame_idx);
-		void BindPipelineState(PipelineState* pipeline, std::uint32_t frame_idx);
-		void BindComputePipelineState(PipelineState* pipeline, std::uint32_t frame_idx);
-		void BindVertexBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx);
-		void BindIndexBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx);
-		void BindDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets, std::uint32_t frame_idx);
-		void BindComputeDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets, std::uint32_t frame_idx);
-		void StageBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx);
-		void StageTexture(StagingTexture* texture, std::uint32_t frame_idx);
-		void CopyRenderTargetToRenderWindow(RenderTarget* render_target, std::uint32_t rt_idx, RenderWindow* render_window, std::uint32_t frame_idx);
-		void TransitionDepth(RenderTarget* render_target, VkImageLayout from, VkImageLayout to, std::uint32_t frame_idx);
-		void TransitionTexture(StagingTexture* texture, VkImageLayout from, VkImageLayout to, std::uint32_t frame_idx);
-		void TransitionRenderTarget(RenderTarget* render_target, VkImageLayout from, VkImageLayout to, std::uint32_t frame_idx);
-		void TransitionRenderTarget(RenderTarget* render_target, std::uint32_t rt_idx, VkImageLayout from, VkImageLayout to, std::uint32_t frame_idx);
-		void Draw(std::uint32_t frame_idx, std::uint32_t vertex_count, std::uint32_t instance_count,
+		void BindRenderTargetVersioned(RenderTarget* render_target, bool clear = true, bool clear_depth = true);
+		void BindRenderTarget(RenderTarget* render_target, bool clear = true, bool clear_depth = true);
+		void UnbindRenderTarget();
+		void BindPipelineState(PipelineState* pipeline);
+		void BindComputePipelineState(PipelineState* pipeline);
+		void BindVertexBuffer(StagingBuffer* staging_buffer);
+		void BindIndexBuffer(StagingBuffer* staging_buffer);
+		void BindDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets);
+		void BindComputeDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets);
+		void StageBuffer(StagingBuffer* staging_buffer);
+		void StageTexture(StagingTexture* texture);
+		void CopyRenderTargetToRenderWindow(RenderTarget* render_target, std::uint32_t rt_idx, RenderWindow* render_window);
+		void TransitionDepth(RenderTarget* render_target, VkImageLayout from, VkImageLayout to);
+		void TransitionTexture(StagingTexture* texture, VkImageLayout from, VkImageLayout to);
+		void TransitionRenderTarget(RenderTarget* render_target, VkImageLayout from, VkImageLayout to);
+		void TransitionRenderTarget(RenderTarget* render_target, std::uint32_t rt_idx, VkImageLayout from, VkImageLayout to);
+		void Draw(std::uint32_t vertex_count, std::uint32_t instance_count,
 				std::uint32_t first_vertex = 0, std::uint32_t first_instance = 0);
-		void DrawIndexed(std::uint32_t frame_idx, std::uint32_t idx_count, std::uint32_t instance_count,
+		void DrawIndexed(std::uint32_t idx_count, std::uint32_t instance_count,
 				std::uint32_t first_idx = 0, std::uint32_t vertex_offset = 0, std::uint32_t first_instance = 0);
-		void Dispatch(std::uint32_t tg_count_x, std::uint32_t tg_count_y, std::uint32_t tg_count_z, std::uint32_t frame_idx);
+		void Dispatch(std::uint32_t tg_count_x, std::uint32_t tg_count_y, std::uint32_t tg_count_z);
 
 	private:
 		Context* m_context;
@@ -67,8 +67,8 @@ namespace gfx
 		VkCommandPool m_cmd_pool;
 		VkCommandPoolCreateInfo m_cmd_pool_create_info;
 		std::vector<VkCommandBuffer> m_cmd_buffers;
-		std::vector<bool> m_bound_render_target;
 
+		std::uint32_t m_frame_idx;
 	};
 
 } /* gfx */

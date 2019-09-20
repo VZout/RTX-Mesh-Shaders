@@ -85,8 +85,6 @@ namespace tasks
 			auto root_sig = rs.GetCompoRootSignature();
 			auto pipeline = rs.GetCompoPipeline();
 			auto desc_heap = rs.GetDescHeap();
-			auto render_window = rs.GetRenderWindow();
-			auto deferred_main_rt = fg.GetPredecessorRenderTarget<DeferredMainData>();
 			auto render_target = fg.GetRenderTarget(handle);
 
 			glm::vec3 cam_pos = glm::vec3(0, 0, -2.5);
@@ -101,9 +99,9 @@ namespace tasks
 				{ data.m_gbuffer_heap, data.m_uav_target_set },
 			};
 
-			cmd_list->BindComputePipelineState(pipeline, frame_idx);
-			cmd_list->BindComputeDescriptorHeap(root_sig, sets, frame_idx);
-			cmd_list->Dispatch(render_target->GetWidth() / 16, render_target->GetHeight() / 16, 1, frame_idx);
+			cmd_list->BindComputePipelineState(pipeline);
+			cmd_list->BindComputeDescriptorHeap(root_sig, sets);
+			cmd_list->Dispatch(render_target->GetWidth() / 16, render_target->GetHeight() / 16, 1);
 		}
 
 		inline void DestroyDeferredCompositionTask(fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)

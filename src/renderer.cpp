@@ -210,12 +210,12 @@ void Renderer::Upload()
 	m_direct_cmd_list->Begin(0);
 
 	// make sure the data depth buffer is ready for present
-	m_direct_cmd_list->TransitionDepth(m_render_window, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0);
+	m_direct_cmd_list->TransitionDepth(m_render_window, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
 	// Upload data to the gpu
-	m_model_pool->Stage(m_direct_cmd_list, 0);
-	m_texture_pool->Stage(m_direct_cmd_list, 0);
-	m_direct_cmd_list->Close(0);
+	m_model_pool->Stage(m_direct_cmd_list);
+	m_texture_pool->Stage(m_direct_cmd_list);
+	m_direct_cmd_list->Close();
 
 	m_direct_queue->Execute({ m_direct_cmd_list }, nullptr, 0);
 	m_direct_queue->Wait();
@@ -310,61 +310,55 @@ void Renderer::StartRenderTask(gfx::CommandList* cmd_list, std::pair<gfx::Render
 
 	if (render_target.second.m_is_render_window)
 	{
-		cmd_list->BindRenderTargetVersioned(render_target.first, frame_idx, desc.m_clear, desc.m_clear_depth);
+		cmd_list->BindRenderTargetVersioned(render_target.first, desc.m_clear, desc.m_clear_depth);
 	}
 	else
 	{
 		if (!desc.m_is_render_window && desc.m_state_execute.has_value())
 		{
-			cmd_list->TransitionRenderTarget(render_target.first, VK_IMAGE_LAYOUT_UNDEFINED, desc.m_state_execute.value(), frame_idx);
+			cmd_list->TransitionRenderTarget(render_target.first, VK_IMAGE_LAYOUT_UNDEFINED, desc.m_state_execute.value());
 		}
-		cmd_list->BindRenderTarget(render_target.first, frame_idx, desc.m_clear, desc.m_clear_depth);
+		cmd_list->BindRenderTarget(render_target.first, desc.m_clear, desc.m_clear_depth);
 	}
 }
 
 void Renderer::StopRenderTask(gfx::CommandList* cmd_list, std::pair<gfx::RenderTarget*, RenderTargetProperties> render_target)
 {
 	auto desc = render_target.second;
-	auto frame_idx = GetFrameIdx();
 
-	cmd_list->UnbindRenderTarget(frame_idx);
+	cmd_list->UnbindRenderTarget();
 
 	if (!desc.m_is_render_window && desc.m_state_finished.has_value())
 	{
 		auto old = desc.m_state_execute.has_value() ? desc.m_state_execute.value() : VK_IMAGE_LAYOUT_UNDEFINED;
-		cmd_list->TransitionRenderTarget(render_target.first, old, desc.m_state_finished.value(), frame_idx);
+		cmd_list->TransitionRenderTarget(render_target.first, old, desc.m_state_finished.value());
 	}
 }
 
 void Renderer::StartComputeTask(gfx::CommandList* cmd_list, std::pair<gfx::RenderTarget*, RenderTargetProperties> render_target)
 {
-	auto frame_idx = GetFrameIdx();
 	auto desc = render_target.second;
 
 	if (!desc.m_is_render_window && desc.m_state_execute.has_value())
 	{
-		cmd_list->TransitionRenderTarget(render_target.first, VK_IMAGE_LAYOUT_UNDEFINED, desc.m_state_execute.value(), frame_idx);
+		cmd_list->TransitionRenderTarget(render_target.first, VK_IMAGE_LAYOUT_UNDEFINED, desc.m_state_execute.value());
 	}
 }
 
 void Renderer::StopComputeTask(gfx::CommandList* cmd_list, std::pair<gfx::RenderTarget*, RenderTargetProperties> render_target)
 {
 	auto desc = render_target.second;
-	auto frame_idx = GetFrameIdx();
-
 
 	if (!desc.m_is_render_window && desc.m_state_finished.has_value())
 	{
 		auto old = desc.m_state_execute.has_value() ? desc.m_state_execute.value() : VK_IMAGE_LAYOUT_UNDEFINED;
-		cmd_list->TransitionRenderTarget(render_target.first, old, desc.m_state_finished.value(), frame_idx);
+		cmd_list->TransitionRenderTarget(render_target.first, old, desc.m_state_finished.value());
 	}
 }
 
 void Renderer::CloseCommandList(gfx::CommandList* cmd_list)
 {
-	auto frame_idx = m_render_window->GetFrameIdx();
-
-	cmd_list->Close(frame_idx);
+	cmd_list->Close();
 }
 
 void Renderer::DestroyCommandList(gfx::CommandList* cmd_list)

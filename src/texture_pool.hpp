@@ -26,7 +26,7 @@ public:
 	std::uint32_t Load(std::string const & path, bool srgb = false);
 	std::uint32_t Load(TextureData const & data, bool srgb = false);
 
-	virtual void Stage(gfx::CommandList* command_list, std::uint32_t frame_idx) = 0;
+	virtual void Stage(gfx::CommandList* command_list) = 0;
 	virtual void PostStage() = 0;
 	virtual std::vector<gfx::StagingTexture*> GetTextures(std::vector<std::uint32_t> texture_handles) = 0;
 

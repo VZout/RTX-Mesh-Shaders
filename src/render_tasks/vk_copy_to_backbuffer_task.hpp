@@ -28,11 +28,11 @@ namespace tasks
 			auto render_window = rs.GetRenderWindow();
 			auto frame_idx = rs.GetFrameIdx();
 
-			cmd_list->TransitionRenderTarget(render_window, frame_idx, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, frame_idx);
+			cmd_list->TransitionRenderTarget(render_window, frame_idx, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
-			cmd_list->CopyRenderTargetToRenderWindow(rt_to_copy, IDX, render_window, frame_idx);
+			cmd_list->CopyRenderTargetToRenderWindow(rt_to_copy, IDX, render_window);
 
-			cmd_list->TransitionRenderTarget(render_window, frame_idx, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, frame_idx);
+			cmd_list->TransitionRenderTarget(render_window, frame_idx, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 		}
 
 	} /* internal */

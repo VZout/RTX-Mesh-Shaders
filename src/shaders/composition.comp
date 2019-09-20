@@ -36,5 +36,10 @@ void main()
 
     vec3 color = (ambient + diffuse + specular) * albedo;
 
+    if (world_pos.z == 0)
+    {
+        color = vec3(0.38, 0.56, 1);
+    }
+
     imageStore(t_output, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1));
 }
