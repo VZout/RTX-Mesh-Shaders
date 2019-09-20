@@ -42,9 +42,11 @@ namespace gfx
 		void BindRenderTarget(RenderTarget* render_target, std::uint32_t frame_idx, bool clear = true, bool clear_depth = true);
 		void UnbindRenderTarget(std::uint32_t frame_idx);
 		void BindPipelineState(PipelineState* pipeline, std::uint32_t frame_idx);
+		void BindComputePipelineState(PipelineState* pipeline, std::uint32_t frame_idx);
 		void BindVertexBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx);
 		void BindIndexBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx);
 		void BindDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets, std::uint32_t frame_idx);
+		void BindComputeDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets, std::uint32_t frame_idx);
 		void StageBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx);
 		void StageTexture(StagingTexture* texture, std::uint32_t frame_idx);
 		void CopyRenderTargetToRenderWindow(RenderTarget* render_target, std::uint32_t rt_idx, RenderWindow* render_window, std::uint32_t frame_idx);
@@ -56,6 +58,7 @@ namespace gfx
 				std::uint32_t first_vertex = 0, std::uint32_t first_instance = 0);
 		void DrawIndexed(std::uint32_t frame_idx, std::uint32_t idx_count, std::uint32_t instance_count,
 				std::uint32_t first_idx = 0, std::uint32_t vertex_offset = 0, std::uint32_t first_instance = 0);
+		void Dispatch(std::uint32_t tg_count_x, std::uint32_t tg_count_y, std::uint32_t tg_count_z, std::uint32_t frame_idx);
 
 	private:
 		Context* m_context;

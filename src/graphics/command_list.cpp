@@ -199,6 +199,11 @@ void gfx::CommandList::BindPipelineState(gfx::PipelineState* pipeline, std::uint
 	vkCmdBindPipeline(m_cmd_buffers[frame_idx], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->m_pipeline);
 }
 
+void gfx::CommandList::BindComputePipelineState(gfx::PipelineState* pipeline, std::uint32_t frame_idx)
+{
+	vkCmdBindPipeline(m_cmd_buffers[frame_idx], VK_PIPELINE_BIND_POINT_COMPUTE, pipeline->m_pipeline);
+}
+
 void gfx::CommandList::BindVertexBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx)
 {
 	std::vector<VkBuffer> buffers = { staging_buffer->m_buffer };
@@ -223,7 +228,22 @@ void gfx::CommandList::BindDescriptorHeap(RootSignature* root_signature, std::ve
 	}
 
 	vkCmdBindDescriptorSets(m_cmd_buffers[frame_idx], VK_PIPELINE_BIND_POINT_GRAPHICS, root_signature->m_pipeline_layout,
-			0, descriptor_sets.size(), descriptor_sets.data(), 0, nullptr);
+	                        0, descriptor_sets.size(), descriptor_sets.data(), 0, nullptr);
+}
+
+// TODO: Duplicate with binddescriptorheap
+void gfx::CommandList::BindComputeDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets, std::uint32_t frame_idx)
+{
+	std::vector<VkDescriptorSet> descriptor_sets(sets.size());
+
+	for (std::size_t i = 0; i < sets.size(); i++)
+	{
+		auto versions = sets[i].first->m_descriptor_sets.size();
+		descriptor_sets[i] = sets[i].first->m_descriptor_sets[frame_idx % versions][sets[i].second];
+	}
+
+	vkCmdBindDescriptorSets(m_cmd_buffers[frame_idx], VK_PIPELINE_BIND_POINT_COMPUTE, root_signature->m_pipeline_layout,
+	                        0, descriptor_sets.size(), descriptor_sets.data(), 0, nullptr);
 }
 
 void gfx::CommandList::StageBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx)
@@ -472,6 +492,30 @@ void gfx::CommandList::TransitionRenderTarget(RenderTarget* render_target, std::
 		source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 		destination_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 	}
+	else if (from == VK_IMAGE_LAYOUT_UNDEFINED && to == VK_IMAGE_LAYOUT_GENERAL)
+	{
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+
+		source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		destination_stage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+	}
+	else if (from == VK_IMAGE_LAYOUT_GENERAL && to == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+	{
+		barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+		source_stage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+		destination_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}
+	else if (from == VK_IMAGE_LAYOUT_GENERAL && to == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+	{
+		barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		source_stage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+		destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}
 	else if (from == VK_IMAGE_LAYOUT_UNDEFINED && to == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 	{
 		barrier.srcAccessMask = 0;
@@ -561,4 +605,9 @@ void gfx::CommandList::DrawIndexed(std::uint32_t frame_idx, std::uint32_t idx_co
 		std::uint32_t first_idx, std::uint32_t vertex_offset, std::uint32_t first_instance)
 {
 	vkCmdDrawIndexed(m_cmd_buffers[frame_idx], idx_count, instance_count, first_idx, vertex_offset, first_instance);
+}
+
+void gfx::CommandList::Dispatch(std::uint32_t tg_count_x, std::uint32_t tg_count_y, std::uint32_t tg_count_z, std::uint32_t frame_idx)
+{
+	vkCmdDispatch(m_cmd_buffers[frame_idx], tg_count_x, tg_count_y, tg_count_z);
 }

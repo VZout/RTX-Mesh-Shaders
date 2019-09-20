@@ -112,7 +112,10 @@ add_subdirectory(external/fmt)
 # Source files
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp")
-file(GLOB_RECURSE GLSL_SOURCE_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/*.*")
+file(GLOB_RECURSE GLSL_SOURCE_FILES CONFIGURE_DEPENDS
+		"${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/*.frag"
+		"${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/*.vert"
+		"${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/*.comp")
 file(GLOB IMGUI CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/external/imgui/*.cpp")
 
 # Application
@@ -132,9 +135,9 @@ endif()
 
 # Compile GLSL Shaders Into SPRIV
 if (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "AMD64")
-  set(GLSL_VALIDATOR "$ENV{VULKAN_SDK}/Bin/glslangValidator.exe")
+  set(GLSL_VALIDATOR "$ENV{VULKAN_SDK}/Bin/glslc.exe")
 else()
-  set(GLSL_VALIDATOR "$ENV{VULKAN_SDK}/Bin32/glslangValidator.exe")
+  set(GLSL_VALIDATOR "$ENV{VULKAN_SDK}/Bin32/glslc.exe")
 endif()
 
 foreach(GLSL ${GLSL_SOURCE_FILES})
@@ -143,7 +146,7 @@ foreach(GLSL ${GLSL_SOURCE_FILES})
   add_custom_command(
     OUTPUT ${SPIRV}
 	COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/bin/shaders/"
-    COMMAND ${GLSL_VALIDATOR} -V ${GLSL} -o ${SPIRV}
+    COMMAND ${GLSL_VALIDATOR} ${GLSL} -o ${SPIRV}
     DEPENDS ${GLSL}
 	COMMENT "Compiling GLSL to SPRIV")
   list(APPEND SPIRV_BINARY_FILES ${SPIRV})

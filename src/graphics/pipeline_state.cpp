@@ -23,13 +23,12 @@ gfx::PipelineState::PipelineState(Context* context, Desc desc)
 	m_depth_stencil_info(),
 	m_color_blend_attachment_info(),
 	m_color_blend_info(),
-	m_layout(VK_NULL_HANDLE),
 	m_root_signature(nullptr),
-	m_create_info(),
 	m_pipeline(VK_NULL_HANDLE),
     m_render_pass(VK_NULL_HANDLE),
 	m_input_layout()
 {
+	// TODO: Remove this from the constructor. This is not required for compute.
 	// Input Assembler
 	m_ia_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 	m_ia_info.topology = m_desc.m_topology;
@@ -147,28 +146,53 @@ void gfx::PipelineState::Compile()
 		m_vertex_input_info.vertexAttributeDescriptionCount = 0;
 	}
 
-	m_create_info = {};
-	m_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	m_create_info.stageCount = m_shader_info.size();
-	m_create_info.pStages = m_shader_info.data();
-	m_create_info.pVertexInputState = &m_vertex_input_info;
-	m_create_info.pInputAssemblyState = &m_ia_info;
-	m_create_info.pViewportState = &m_viewport_info;
-	m_create_info.pRasterizationState = &m_raster_info;
-	m_create_info.pMultisampleState = &m_ms_info;
-	m_create_info.pDepthStencilState = m_desc.m_depth_format != VK_FORMAT_UNDEFINED ? &m_depth_stencil_info : nullptr;
-	m_create_info.pColorBlendState = &m_color_blend_info;
-	m_create_info.pDynamicState = nullptr;
-	m_create_info.layout = m_root_signature->m_pipeline_layout;
-	m_create_info.renderPass = m_render_pass;
-	m_create_info.subpass = 0;
-	m_create_info.basePipelineHandle = VK_NULL_HANDLE;
-	m_create_info.basePipelineIndex = -1;
-	m_create_info.flags = 0;
-
-	if (vkCreateGraphicsPipelines(logical_device, VK_NULL_HANDLE, 1, &m_create_info, nullptr, &m_pipeline) != VK_SUCCESS)
+	if (m_desc.m_type == enums::PipelineType::GRAPHICS_PIPE)
 	{
-		LOGC("failed to create graphics pipeline!");
+		VkGraphicsPipelineCreateInfo m_create_info = {};
+		m_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		m_create_info.stageCount = m_shader_info.size();
+		m_create_info.pStages = m_shader_info.data();
+		m_create_info.pVertexInputState = &m_vertex_input_info;
+		m_create_info.pInputAssemblyState = &m_ia_info;
+		m_create_info.pViewportState = &m_viewport_info;
+		m_create_info.pRasterizationState = &m_raster_info;
+		m_create_info.pMultisampleState = &m_ms_info;
+		m_create_info.pDepthStencilState =
+				m_desc.m_depth_format != VK_FORMAT_UNDEFINED ? &m_depth_stencil_info : nullptr;
+		m_create_info.pColorBlendState = &m_color_blend_info;
+		m_create_info.pDynamicState = nullptr;
+		m_create_info.layout = m_root_signature->m_pipeline_layout;
+		m_create_info.renderPass = m_render_pass;
+		m_create_info.subpass = 0;
+		m_create_info.basePipelineHandle = VK_NULL_HANDLE;
+		m_create_info.basePipelineIndex = -1;
+		m_create_info.flags = 0;
+
+		if (vkCreateGraphicsPipelines(logical_device, VK_NULL_HANDLE, 1, &m_create_info, nullptr, &m_pipeline)
+			!= VK_SUCCESS)
+		{
+			LOGC("failed to create graphics pipeline!");
+		}
+	}
+	else if (m_desc.m_type == enums::PipelineType::COMPUTE_PIPE)
+	{
+		VkComputePipelineCreateInfo m_create_info = {};
+		m_create_info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+		m_create_info.layout = m_root_signature->m_pipeline_layout;
+		m_create_info.basePipelineHandle = VK_NULL_HANDLE;
+		m_create_info.basePipelineIndex = -1;
+		m_create_info.stage = m_shader_info[0];
+		m_create_info.flags = 0;
+
+		if (vkCreateComputePipelines(logical_device, VK_NULL_HANDLE, 1, &m_create_info, nullptr, &m_pipeline)
+			!= VK_SUCCESS)
+		{
+			LOGC("failed to create compute pipeline!");
+		}
+	}
+	else
+	{
+		LOGW("Unsupported pipeline type");
 	}
 }
 

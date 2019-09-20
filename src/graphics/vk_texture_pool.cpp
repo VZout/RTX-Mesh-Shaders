@@ -31,12 +31,12 @@ gfx::VkTexturePool::~VkTexturePool()
 	m_queued_for_staging_textures.clear();
 }
 
-void gfx::VkTexturePool::Load_Impl(TextureData const & data, std::uint32_t id)
+void gfx::VkTexturePool::Load_Impl(TextureData const & data, std::uint32_t id, bool srgb)
 {
 	auto desc = StagingTexture::Desc();
 	desc.m_width = data.m_width;
 	desc.m_height = data.m_height;
-	desc.m_format = VK_FORMAT_R8G8B8A8_UNORM;
+	desc.m_format = srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
 
 	auto texture = new StagingTexture(m_context, desc, const_cast<unsigned char*>(data.m_pixels.data()));
 	m_queued_for_staging_textures.insert(std::make_pair(id, texture));

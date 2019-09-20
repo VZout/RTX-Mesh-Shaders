@@ -23,8 +23,8 @@ public:
 	TexturePool();
 	virtual ~TexturePool() = default;
 
-	std::uint32_t Load(std::string const & path);
-	std::uint32_t Load(TextureData const & data);
+	std::uint32_t Load(std::string const & path, bool srgb = false);
+	std::uint32_t Load(TextureData const & data, bool srgb = false);
 
 	virtual void Stage(gfx::CommandList* command_list, std::uint32_t frame_idx) = 0;
 	virtual void PostStage() = 0;
@@ -34,7 +34,7 @@ public:
 	static void RegisterLoader();
 
 private:
-	virtual void Load_Impl(TextureData const & data, std::uint32_t id) = 0;
+	virtual void Load_Impl(TextureData const & data, std::uint32_t id, bool srgb) = 0;
 
 	std::uint32_t m_next_id;
 
