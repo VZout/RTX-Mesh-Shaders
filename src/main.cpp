@@ -7,11 +7,20 @@
 #include <chrono>
 
 #include "frame_graph/frame_graph.hpp"
-#include "scene_graph/scene_graph.hpp"
 #include "application.hpp"
 #include "editor.hpp"
-#include "renderer.hpp"
 #include "render_tasks/vulkan_tasks.hpp"
+
+#ifdef _WIN32
+#include <shellapi.h>
+#endif
+
+inline void OpenURL(std::string url)
+{
+#ifdef _WIN32
+	ShellExecuteA(0, 0, url.c_str(), 0, 0 , SW_SHOW );
+#endif
+}
 
 class Demo : public Application
 {
@@ -40,6 +49,8 @@ protected:
 
 		// Actions
 		editor.RegisterAction("Quit", "File", [&](){ Close(); });
+		editor.RegisterAction("Contribute", "Help", [&](){ OpenURL("https://github.com/VZout/RTX-Mesh-Shaders"); });
+		editor.RegisterAction("Report Issue", "Help", [&](){ OpenURL("https://github.com/VZout/RTX-Mesh-Shaders/issues"); });
 
 		// Windows
 		editor.RegisterWindow("Performance", "Stats", [&]()
@@ -66,6 +77,9 @@ protected:
 			ImGui::Text("Version: 0.0.1");
 			ImGui::Separator();
 			ImGui::Text("Copyright 2019 Viktor Zoutman");
+			if (ImGui::Button("License")) OpenURL("https://github.com/VZout/RTX-Mesh-Shaders/blob/master/LICENSE");
+			ImGui::SameLine();
+			if (ImGui::Button("Portfolio")) OpenURL("http://www.vzout.com/");
 		});
 	}
 
