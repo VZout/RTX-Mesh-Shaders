@@ -9,6 +9,7 @@
 #include "frame_graph/frame_graph.hpp"
 #include "scene_graph/scene_graph.hpp"
 #include "application.hpp"
+#include "editor.hpp"
 #include "renderer.hpp"
 #include "render_tasks/vulkan_tasks.hpp"
 
@@ -30,36 +31,54 @@ public:
 	}
 
 protected:
-	void Interface()
+	void SetupEditor()
 	{
-		ImGui::Begin("Performance");
+		// Categories
+		editor.RegisterCategory("File");
+		editor.RegisterCategory("Stats");
+		editor.RegisterCategory("Help");
 
-		ImGui::Columns(2);
-		ImGui::SetColumnWidth(0, 100);
-		ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
-		ImGui::NextColumn();
-		ImGui::InputInt("Max Samples", &m_max_frame_rates);
-		ImGui::SameLine();
-		if (ImGui::Button("Reset Scale"))
+		// Actions
+		editor.RegisterAction("Quit", "File", [&](){ Close(); });
+
+		// Windows
+		editor.RegisterWindow("Performance", "Stats", [&]()
 		{
-			m_max_frame_rate = std::numeric_limits<float>::min();
-			m_min_frame_rate = std::numeric_limits<float>::max();
-		}
-		ImGui::Columns(1);
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100);
+			ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+			ImGui::NextColumn();
+			ImGui::InputInt("Max Samples", &m_max_frame_rates);
+			ImGui::SameLine();
+			if (ImGui::Button("Reset Scale"))
+			{
+			  m_max_frame_rate = std::numeric_limits<float>::min();
+			  m_min_frame_rate = std::numeric_limits<float>::max();
+			}
+			ImGui::Columns(1);
 
-		ImGui::PlotLines("Framerate", m_frame_rates.data(), m_frame_rates.size(), 0, nullptr, m_min_frame_rate, m_max_frame_rate, ImVec2(ImGui::GetContentRegionAvail()));
-
-		ImGui::End();
+			ImGui::PlotLines("Framerate", m_frame_rates.data(), m_frame_rates.size(), 0, nullptr, m_min_frame_rate,
+			               m_max_frame_rate, ImVec2(ImGui::GetContentRegionAvail()));
+		});
+		editor.RegisterWindow("About", "Help", [&]()
+		{
+			ImGui::Text("Turing Mesh Shading");
+			ImGui::Text("Version: 0.0.1");
+			ImGui::Separator();
+			ImGui::Text("Copyright 2019 Viktor Zoutman");
+		});
 	}
 
 	void Init() final
 	{
+		SetupEditor();
+
 		m_frame_graph = new fg::FrameGraph();
 		tasks::AddDeferredMainTask(*m_frame_graph);
 		tasks::AddDeferredCompositionTask(*m_frame_graph);
 		tasks::AddPostProcessingTask<tasks::DeferredCompositionData>(*m_frame_graph);
 		tasks::AddCopyToBackBufferTask<tasks::PostProcessingData>(*m_frame_graph);
-		tasks::AddImGuiTask(*m_frame_graph, [this]() { Interface(); });
+		tasks::AddImGuiTask(*m_frame_graph, [this]() { editor.Render(); });
 
 		m_renderer = new Renderer();
 		m_renderer->Init(this);
@@ -101,17 +120,17 @@ protected:
 			{
 				for (size_t i = 1; i < list.size(); i++)
 				{
-					list[i-1] = list[i];
+					list[i - 1] = list[i];
 				}
 				list[list.size() - 1] = time;
-			}
-			else
+			} else
 			{
 				list.push_back(time);
 			}
 		};
 
-		append_graph_list(m_frame_rates, ImGui::GetIO().Framerate, m_max_frame_rates, m_min_frame_rate, m_max_frame_rate);
+		append_graph_list(m_frame_rates, ImGui::GetIO().Framerate, m_max_frame_rates, m_min_frame_rate,
+		                  m_max_frame_rate);
 	}
 
 	void ResizeCallback(std::uint32_t width, std::uint32_t height) final
@@ -120,11 +139,14 @@ protected:
 		m_frame_graph->Resize(width, height);
 	}
 
+	Editor editor;
 	Renderer* m_renderer;
 	fg::FrameGraph* m_frame_graph;
 	sg::SceneGraph* m_scene_graph;
 
 	sg::NodeHandle m_node;
+
+	// ImGui
 	std::chrono::time_point<std::chrono::high_resolution_clock> m_start;
 	std::vector<float> m_frame_rates;
 	int m_max_frame_rates = 1000;
