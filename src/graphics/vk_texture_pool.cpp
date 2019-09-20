@@ -42,13 +42,13 @@ void gfx::VkTexturePool::Load_Impl(TextureData const & data, std::uint32_t id, b
 	m_queued_for_staging_textures.insert(std::make_pair(id, texture));
 }
 
-void gfx::VkTexturePool::Stage(gfx::CommandList* command_list, std::uint32_t frame_idx)
+void gfx::VkTexturePool::Stage(gfx::CommandList* command_list)
 {
 	for (auto& texture : m_queued_for_staging_textures)
 	{
-		command_list->TransitionTexture(texture.second, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, frame_idx);
-		command_list->StageTexture(texture.second, frame_idx);
-		command_list->TransitionTexture(texture.second, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, frame_idx);
+		command_list->TransitionTexture(texture.second, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		command_list->StageTexture(texture.second);
+		command_list->TransitionTexture(texture.second, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		m_staged_textures.insert(texture);
 		m_queued_for_release_staging_resources_textures.push_back(texture.first);
 	}

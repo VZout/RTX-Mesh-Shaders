@@ -89,7 +89,7 @@ public:
 		TexturePool* texture_pool);
 	ModelData* GetRawData(ModelHandle handle);
 
-	virtual void Stage(gfx::CommandList* command_list, std::uint32_t frame_idx) = 0;
+	virtual void Stage(gfx::CommandList* command_list) = 0;
 	virtual void PostStage() = 0;
 
 	template<typename T>

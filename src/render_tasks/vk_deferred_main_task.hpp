@@ -79,7 +79,7 @@ namespace tasks
 			basic_cb_data.m_proj[1][1] *= -1;
 			data.m_cbs[frame_idx]->Update(&basic_cb_data, sizeof(cb::Basic));
 
-			cmd_list->BindPipelineState(pipeline, frame_idx);
+			cmd_list->BindPipelineState(pipeline);
 			auto model_handle = sg.m_model_handles[0].m_value;
 			for (std::size_t i = 0; i < model_handle.m_mesh_handles.size(); i++)
 			{
@@ -91,10 +91,10 @@ namespace tasks
 					{ material_pool->GetDescriptorHeap(), mesh_handle.m_material_handle->m_material_set_id }
 				};
 
-				cmd_list->BindDescriptorHeap(root_sig, sets, frame_idx);
-				cmd_list->BindVertexBuffer(model_pool->m_vertex_buffers[i], frame_idx);
-				cmd_list->BindIndexBuffer(model_pool->m_index_buffers[i], frame_idx);
-				cmd_list->DrawIndexed(frame_idx, mesh_handle.m_num_indices, 1);
+				cmd_list->BindDescriptorHeap(root_sig, sets);
+				cmd_list->BindVertexBuffer(model_pool->m_vertex_buffers[i]);
+				cmd_list->BindIndexBuffer(model_pool->m_index_buffers[i]);
+				cmd_list->DrawIndexed(mesh_handle.m_num_indices, 1);
 			}
 		}
 

@@ -23,7 +23,7 @@ namespace gfx
 		explicit VkTexturePool(Context* context);
 		~VkTexturePool() final;
 
-		void Stage(gfx::CommandList* command_list, std::uint32_t frame_idx) final;
+		void Stage(gfx::CommandList* command_list) final;
 		void PostStage() final;
 		std::vector<gfx::StagingTexture*> GetTextures(std::vector<std::uint32_t> texture_handles) final;
 

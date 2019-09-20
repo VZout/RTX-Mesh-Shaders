@@ -65,10 +65,8 @@ namespace tasks
 		{
 			auto& data = fg.GetData<PostProcessingData>(handle);
 			auto cmd_list = fg.GetCommandList(handle);
-			auto frame_idx = rs.GetFrameIdx();
 			auto root_sig = rs.GetPostRootSignature();
 			auto pipeline = rs.GetPostPipeline();
-			auto desc_heap = rs.GetDescHeap();
 			auto render_target = fg.GetRenderTarget(handle);
 
 			glm::vec3 cam_pos = glm::vec3(0, 0, -2.5);
@@ -80,9 +78,9 @@ namespace tasks
 				{ data.m_gbuffer_heap, data.m_uav_target_set },
 			};
 
-			cmd_list->BindComputePipelineState(pipeline, frame_idx);
-			cmd_list->BindComputeDescriptorHeap(root_sig, sets, frame_idx);
-			cmd_list->Dispatch(render_target->GetWidth() / 16, render_target->GetHeight() / 16, 1, frame_idx);
+			cmd_list->BindComputePipelineState(pipeline);
+			cmd_list->BindComputeDescriptorHeap(root_sig, sets);
+			cmd_list->Dispatch(render_target->GetWidth() / 16, render_target->GetHeight() / 16, 1);
 		}
 
 		inline void DestroyPostProcessingTask(fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)

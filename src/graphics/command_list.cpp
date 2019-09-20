@@ -19,7 +19,7 @@
 #include "render_window.hpp"
 
 gfx::CommandList::CommandList(CommandQueue* queue)
-	: m_context(queue->m_context), m_queue(queue), m_cmd_pool(VK_NULL_HANDLE), m_cmd_pool_create_info()
+	: m_context(queue->m_context), m_queue(queue), m_cmd_pool(VK_NULL_HANDLE), m_cmd_pool_create_info(), m_frame_idx(0)
 {
 	// Create the command pool
 	auto logical_device = m_context->m_logical_device;
@@ -45,7 +45,6 @@ gfx::CommandList::CommandList(CommandQueue* queue)
 
 	// Create the actual command buffers
 	m_cmd_buffers.resize(gfx::settings::num_back_buffers);
-	m_bound_render_target = std::vector<bool>(gfx::settings::num_back_buffers, false);
 
 	VkCommandBufferAllocateInfo allocation_info = {};
 	allocation_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -68,12 +67,14 @@ gfx::CommandList::~CommandList()
 
 void gfx::CommandList::Begin(std::uint32_t frame_idx)
 {
+	m_frame_idx = frame_idx;
+
 	VkCommandBufferBeginInfo begin_info = {};
 	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	begin_info.flags = 0;
 	begin_info.pInheritanceInfo = nullptr;
 
-	vkResetCommandBuffer(m_cmd_buffers[frame_idx], 0);
+	//vkResetCommandBuffer(m_cmd_buffers[frame_idx], 0);
 
 	if (vkResetCommandBuffer(m_cmd_buffers[frame_idx], 0) != VK_SUCCESS ||
 		vkBeginCommandBuffer(m_cmd_buffers[frame_idx], &begin_info) != VK_SUCCESS)
@@ -82,21 +83,15 @@ void gfx::CommandList::Begin(std::uint32_t frame_idx)
 	}
 }
 
-void gfx::CommandList::Close(std::uint32_t frame_idx)
+void gfx::CommandList::Close()
 {
-	if (m_bound_render_target[frame_idx])
-	{
-		vkCmdEndRenderPass(m_cmd_buffers[frame_idx]);
-		m_bound_render_target[frame_idx] = false;
-	}
-
-	if (vkEndCommandBuffer(m_cmd_buffers[frame_idx]) != VK_SUCCESS)
+	if (vkEndCommandBuffer(m_cmd_buffers[m_frame_idx]) != VK_SUCCESS)
 	{
 		LOGC("failed to record command buffer!");
 	}
 }
 
-void gfx::CommandList::BindRenderTargetVersioned(RenderTarget* render_target, std::uint32_t frame_idx, bool clear, bool clear_depth)
+void gfx::CommandList::BindRenderTargetVersioned(RenderTarget* render_target, bool clear, bool clear_depth)
 {
 	std::array<VkClearValue, 2> clear_values = {};
 	clear_values[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -105,16 +100,14 @@ void gfx::CommandList::BindRenderTargetVersioned(RenderTarget* render_target, st
 	VkRenderPassBeginInfo render_pass_begin_info = {};
 	render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	render_pass_begin_info.renderPass = render_target->m_render_pass;
-	render_pass_begin_info.framebuffer = render_target->m_frame_buffers[frame_idx];
+	render_pass_begin_info.framebuffer = render_target->m_frame_buffers[m_frame_idx];
 	render_pass_begin_info.renderArea.offset = {0, 0};
 	render_pass_begin_info.renderArea.extent.width = render_target->GetWidth();
 	render_pass_begin_info.renderArea.extent.height = render_target->GetHeight();
 	render_pass_begin_info.clearValueCount = static_cast<std::uint32_t>(clear_values.size());
 	render_pass_begin_info.pClearValues = clear_values.data();
 
-	vkCmdBeginRenderPass(m_cmd_buffers[frame_idx], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-
-	m_bound_render_target[frame_idx] = true;
+	vkCmdBeginRenderPass(m_cmd_buffers[m_frame_idx], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
 	std::vector<VkClearAttachment> clears;
 	if (clear)
@@ -135,11 +128,11 @@ void gfx::CommandList::BindRenderTargetVersioned(RenderTarget* render_target, st
 		rect.extent = {render_target->GetWidth(), render_target->GetHeight()};
 		rect.offset = {0, 0};
 		clear_rect.rect = rect;
-		vkCmdClearAttachments(m_cmd_buffers[frame_idx], clears.size(), clears.data(), 1, &clear_rect);
+		vkCmdClearAttachments(m_cmd_buffers[m_frame_idx], clears.size(), clears.data(), 1, &clear_rect);
 	}
 }
 
-void gfx::CommandList::BindRenderTarget(RenderTarget* render_target, std::uint32_t frame_idx, bool clear, bool clear_depth)
+void gfx::CommandList::BindRenderTarget(RenderTarget* render_target, bool clear, bool clear_depth)
 {
 	std::array<VkClearValue, 2> clear_values = {};
 	clear_values[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -155,9 +148,7 @@ void gfx::CommandList::BindRenderTarget(RenderTarget* render_target, std::uint32
 	render_pass_begin_info.clearValueCount = static_cast<std::uint32_t>(clear_values.size());
 	render_pass_begin_info.pClearValues = clear_values.data();
 
-	vkCmdBeginRenderPass(m_cmd_buffers[frame_idx], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-
-	m_bound_render_target[frame_idx] = true;
+	vkCmdBeginRenderPass(m_cmd_buffers[m_frame_idx], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
 	std::vector<VkClearAttachment> clears;
 	if (clear)
@@ -181,81 +172,77 @@ void gfx::CommandList::BindRenderTarget(RenderTarget* render_target, std::uint32
 		rect.extent = {render_target->GetWidth(), render_target->GetHeight()};
 		rect.offset = {0, 0};
 		clear_rect.rect = rect;
-		vkCmdClearAttachments(m_cmd_buffers[frame_idx], clears.size(), clears.data(), 1, &clear_rect);
+		vkCmdClearAttachments(m_cmd_buffers[m_frame_idx], clears.size(), clears.data(), 1, &clear_rect);
 	}
 }
 
-void gfx::CommandList::UnbindRenderTarget(std::uint32_t frame_idx)
+void gfx::CommandList::UnbindRenderTarget()
 {
-	if (m_bound_render_target[frame_idx])
-	{
-		vkCmdEndRenderPass(m_cmd_buffers[frame_idx]);
-		m_bound_render_target[frame_idx] = false;
-	}
+	vkCmdEndRenderPass(m_cmd_buffers[m_frame_idx]);
 }
 
-void gfx::CommandList::BindPipelineState(gfx::PipelineState* pipeline, std::uint32_t frame_idx)
+void gfx::CommandList::BindPipelineState(gfx::PipelineState* pipeline)
 {
-	vkCmdBindPipeline(m_cmd_buffers[frame_idx], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->m_pipeline);
+	vkCmdBindPipeline(m_cmd_buffers[m_frame_idx], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->m_pipeline);
 }
 
-void gfx::CommandList::BindComputePipelineState(gfx::PipelineState* pipeline, std::uint32_t frame_idx)
+void gfx::CommandList::BindComputePipelineState(gfx::PipelineState* pipeline)
 {
-	vkCmdBindPipeline(m_cmd_buffers[frame_idx], VK_PIPELINE_BIND_POINT_COMPUTE, pipeline->m_pipeline);
+	vkCmdBindPipeline(m_cmd_buffers[m_frame_idx], VK_PIPELINE_BIND_POINT_COMPUTE, pipeline->m_pipeline);
 }
 
-void gfx::CommandList::BindVertexBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx)
+void gfx::CommandList::BindVertexBuffer(StagingBuffer* staging_buffer)
 {
 	std::vector<VkBuffer> buffers = { staging_buffer->m_buffer };
 	std::vector<VkDeviceSize> offsets = { 0 };
-	vkCmdBindVertexBuffers(m_cmd_buffers[frame_idx], 0, buffers.size(), buffers.data(), offsets.data());
+	vkCmdBindVertexBuffers(m_cmd_buffers[m_frame_idx], 0, buffers.size(), buffers.data(), offsets.data());
 }
 
-void gfx::CommandList::BindIndexBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx)
+void gfx::CommandList::BindIndexBuffer(StagingBuffer* staging_buffer)
 {
 	VkDeviceSize offset = { 0 };
-	vkCmdBindIndexBuffer(m_cmd_buffers[frame_idx], staging_buffer->m_buffer, offset, VkIndexType::VK_INDEX_TYPE_UINT32);
+	vkCmdBindIndexBuffer(m_cmd_buffers[m_frame_idx], staging_buffer->m_buffer, offset, VkIndexType::VK_INDEX_TYPE_UINT32);
 }
 
-void gfx::CommandList::BindDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets, std::uint32_t frame_idx)
+void gfx::CommandList::BindDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets)
 {
 	std::vector<VkDescriptorSet> descriptor_sets(sets.size());
 
 	for (std::size_t i = 0; i < sets.size(); i++)
 	{
 		auto versions = sets[i].first->m_descriptor_sets.size();
-		descriptor_sets[i] = sets[i].first->m_descriptor_sets[frame_idx % versions][sets[i].second];
+		descriptor_sets[i] = sets[i].first->m_descriptor_sets[m_frame_idx % versions][sets[i].second];
 	}
 
-	vkCmdBindDescriptorSets(m_cmd_buffers[frame_idx], VK_PIPELINE_BIND_POINT_GRAPHICS, root_signature->m_pipeline_layout,
+	vkCmdBindDescriptorSets(m_cmd_buffers[m_frame_idx], VK_PIPELINE_BIND_POINT_GRAPHICS, root_signature->m_pipeline_layout,
 	                        0, descriptor_sets.size(), descriptor_sets.data(), 0, nullptr);
 }
 
 // TODO: Duplicate with binddescriptorheap
-void gfx::CommandList::BindComputeDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets, std::uint32_t frame_idx)
+void gfx::CommandList::BindComputeDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets)
 {
 	std::vector<VkDescriptorSet> descriptor_sets(sets.size());
 
 	for (std::size_t i = 0; i < sets.size(); i++)
 	{
 		auto versions = sets[i].first->m_descriptor_sets.size();
-		descriptor_sets[i] = sets[i].first->m_descriptor_sets[frame_idx % versions][sets[i].second];
+		descriptor_sets[i] = sets[i].first->m_descriptor_sets[m_frame_idx % versions][sets[i].second];
 	}
 
-	vkCmdBindDescriptorSets(m_cmd_buffers[frame_idx], VK_PIPELINE_BIND_POINT_COMPUTE, root_signature->m_pipeline_layout,
+	vkCmdBindDescriptorSets(m_cmd_buffers[m_frame_idx], VK_PIPELINE_BIND_POINT_COMPUTE, root_signature->m_pipeline_layout,
 	                        0, descriptor_sets.size(), descriptor_sets.data(), 0, nullptr);
 }
 
-void gfx::CommandList::StageBuffer(StagingBuffer* staging_buffer, std::uint32_t frame_idx)
+void gfx::CommandList::StageBuffer(StagingBuffer* staging_buffer)
 {
 	VkBufferCopy copy_region = {};
 	copy_region.srcOffset = 0;
 	copy_region.dstOffset = 0;
 	copy_region.size = staging_buffer->m_size;
-	vkCmdCopyBuffer(m_cmd_buffers[frame_idx], staging_buffer->m_staging_buffer, staging_buffer->m_buffer, 1, &copy_region);
+	vkCmdCopyBuffer(m_cmd_buffers[m_frame_idx], staging_buffer->m_staging_buffer, staging_buffer->m_buffer, 1, &copy_region);
 }
 
-void gfx::CommandList::StageTexture(StagingTexture* texture, std::uint32_t frame_idx)
+void gfx::CommandList::StageTexture(StagingTexture* texture)
 {
 	VkBufferImageCopy region = {};
 	region.bufferOffset = 0;
@@ -275,7 +262,7 @@ void gfx::CommandList::StageTexture(StagingTexture* texture, std::uint32_t frame
 	};
 
 	vkCmdCopyBufferToImage(
-		m_cmd_buffers[frame_idx],
+		m_cmd_buffers[m_frame_idx],
 		texture->m_buffer,
 		texture->m_texture,
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -284,7 +271,7 @@ void gfx::CommandList::StageTexture(StagingTexture* texture, std::uint32_t frame
 	);
 }
 
-void gfx::CommandList::CopyRenderTargetToRenderWindow(RenderTarget* render_target, std::uint32_t rt_idx, RenderWindow* render_window, std::uint32_t frame_idx)
+void gfx::CommandList::CopyRenderTargetToRenderWindow(RenderTarget* render_target, std::uint32_t rt_idx, RenderWindow* render_window)
 {
 	VkImageSubresourceLayers source_target_layers = {};
 	source_target_layers.mipLevel = 0;
@@ -304,17 +291,17 @@ void gfx::CommandList::CopyRenderTargetToRenderWindow(RenderTarget* render_targe
 	};
 
 	vkCmdCopyImage(
-			m_cmd_buffers[frame_idx],
+			m_cmd_buffers[m_frame_idx],
 			render_target->m_images[rt_idx],
 			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			render_window->m_images[frame_idx],
+			render_window->m_images[m_frame_idx],
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			1,
 			&region
 	);
 }
 
-void gfx::CommandList::TransitionDepth(RenderTarget* render_target, VkImageLayout from, VkImageLayout to, std::uint32_t frame_idx)
+void gfx::CommandList::TransitionDepth(RenderTarget* render_target, VkImageLayout from, VkImageLayout to)
 {
 	VkImageMemoryBarrier barrier = {};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -376,7 +363,7 @@ void gfx::CommandList::TransitionDepth(RenderTarget* render_target, VkImageLayou
 	}
 
 	vkCmdPipelineBarrier(
-			m_cmd_buffers[frame_idx],
+			m_cmd_buffers[m_frame_idx],
 			source_stage, destination_stage,
 			0,
 			0, nullptr,
@@ -386,7 +373,7 @@ void gfx::CommandList::TransitionDepth(RenderTarget* render_target, VkImageLayou
 }
 
 // TODO: Duplicate of transition depth
-void gfx::CommandList::TransitionTexture(StagingTexture* texture, VkImageLayout from, VkImageLayout to, std::uint32_t frame_idx)
+void gfx::CommandList::TransitionTexture(StagingTexture* texture, VkImageLayout from, VkImageLayout to)
 {
 	VkImageMemoryBarrier barrier = {};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -448,7 +435,7 @@ void gfx::CommandList::TransitionTexture(StagingTexture* texture, VkImageLayout 
 	}
 
 	vkCmdPipelineBarrier(
-			m_cmd_buffers[frame_idx],
+			m_cmd_buffers[m_frame_idx],
 			source_stage, destination_stage,
 			0,
 			0, nullptr,
@@ -457,16 +444,16 @@ void gfx::CommandList::TransitionTexture(StagingTexture* texture, VkImageLayout 
 	);
 }
 
-void gfx::CommandList::TransitionRenderTarget(RenderTarget* render_target, VkImageLayout from, VkImageLayout to, std::uint32_t frame_idx)
+void gfx::CommandList::TransitionRenderTarget(RenderTarget* render_target, VkImageLayout from, VkImageLayout to)
 {
 	for (std::size_t i = 0; i < render_target->m_images.size(); i++)
 	{
-		TransitionRenderTarget(render_target, i, from, to, frame_idx);
+		TransitionRenderTarget(render_target, i, from, to);
 	}
 }
 
 // TODO: Duplicate of transition depth
-void gfx::CommandList::TransitionRenderTarget(RenderTarget* render_target, std::uint32_t rt_idx, VkImageLayout from, VkImageLayout to, std::uint32_t frame_idx)
+void gfx::CommandList::TransitionRenderTarget(RenderTarget* render_target, std::uint32_t rt_idx, VkImageLayout from, VkImageLayout to)
 {
 	VkImageMemoryBarrier barrier = {};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -586,7 +573,7 @@ void gfx::CommandList::TransitionRenderTarget(RenderTarget* render_target, std::
 	}
 
 	vkCmdPipelineBarrier(
-			m_cmd_buffers[frame_idx],
+			m_cmd_buffers[m_frame_idx],
 			source_stage, destination_stage,
 			0,
 			0, nullptr,
@@ -595,19 +582,19 @@ void gfx::CommandList::TransitionRenderTarget(RenderTarget* render_target, std::
 	);
 }
 
-void gfx::CommandList::Draw(std::uint32_t frame_idx, std::uint32_t vertex_count, std::uint32_t instance_count,
+void gfx::CommandList::Draw(std::uint32_t vertex_count, std::uint32_t instance_count,
 		std::uint32_t first_vertex, std::uint32_t first_instance)
 {
-	vkCmdDraw(m_cmd_buffers[frame_idx], vertex_count, instance_count, first_vertex, first_instance);
+	vkCmdDraw(m_cmd_buffers[m_frame_idx], vertex_count, instance_count, first_vertex, first_instance);
 }
 
-void gfx::CommandList::DrawIndexed(std::uint32_t frame_idx, std::uint32_t idx_count, std::uint32_t instance_count,
+void gfx::CommandList::DrawIndexed(std::uint32_t idx_count, std::uint32_t instance_count,
 		std::uint32_t first_idx, std::uint32_t vertex_offset, std::uint32_t first_instance)
 {
-	vkCmdDrawIndexed(m_cmd_buffers[frame_idx], idx_count, instance_count, first_idx, vertex_offset, first_instance);
+	vkCmdDrawIndexed(m_cmd_buffers[m_frame_idx], idx_count, instance_count, first_idx, vertex_offset, first_instance);
 }
 
-void gfx::CommandList::Dispatch(std::uint32_t tg_count_x, std::uint32_t tg_count_y, std::uint32_t tg_count_z, std::uint32_t frame_idx)
+void gfx::CommandList::Dispatch(std::uint32_t tg_count_x, std::uint32_t tg_count_y, std::uint32_t tg_count_z)
 {
-	vkCmdDispatch(m_cmd_buffers[frame_idx], tg_count_x, tg_count_y, tg_count_z);
+	vkCmdDispatch(m_cmd_buffers[m_frame_idx], tg_count_x, tg_count_y, tg_count_z);
 }

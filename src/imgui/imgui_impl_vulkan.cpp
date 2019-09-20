@@ -272,7 +272,7 @@ void ImGuiImpl::InitImGuiResources(gfx::Context* context, gfx::RenderWindow* ren
             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
     // flushCommandBuffer
-    copyCmd->Close(0);
+    copyCmd->Close();
 
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;

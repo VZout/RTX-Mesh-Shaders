@@ -41,13 +41,13 @@ void gfx::VkModelPool::AllocateMesh(void* vertex_data, std::uint32_t num_vertice
 	m_index_buffers.push_back(ib);
 }
 
-void gfx::VkModelPool::Stage(CommandList* command_list, std::uint32_t frame_idx)
+void gfx::VkModelPool::Stage(CommandList* command_list)
 {
-	auto stage_func = [command_list, frame_idx](auto buffer_list)
+	auto stage_func = [command_list](auto buffer_list)
 	{
 		for (auto& buffer : buffer_list)
 		{
-			command_list->StageBuffer(buffer, frame_idx);
+			command_list->StageBuffer(buffer);
 		}
 	};
 
