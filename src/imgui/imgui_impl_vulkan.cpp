@@ -506,6 +506,13 @@ void ImGuiImpl::InitImGuiResources(gfx::Context* context, gfx::RenderWindow* ren
     pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
     VK_CHECK_RESULT(vkCreateGraphicsPipelines(logical_device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
+
+	// Vertex buffer
+	vertexBuffer = new gfx::GPUBuffer(m_context, m_max_vertices * sizeof(ImDrawVert), gfx::enums::BufferUsageFlag::VERTEX_BUFFER); // TODO: Check if the default settings inside the constructor are correct related to ther esource state.
+	vertexBuffer->Map();
+	// Index buffer
+	indexBuffer = new gfx::GPUBuffer(m_context, m_max_indices * sizeof(ImDrawIdx), gfx::enums::BufferUsageFlag::INDEX_BUFFER); // TODO: Check if the default settings inside the constructor are correct related to ther esource state.
+	indexBuffer->Map();
 }
 
 void ImGuiImpl::UpdateBuffers()
@@ -518,32 +525,6 @@ void ImGuiImpl::UpdateBuffers()
 
 	if ((vertexBufferSize == 0) || (indexBufferSize == 0)) {
 		return;
-	}
-
-	// Update buffers only if vertex or index count has been changed compared to current buffer size
-
-	// Vertex buffer
-	if (!vertexBuffer || (vertexBuffer->m_buffer == VK_NULL_HANDLE) || (vertexCount != imDrawData->TotalVtxCount)) {
-		if (vertexBuffer)
-		{
-			vertexBuffer->Unmap();
-			delete vertexBuffer;
-		}
-		vertexBuffer = new gfx::GPUBuffer(m_context, vertexBufferSize, gfx::enums::BufferUsageFlag::VERTEX_BUFFER); // TODO: Check if the default settings inside the constructor are correct related to ther esource state.
-		vertexCount = imDrawData->TotalVtxCount;
-		vertexBuffer->Map();
-	}
-
-	// Index buffer
-	if (!indexBuffer || (indexBuffer->m_buffer == VK_NULL_HANDLE) || (indexCount < imDrawData->TotalIdxCount)) {
-		if (indexBuffer)
-		{
-			indexBuffer->Unmap();
-			delete indexBuffer;
-		}
-		indexBuffer = new gfx::GPUBuffer(m_context, indexBufferSize, gfx::enums::BufferUsageFlag::INDEX_BUFFER); // TODO: Check if the default settings inside the constructor are correct related to ther esource state.
-		indexCount = imDrawData->TotalIdxCount;
-		indexBuffer->Map();
 	}
 
 	// Upload data
