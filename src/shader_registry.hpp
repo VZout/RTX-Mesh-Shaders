@@ -28,16 +28,4 @@ struct ShaderDesc
 	gfx::enums::ShaderType m_type;
 };
 
-class ShaderRegistry : public internal::Registry<ShaderRegistry, gfx::Shader, ShaderDesc>
-{
-public:
-	ShaderRegistry() = default;
-	~ShaderRegistry() final = default;
-
-	RegistryHandle Register(ShaderDesc desc)
-	{
-		m_descriptions.push_back(desc);
-
-		return m_descriptions.size() - 1;
-	}
-};
+class ShaderRegistry : public internal::Registry<ShaderRegistry, gfx::Shader, ShaderDesc> {};
