@@ -16,6 +16,7 @@
 #include <gtc/matrix_transform.hpp>
 
 #include "../model_pool.hpp"
+#include "../util/delegate.hpp"
 
 namespace sg
 {
@@ -23,7 +24,7 @@ namespace sg
 	using NodeHandle = std::uint32_t;
 	using ComponentHandle = std::int32_t;
 
-	static std::vector<std::function<void()>> component_create_func_table;
+	static std::vector<util::Delegate<void()>> component_create_func_table;
 
 	// Build in components.
 	class MeshComponent

@@ -54,7 +54,7 @@ namespace tasks
 
 		desc.m_properties = std::nullopt;
 		desc.m_type = fg::RenderTaskType::DIRECT;
-		desc.m_allow_multithreading = false;
+		desc.m_allow_multithreading = true;
 
 		fg.AddTask<CopyToBackBufferData>(desc, L"Copy to back buffer Task");
 	}
