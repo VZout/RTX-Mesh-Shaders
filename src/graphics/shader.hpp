@@ -10,19 +10,12 @@
 #include <string>
 #include <vector>
 
+#include "gfx_enums.hpp"
+
 class ImGuiImpl;
 
 namespace gfx
 {
-
-	enum class ShaderType
-	{
-		VERTEX,
-		PIXEL,
-		COMPUTE,
-		GEOMETRY,
-		MESH
-	};
 
 	class Context;
 
@@ -35,14 +28,14 @@ namespace gfx
 		~Shader();
 
 		void Load(std::string const & path);
-		void Compile(ShaderType type);
-		void LoadAndCompile(std::string const & path, ShaderType type);
+		void Compile(enums::ShaderType type);
+		void LoadAndCompile(std::string const & path, enums::ShaderType type);
 
 	private:
 		Context* m_context;
 
 		std::string m_path;
-		ShaderType m_type;
+		enums::ShaderType m_type;
 		std::vector<char> m_data; // Cleared after `Shader::Compile`.
 		VkShaderModule m_module;
 		VkPipelineShaderStageCreateInfo m_shader_stage_create_info;

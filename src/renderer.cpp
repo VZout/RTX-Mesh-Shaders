@@ -13,8 +13,6 @@
 #include "tinygltf_model_loader.hpp"
 #include "vertex.hpp"
 #include "frame_graph/frame_graph.hpp"
-#include "scene_graph/scene_graph.hpp"
-#include "buffer_definitions.hpp"
 #include "graphics/vk_material_pool.hpp"
 #include "graphics/context.hpp"
 #include "graphics/vk_model_pool.hpp"
@@ -25,12 +23,11 @@
 #include "graphics/pipeline_state.hpp"
 #include "graphics/viewport.hpp"
 #include "graphics/root_signature.hpp"
-#include "graphics/command_list.hpp"
-#include "graphics/gfx_settings.hpp"
 #include "graphics/gfx_enums.hpp"
 #include "graphics/gpu_buffers.hpp"
 #include "graphics/fence.hpp"
 #include "graphics/descriptor_heap.hpp"
+#include "shader_registry.hpp"
 
 Renderer::Renderer() : m_application(nullptr), m_context(nullptr), m_direct_queue(nullptr), m_render_window(nullptr), m_direct_cmd_list(nullptr)
 {
@@ -41,6 +38,8 @@ Renderer::Renderer() : m_application(nullptr), m_context(nullptr), m_direct_queu
 Renderer::~Renderer()
 {
 	WaitForAllPreviousWork();
+
+	DestroyRegistry<ShaderRegistry>();
 
 	delete m_viewport;
 	for (auto& fence : m_present_fences)
@@ -54,9 +53,6 @@ Renderer::~Renderer()
 	delete m_pipeline;
 	delete m_compo_root_signature;
 	delete m_compo_pipeline;
-	delete m_vs;
-	delete m_ps;
-	delete m_compo_cs;
 	delete m_render_window;
 	delete m_direct_cmd_list;
 	delete m_direct_queue;
@@ -71,22 +67,7 @@ void Renderer::Init(Application* app)
 
 	LOG("Initialized Vulkan");
 
-	auto supported_extensions = m_context->GetSupportedExtensions();
-	auto supported_device_extensions = m_context->GetSupportedDeviceExtensions();
-
-	auto print_extensions_func = [](auto extensions)
-	{
-		for (auto extension : extensions)
-		{
-			LOG("\t- {} ({})", extension.extensionName, std::to_string(extension.specVersion));
-		}
-	};
-
-	LOG("Supported Instance Extensions:");
-	print_extensions_func(supported_extensions);
-
-	LOG("Supported Device Extensions:");
-	print_extensions_func(supported_device_extensions);
+	PrepareShaderRegistry();
 
 	m_render_window = new gfx::RenderWindow(m_context);
 	m_direct_queue = new gfx::CommandQueue(m_context, gfx::CommandQueueType::DIRECT);
@@ -98,18 +79,9 @@ void Renderer::Init(Application* app)
 		fence = new gfx::Fence(m_context);
 	}
 
-	m_vs = new gfx::Shader(m_context);
-	m_ps = new gfx::Shader(m_context);
-	m_vs->LoadAndCompile("shaders/basic.vert.spv", gfx::ShaderType::VERTEX);
-	m_ps->LoadAndCompile("shaders/basic.frag.spv", gfx::ShaderType::PIXEL);
-
-	m_compo_cs = new gfx::Shader(m_context);
-	m_compo_cs->LoadAndCompile("shaders/composition.comp.spv", gfx::ShaderType::COMPUTE);
-
-	m_post_cs = new gfx::Shader(m_context);
-	m_post_cs->LoadAndCompile("shaders/post_processing.comp.spv", gfx::ShaderType::COMPUTE);
-
 	m_viewport = new gfx::Viewport(app->GetWidth(), app->GetHeight());
+
+	auto& shader_registry = ShaderRegistry::Get();
 
 	{ // basic deferred
 		gfx::RootSignature::Desc root_signature_desc;
@@ -134,8 +106,8 @@ void Renderer::Init(Application* app)
 		m_pipeline = new gfx::PipelineState(m_context, pipeline_desc);
 		m_pipeline->SetViewport(m_viewport);
 		m_pipeline->SetInputLayout(Vertex::GetInputLayout());
-		m_pipeline->AddShader(m_vs);
-		m_pipeline->AddShader(m_ps);
+		m_pipeline->AddShader(shader_registry.Find(shaders::basic_vs));
+		m_pipeline->AddShader(shader_registry.Find(shaders::basic_ps));
 		m_pipeline->SetRootSignature(m_root_signature);
 		m_pipeline->Compile();
 	}
@@ -164,7 +136,7 @@ void Renderer::Init(Application* app)
 		gfx::PipelineState::Desc pipeline_desc;
 		pipeline_desc.m_type = gfx::enums::PipelineType::COMPUTE_PIPE;
 		m_compo_pipeline = new gfx::PipelineState(m_context, pipeline_desc);
-		m_compo_pipeline->AddShader(m_compo_cs);
+		m_compo_pipeline->AddShader(shader_registry.Find(shaders::composition_cs));
 		m_compo_pipeline->SetRootSignature(m_compo_root_signature);
 		m_compo_pipeline->Compile();
 	}
@@ -188,7 +160,7 @@ void Renderer::Init(Application* app)
 		gfx::PipelineState::Desc pipeline_desc;
 		pipeline_desc.m_type = gfx::enums::PipelineType::COMPUTE_PIPE;
 		m_post_pipeline = new gfx::PipelineState(m_context, pipeline_desc);
-		m_post_pipeline->AddShader(m_post_cs);
+		m_post_pipeline->AddShader(shader_registry.Find(shaders::post_processing_cs));
 		m_post_pipeline->SetRootSignature(m_post_root_signature);
 		m_post_pipeline->Compile();
 	}
@@ -279,6 +251,21 @@ TexturePool* Renderer::GetTexturePool()
 MaterialPool* Renderer::GetMaterialPool()
 {
 	return m_material_pool;
+}
+
+
+void Renderer::PrepareShaderRegistry()
+{
+	auto& registry = ShaderRegistry::Get();
+	auto const & descs = registry.GetDescriptions();
+	auto& objects = registry.GetObjects();
+
+	for (auto const & desc : descs)
+	{
+		auto shader = new gfx::Shader(m_context);
+		shader->LoadAndCompile(desc.m_path, desc.m_type);
+		objects.push_back(shader);
+	}
 }
 
 gfx::CommandList* Renderer::CreateDirectCommandList(std::uint32_t num_versions)

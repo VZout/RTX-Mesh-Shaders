@@ -47,21 +47,21 @@ void gfx::Shader::Load(std::string const& path)
 	file.close();
 }
 
-void gfx::Shader::Compile(gfx::ShaderType type)
+void gfx::Shader::Compile(gfx::enums::ShaderType type)
 {
 	m_type = type;
 	VkShaderStageFlagBits vulkan_shader_type;
 	switch(m_type)
 	{
-		case ShaderType::VERTEX: vulkan_shader_type = VK_SHADER_STAGE_VERTEX_BIT;
+		case enums::ShaderType::VERTEX: vulkan_shader_type = VK_SHADER_STAGE_VERTEX_BIT;
 			break;
-		case ShaderType::PIXEL: vulkan_shader_type = VK_SHADER_STAGE_FRAGMENT_BIT;
+		case enums::ShaderType::PIXEL: vulkan_shader_type = VK_SHADER_STAGE_FRAGMENT_BIT;
 			break;
-		case ShaderType::COMPUTE: vulkan_shader_type = VK_SHADER_STAGE_COMPUTE_BIT;
+		case enums::ShaderType::COMPUTE: vulkan_shader_type = VK_SHADER_STAGE_COMPUTE_BIT;
 			break;
-		case ShaderType::GEOMETRY: vulkan_shader_type = VK_SHADER_STAGE_GEOMETRY_BIT;
+		case enums::ShaderType::GEOMETRY: vulkan_shader_type = VK_SHADER_STAGE_GEOMETRY_BIT;
 			break;
-		case ShaderType::MESH: vulkan_shader_type = VK_SHADER_STAGE_MESH_BIT_NV;
+		case enums::ShaderType::MESH: vulkan_shader_type = VK_SHADER_STAGE_MESH_BIT_NV;
 			break;
 		default:
 			LOGC("Tried to compile a shader with a unknown shader type ({})", m_path);
@@ -88,7 +88,7 @@ void gfx::Shader::Compile(gfx::ShaderType type)
 	m_data.clear();
 }
 
-void gfx::Shader::LoadAndCompile(std::string const& path, gfx::ShaderType type)
+void gfx::Shader::LoadAndCompile(std::string const& path, gfx::enums::ShaderType type)
 {
 	Load(path);
 	Compile(type);

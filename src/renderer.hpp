@@ -72,6 +72,10 @@ public:
 	TexturePool* GetTexturePool();
 	MaterialPool* GetMaterialPool();
 
+	void PrepareShaderRegistry();
+	template<typename R>
+	void DestroyRegistry();
+
 	gfx::CommandList* CreateDirectCommandList(std::uint32_t num_versions);
 	gfx::CommandList* CreateCopyCommandList(std::uint32_t num_versions);
 	gfx::CommandList* CreateComputeCommandList(std::uint32_t num_versions);
@@ -108,10 +112,6 @@ private:
 	std::vector<gfx::Fence*> m_present_fences;
 
 	// TODO Temporary
-	gfx::Shader* m_vs;
-	gfx::Shader* m_ps;
-	gfx::Shader* m_compo_cs;
-	gfx::Shader* m_post_cs;
 	gfx::Viewport* m_viewport;
 	gfx::DescriptorHeap* m_desc_heap;
 	gfx::PipelineState* m_pipeline;
@@ -124,3 +124,15 @@ private:
 	gfx::VkTexturePool* m_texture_pool;
 	gfx::VkMaterialPool* m_material_pool;
 };
+
+template<typename R>
+void Renderer::DestroyRegistry()
+{
+	auto& registry = R::Get();
+	auto& objects = registry.GetObjects();
+
+	for (auto& obj : objects)
+	{
+		delete obj;
+	}
+}

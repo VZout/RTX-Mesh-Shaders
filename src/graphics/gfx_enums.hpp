@@ -12,6 +12,15 @@
 namespace gfx::enums
 {
 
+	enum class ShaderType
+	{
+		VERTEX,
+		PIXEL,
+		COMPUTE,
+		GEOMETRY,
+		MESH
+	};
+
 	enum class TextureFilter
 	{
 		FILTER_LINEAR,
