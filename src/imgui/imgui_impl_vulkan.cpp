@@ -440,9 +440,9 @@ void ImGuiImpl::InitImGuiResources(gfx::Context* context, gfx::RenderWindow* ren
 
 
     m_vertex_shader = new gfx::Shader(m_context);
-    m_vertex_shader->LoadAndCompile("shaders/ui.vert.spv", gfx::ShaderType::VERTEX);
+    m_vertex_shader->LoadAndCompile("shaders/ui.vert.spv", gfx::enums::ShaderType::VERTEX);
     m_fragment_shader = new gfx::Shader(m_context);
-    m_fragment_shader->LoadAndCompile("shaders/ui.frag.spv", gfx::ShaderType::PIXEL);
+    m_fragment_shader->LoadAndCompile("shaders/ui.frag.spv", gfx::enums::ShaderType::PIXEL);
     std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{ m_vertex_shader->m_shader_stage_create_info, m_fragment_shader->m_shader_stage_create_info };
 
     VkGraphicsPipelineCreateInfo pipelineCreateInfo {};

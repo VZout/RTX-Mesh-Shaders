@@ -30,7 +30,6 @@ public:
 		: Application("Mesh Shaders Demo"),
 		m_renderer(nullptr)
 	{
-
 	}
 
 	~Demo() final
