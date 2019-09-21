@@ -31,6 +31,8 @@ namespace gfx
 			std::vector<VkFormat> m_rtv_formats;
 			VkFormat m_depth_format = VK_FORMAT_UNDEFINED;
 			bool m_allow_uav = false;
+			bool m_clear = false;
+			bool m_clear_depth = false;
 		};
 
 		explicit RenderTarget(Context* context);
