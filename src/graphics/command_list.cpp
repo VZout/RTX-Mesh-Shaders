@@ -108,35 +108,17 @@ void gfx::CommandList::BindRenderTargetVersioned(RenderTarget* render_target, bo
 	render_pass_begin_info.pClearValues = clear_values.data();
 
 	vkCmdBeginRenderPass(m_cmd_buffers[m_frame_idx], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-
-	std::vector<VkClearAttachment> clears;
-	if (clear)
-	{
-		clears.push_back(VkClearAttachment{VK_IMAGE_ASPECT_COLOR_BIT, 0, clear_values[0]});
-	}
-	if (clear_depth && render_target->m_desc.m_depth_format != VK_FORMAT_UNDEFINED)
-	{
-		clears.push_back(VkClearAttachment{VK_IMAGE_ASPECT_DEPTH_BIT, 1, clear_values[1]});
-	}
-
-	if (!clears.empty())
-	{
-		VkRect2D rect;
-		VkClearRect clear_rect;
-		clear_rect.baseArrayLayer = 0;
-		clear_rect.layerCount = 1;
-		rect.extent = {render_target->GetWidth(), render_target->GetHeight()};
-		rect.offset = {0, 0};
-		clear_rect.rect = rect;
-		vkCmdClearAttachments(m_cmd_buffers[m_frame_idx], clears.size(), clears.data(), 1, &clear_rect);
-	}
 }
 
 void gfx::CommandList::BindRenderTarget(RenderTarget* render_target, bool clear, bool clear_depth)
 {
-	std::array<VkClearValue, 2> clear_values = {};
-	clear_values[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
-	clear_values[1].depthStencil = {1.0f, 0};
+	auto num_render_targets = render_target->m_images.size();
+	std::vector<VkClearValue> clear_values(num_render_targets + 1);
+	for (std::size_t i = 0; i < num_render_targets; i++)
+	{
+		clear_values[i].color = {0.0f, 0.0f, 0.0f, 1.0f};
+	}
+	clear_values.back().depthStencil = {1.0f, 0 };
 
 	VkRenderPassBeginInfo render_pass_begin_info = {};
 	render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -149,31 +131,6 @@ void gfx::CommandList::BindRenderTarget(RenderTarget* render_target, bool clear,
 	render_pass_begin_info.pClearValues = clear_values.data();
 
 	vkCmdBeginRenderPass(m_cmd_buffers[m_frame_idx], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-
-	std::vector<VkClearAttachment> clears;
-	if (clear)
-	{
-		for (std::size_t i = 0; i < render_target->m_images.size(); i++)
-		{
-			clears.push_back(VkClearAttachment{VK_IMAGE_ASPECT_COLOR_BIT, static_cast<std::uint32_t>(i), clear_values[0]});
-		}
-	}
-	if (clear_depth && render_target->m_desc.m_depth_format != VK_FORMAT_UNDEFINED)
-	{
-		clears.push_back(VkClearAttachment{VK_IMAGE_ASPECT_DEPTH_BIT, static_cast<std::uint32_t>(clears.size()), clear_values[1]});
-	}
-
-	if (!clears.empty())
-	{
-		VkRect2D rect;
-		VkClearRect clear_rect;
-		clear_rect.baseArrayLayer = 0;
-		clear_rect.layerCount = 1;
-		rect.extent = {render_target->GetWidth(), render_target->GetHeight()};
-		rect.offset = {0, 0};
-		clear_rect.rect = rect;
-		vkCmdClearAttachments(m_cmd_buffers[m_frame_idx], clears.size(), clears.data(), 1, &clear_rect);
-	}
 }
 
 void gfx::CommandList::UnbindRenderTarget()

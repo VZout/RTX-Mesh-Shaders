@@ -367,6 +367,8 @@ gfx::RenderTarget* Renderer::CreateRenderTarget(RenderTargetProperties const & p
 		desc.m_width = properties.m_width.has_value() ? properties.m_width.value() : m_application->GetWidth();
 		desc.m_height = properties.m_height.has_value() ? properties.m_height.value() : m_application->GetHeight();
 		desc.m_allow_uav = compute;
+		desc.m_clear = properties.m_clear;
+		desc.m_clear_depth = properties.m_clear_depth;
 		auto new_rt = new gfx::RenderTarget(m_context, desc);
 		return new_rt;
 	}
