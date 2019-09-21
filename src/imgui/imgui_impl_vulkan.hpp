@@ -15,11 +15,13 @@ struct PushConstBlock {
 
 struct ImGuiImpl
 {
+	// 1 MB in total for imguis vertex data.
+	static inline std::uint64_t m_max_vertices = 500000;
+	static inline std::uint64_t m_max_indices = 500000;
+
 	VkSampler sampler;
 	gfx::GPUBuffer* vertexBuffer;
 	gfx::GPUBuffer* indexBuffer;
-	int32_t vertexCount = 0;
-	int32_t indexCount = 0;
 	VkDeviceMemory fontMemory = VK_NULL_HANDLE;
 	VkImage fontImage = VK_NULL_HANDLE;
 	VkImageView fontView = VK_NULL_HANDLE;
