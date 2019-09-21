@@ -9,6 +9,7 @@
 #include "frame_graph/frame_graph.hpp"
 #include "application.hpp"
 #include "editor.hpp"
+#include "util/version.hpp"
 #include "render_tasks/vulkan_tasks.hpp"
 
 #ifdef _WIN32
@@ -74,7 +75,9 @@ protected:
 		editor.RegisterWindow("About", "Help", [&]()
 		{
 			ImGui::Text("Turing Mesh Shading");
-			ImGui::Text("Version: 0.0.1");
+			constexpr auto version = util::GetVersion();
+			std::string version_text = "Version: " + std::to_string(version.m_major) + "." + std::to_string(version.m_minor) + "." + std::to_string(version.m_patch);
+			ImGui::Text(version_text.c_str());
 			ImGui::Separator();
 			ImGui::Text("Copyright 2019 Viktor Zoutman");
 			if (ImGui::Button("License")) OpenURL("https://github.com/VZout/RTX-Mesh-Shaders/blob/master/LICENSE");
