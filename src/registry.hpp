@@ -32,6 +32,13 @@ namespace internal
 			return C::Get().Find(handle);
 		}
 
+		RegistryHandle Register(TD desc)
+		{
+			m_descriptions.push_back(desc);
+
+			return m_descriptions.size() - 1;
+		}
+
 		inline TO* Find(RegistryHandle handle)
 		{
 			if (handle >= m_objects.size())
