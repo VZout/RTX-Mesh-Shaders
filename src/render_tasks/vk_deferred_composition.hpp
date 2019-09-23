@@ -34,6 +34,8 @@ namespace tasks
 		std::uint32_t m_gbuffer_set;
 		std::uint32_t m_uav_target_set;
 		gfx::DescriptorHeap* m_gbuffer_heap;
+
+		gfx::RootSignature* m_root_sig;
 	};
 
 	namespace internal
@@ -43,7 +45,7 @@ namespace tasks
 		{
 			auto& data = fg.GetData<DeferredCompositionData>(handle);
 			auto context = rs.GetContext();
-			auto root_sig = rs.GetCompoRootSignature();
+			data.m_root_sig = RootSignatureRegistry::SFind(root_signatures::composition);
 			auto render_target = fg.GetRenderTarget(handle);
 			auto deferred_main_rt = fg.GetPredecessorRenderTarget<DeferredMainData>();
 
@@ -58,8 +60,8 @@ namespace tasks
 			descriptor_heap_desc.m_versions = 1;
 			descriptor_heap_desc.m_num_descriptors = 3;
 			data.m_gbuffer_heap = new gfx::DescriptorHeap(rs.GetContext(), descriptor_heap_desc);
-			data.m_gbuffer_set = data.m_gbuffer_heap->CreateSRVSetFromRT(deferred_main_rt, root_sig, 1, 0, false, gbuffer_sampler_desc);
-			data.m_uav_target_set = data.m_gbuffer_heap->CreateUAVSetFromRT(render_target, 0, root_sig, 2, 0, gbuffer_sampler_desc);
+			data.m_gbuffer_set = data.m_gbuffer_heap->CreateSRVSetFromRT(deferred_main_rt, data.m_root_sig, 1, 0, false, gbuffer_sampler_desc);
+			data.m_uav_target_set = data.m_gbuffer_heap->CreateUAVSetFromRT(render_target, 0, data.m_root_sig, 2, 0, gbuffer_sampler_desc);
 
 			if (resize) return;
 
@@ -73,7 +75,7 @@ namespace tasks
 				data.m_cbs[i] = new gfx::GPUBuffer(context, sizeof(cb::Basic), gfx::enums::BufferUsageFlag::CONSTANT_BUFFER);
 				data.m_cbs[i]->Map();
 
-				data.m_cb_sets[i].push_back(desc_heap->CreateSRVFromCB(data.m_cbs[i], root_sig, 0, i));
+				data.m_cb_sets[i].push_back(desc_heap->CreateSRVFromCB(data.m_cbs[i], data.m_root_sig, 0, i));
 			}
 		}
 
@@ -82,8 +84,7 @@ namespace tasks
 			auto& data = fg.GetData<DeferredCompositionData>(handle);
 			auto cmd_list = fg.GetCommandList(handle);
 			auto frame_idx = rs.GetFrameIdx();
-			auto root_sig = rs.GetCompoRootSignature();
-			auto pipeline = rs.GetCompoPipeline();
+			auto pipeline = PipelineRegistry::SFind(pipelines::composition);
 			auto desc_heap = rs.GetDescHeap();
 			auto render_target = fg.GetRenderTarget(handle);
 
@@ -100,7 +101,7 @@ namespace tasks
 			};
 
 			cmd_list->BindComputePipelineState(pipeline);
-			cmd_list->BindComputeDescriptorHeap(root_sig, sets);
+			cmd_list->BindComputeDescriptorHeap(data.m_root_sig, sets);
 			cmd_list->Dispatch(render_target->GetWidth() / 16, render_target->GetHeight() / 16, 1);
 		}
 

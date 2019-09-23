@@ -22,7 +22,6 @@
 #include "../graphics/descriptor_heap.hpp"
 #include "../graphics/vk_material_pool.hpp"
 #include "../graphics/gfx_enums.hpp"
-//#include "vk_deferred_main_task.hpp"
 
 namespace tasks
 {
@@ -32,6 +31,8 @@ namespace tasks
 		std::uint32_t m_input_set;
 		std::uint32_t m_uav_target_set;
 		gfx::DescriptorHeap* m_gbuffer_heap;
+
+		gfx::RootSignature* m_root_sig;
 	};
 
 	namespace internal
@@ -42,7 +43,7 @@ namespace tasks
 		{
 			auto& data = fg.GetData<PostProcessingData>(handle);
 			auto context = rs.GetContext();
-			auto root_sig = rs.GetPostRootSignature();
+			data.m_root_sig = RootSignatureRegistry::SFind(root_signatures::post_processing);
 			auto render_target = fg.GetRenderTarget(handle);
 			auto predecessor_rt = fg.GetPredecessorRenderTarget<T>();
 
@@ -57,16 +58,15 @@ namespace tasks
 			descriptor_heap_desc.m_versions = 1;
 			descriptor_heap_desc.m_num_descriptors = 3;
 			data.m_gbuffer_heap = new gfx::DescriptorHeap(rs.GetContext(), descriptor_heap_desc);
-			data.m_input_set = data.m_gbuffer_heap->CreateSRVSetFromRT(predecessor_rt, root_sig, 0, 0, false, std::nullopt);
-			data.m_uav_target_set = data.m_gbuffer_heap->CreateUAVSetFromRT(render_target, 0, root_sig, 1, 0, input_sampler_desc);
+			data.m_input_set = data.m_gbuffer_heap->CreateSRVSetFromRT(predecessor_rt, data.m_root_sig, 0, 0, false, std::nullopt);
+			data.m_uav_target_set = data.m_gbuffer_heap->CreateUAVSetFromRT(render_target, 0, data.m_root_sig, 1, 0, input_sampler_desc);
 		}
 
 		inline void ExecutePostProcessingTask(Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, fg::RenderTaskHandle handle)
 		{
 			auto& data = fg.GetData<PostProcessingData>(handle);
 			auto cmd_list = fg.GetCommandList(handle);
-			auto root_sig = rs.GetPostRootSignature();
-			auto pipeline = rs.GetPostPipeline();
+			auto pipeline = PipelineRegistry::SFind(pipelines::post_processing);
 			auto render_target = fg.GetRenderTarget(handle);
 
 			glm::vec3 cam_pos = glm::vec3(0, 0, -2.5);
@@ -79,7 +79,7 @@ namespace tasks
 			};
 
 			cmd_list->BindComputePipelineState(pipeline);
-			cmd_list->BindComputeDescriptorHeap(root_sig, sets);
+			cmd_list->BindComputeDescriptorHeap(data.m_root_sig, sets);
 			cmd_list->Dispatch(render_target->GetWidth() / 16, render_target->GetHeight() / 16, 1);
 		}
 
