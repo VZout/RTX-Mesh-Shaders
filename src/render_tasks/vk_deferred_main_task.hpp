@@ -21,6 +21,8 @@
 #include "../graphics/vk_model_pool.hpp"
 #include "../graphics/descriptor_heap.hpp"
 #include "../graphics/vk_material_pool.hpp"
+#include "../root_signature_registry.hpp"
+#include "../pipeline_registry.hpp"
 
 namespace tasks
 {
@@ -30,6 +32,8 @@ namespace tasks
 		std::vector<gfx::GPUBuffer*> m_cbs;
 		std::vector<std::vector<std::uint32_t>> m_cb_sets;
 		std::vector<std::vector<std::uint32_t>> m_material_sets;
+
+		gfx::RootSignature* m_root_sig;
 	};
 
 	namespace internal
@@ -42,7 +46,7 @@ namespace tasks
 			auto& data = fg.GetData<DeferredMainData>(handle);
 			auto context = rs.GetContext();
 			auto desc_heap = rs.GetDescHeap();
-			auto root_sig = rs.GetRootSignature();
+			data.m_root_sig = RootSignatureRegistry::SFind(root_signatures::basic);
 
 			data.m_cb_sets.resize(gfx::settings::num_back_buffers);
 			data.m_material_sets.resize(gfx::settings::num_back_buffers);
@@ -54,7 +58,7 @@ namespace tasks
 				data.m_cbs[i] = new gfx::GPUBuffer(context, sizeof(cb::Basic), gfx::enums::BufferUsageFlag::CONSTANT_BUFFER);
 				data.m_cbs[i]->Map();
 
-				data.m_cb_sets[i].push_back(desc_heap->CreateSRVFromCB(data.m_cbs[i], root_sig, 0, i));
+				data.m_cb_sets[i].push_back(desc_heap->CreateSRVFromCB(data.m_cbs[i], data.m_root_sig, 0, i));
 			}
 		}
 
@@ -65,8 +69,7 @@ namespace tasks
 			auto cmd_list = fg.GetCommandList(handle);
 			auto frame_idx = rs.GetFrameIdx();
 			auto model_pool = static_cast<gfx::VkModelPool*>(rs.GetModelPool());
-			auto root_sig = rs.GetRootSignature();
-			auto pipeline = rs.GetPipeline();
+			auto pipeline = PipelineRegistry::SFind(pipelines::basic);
 			auto desc_heap = rs.GetDescHeap();
 			auto material_pool = static_cast<gfx::VkMaterialPool*>(rs.GetMaterialPool());
 
@@ -91,7 +94,7 @@ namespace tasks
 					{ material_pool->GetDescriptorHeap(), mesh_handle.m_material_handle->m_material_set_id }
 				};
 
-				cmd_list->BindDescriptorHeap(root_sig, sets);
+				cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
 				cmd_list->BindVertexBuffer(model_pool->m_vertex_buffers[i]);
 				cmd_list->BindIndexBuffer(model_pool->m_index_buffers[i]);
 				cmd_list->DrawIndexed(mesh_handle.m_num_indices, 1);

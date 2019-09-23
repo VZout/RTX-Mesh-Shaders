@@ -73,6 +73,8 @@ public:
 	MaterialPool* GetMaterialPool();
 
 	void PrepareShaderRegistry();
+	void PrepareRootSignatureRegistry();
+	void PreparePipelineRegistry();
 	template<typename R>
 	void DestroyRegistry();
 
@@ -96,12 +98,6 @@ public:
 	gfx::Context* GetContext() { return m_context; }
 	gfx::CommandQueue* GetDirectQueue() { return m_direct_queue; };
 	gfx::DescriptorHeap* GetDescHeap() { return m_desc_heap; };
-	gfx::RootSignature* GetRootSignature() { return m_root_signature; };
-	gfx::PipelineState* GetPipeline() { return m_pipeline; };
-	gfx::RootSignature* GetCompoRootSignature() { return m_compo_root_signature; };
-	gfx::PipelineState* GetCompoPipeline() { return m_compo_pipeline; };
-	gfx::RootSignature* GetPostRootSignature() { return m_post_root_signature; };
-	gfx::PipelineState* GetPostPipeline() { return m_post_pipeline; };
 
 private:
 	Application* m_application;
@@ -114,12 +110,6 @@ private:
 	// TODO Temporary
 	gfx::Viewport* m_viewport;
 	gfx::DescriptorHeap* m_desc_heap;
-	gfx::PipelineState* m_pipeline;
-	gfx::RootSignature* m_root_signature;
-	gfx::PipelineState* m_compo_pipeline;
-	gfx::RootSignature* m_compo_root_signature;
-	gfx::PipelineState* m_post_pipeline;
-	gfx::RootSignature* m_post_root_signature;
 	gfx::VkModelPool* m_model_pool;
 	gfx::VkTexturePool* m_texture_pool;
 	gfx::VkMaterialPool* m_material_pool;
