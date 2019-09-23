@@ -83,9 +83,6 @@ void Renderer::Init(Application* app)
 		fence = new gfx::Fence(m_context);
 	}
 
-	auto& shader_registry = ShaderRegistry::Get();
-	auto& rs_registry = RootSignatureRegistry::Get();
-
 	gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
 	descriptor_heap_desc.m_versions = gfx::settings::num_back_buffers;
 	descriptor_heap_desc.m_num_descriptors = 100;
