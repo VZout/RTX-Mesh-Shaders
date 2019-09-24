@@ -23,14 +23,13 @@
 #include "../graphics/vk_material_pool.hpp"
 #include "../root_signature_registry.hpp"
 #include "../pipeline_registry.hpp"
+#include "../graphics/vk_constant_buffer_pool.hpp"
 
 namespace tasks
 {
 
 	struct DeferredMainData
 	{
-		std::vector<gfx::GPUBuffer*> m_cbs;
-		std::vector<std::vector<std::uint32_t>> m_cb_sets;
 		std::vector<std::vector<std::uint32_t>> m_material_sets;
 
 		gfx::RootSignature* m_root_sig;
@@ -48,74 +47,52 @@ namespace tasks
 			auto desc_heap = rs.GetDescHeap();
 			data.m_root_sig = RootSignatureRegistry::SFind(root_signatures::basic);
 
-			data.m_cb_sets.resize(gfx::settings::num_back_buffers);
 			data.m_material_sets.resize(gfx::settings::num_back_buffers);
-
-			// Descriptors uniform
-			data.m_cbs.resize(gfx::settings::num_back_buffers);
-			for (std::uint32_t i = 0; i < gfx::settings::num_back_buffers; i++)
-			{
-				data.m_cbs[i] = new gfx::GPUBuffer(context, sizeof(cb::Basic), gfx::enums::BufferUsageFlag::CONSTANT_BUFFER);
-				data.m_cbs[i]->Map();
-
-				data.m_cb_sets[i].push_back(desc_heap->CreateSRVFromCB(data.m_cbs[i], data.m_root_sig, 0, i));
-			}
 		}
 
 		inline void ExecuteDeferredMainTask(Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, fg::RenderTaskHandle handle)
 		{
 			auto& data = fg.GetData<DeferredMainData>(handle);
-			auto render_window = fg.GetRenderTarget<gfx::RenderWindow>(handle);
 			auto cmd_list = fg.GetCommandList(handle);
-			auto frame_idx = rs.GetFrameIdx();
 			auto model_pool = static_cast<gfx::VkModelPool*>(rs.GetModelPool());
 			auto pipeline = PipelineRegistry::SFind(pipelines::basic);
-			auto desc_heap = rs.GetDescHeap();
 			auto material_pool = static_cast<gfx::VkMaterialPool*>(rs.GetMaterialPool());
 
-			glm::vec3 cam_pos = glm::vec3(0, 0, -2.5);
-
-			cb::Basic basic_cb_data;
-			basic_cb_data.m_model = sg.m_models[0];
-			basic_cb_data.m_view = glm::lookAt(cam_pos, cam_pos + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			basic_cb_data.m_proj = glm::perspective(glm::radians(45.0f), (float) render_window->GetWidth() / (float) render_window->GetHeight(), 0.01f, 1000.0f);
-			basic_cb_data.m_proj[1][1] *= -1;
-			data.m_cbs[frame_idx]->Update(&basic_cb_data, sizeof(cb::Basic));
+			auto per_obj_pool = static_cast<gfx::VkConstantBufferPool*>(sg.GetPOConstantBufferPool());
+			auto camera_pool = static_cast<gfx::VkConstantBufferPool*>(sg.GetCameraConstantBufferPool());
 
 			cmd_list->BindPipelineState(pipeline);
-			auto model_handle = sg.m_model_handles[0].m_value;
-			for (std::size_t i = 0; i < model_handle.m_mesh_handles.size(); i++)
+
+			auto mesh_node_handles = sg.GetMeshNodeHandles();
+			auto camera_handle = sg.m_camera_cb_handles[0].m_value;
+			for (auto const & handle : mesh_node_handles)
 			{
-				auto mesh_handle = model_handle.m_mesh_handles[i];
+				auto node = sg.GetNode(handle);
+				auto model_handle = sg.m_model_handles[node.m_mesh_component].m_value;
+				auto cb_handle = sg.m_transform_cb_handles[node.m_mesh_component].m_value;
 
-				std::vector<std::pair<gfx::DescriptorHeap*, std::uint32_t>> sets
+				for (std::size_t i = 0; i < model_handle.m_mesh_handles.size(); i++)
 				{
-					{ desc_heap, data.m_cb_sets[frame_idx][0] },
-					{ material_pool->GetDescriptorHeap(), mesh_handle.m_material_handle->m_material_set_id }
-				};
+					auto mesh_handle = model_handle.m_mesh_handles[i];
 
-				cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
-				cmd_list->BindVertexBuffer(model_pool->m_vertex_buffers[i]);
-				cmd_list->BindIndexBuffer(model_pool->m_index_buffers[i]);
-				cmd_list->DrawIndexed(mesh_handle.m_num_indices, 1);
+					std::vector<std::pair<gfx::DescriptorHeap*, std::uint32_t>> sets
+					{
+						{ per_obj_pool->GetDescriptorHeap(), cb_handle.m_cb_set_id }, // TODO: Shitty naming of set_id. just use a vector in the handle instead probably.
+						{ camera_pool->GetDescriptorHeap(), camera_handle.m_cb_set_id }, // TODO: Shitty naming of set_id. just use a vector in the handle instead probably.
+						{ material_pool->GetDescriptorHeap(), mesh_handle.m_material_handle->m_material_set_id }
+					};
+
+					cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
+					cmd_list->BindVertexBuffer(model_pool->m_vertex_buffers[mesh_handle.m_id]);
+					cmd_list->BindIndexBuffer(model_pool->m_index_buffers[mesh_handle.m_id]);
+					cmd_list->DrawIndexed(mesh_handle.m_num_indices, 1);
+				}
 			}
 		}
 
 		inline void DestroyDeferredMainTask(fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
 		{
-			auto& data = fg.GetData<DeferredMainData>(handle);
 
-			if (resize)
-			{
-
-			}
-			else
-			{
-				for (auto& cb : data.m_cbs)
-				{
-					delete cb;
-				}
-			}
 		}
 
 	} /* internal */

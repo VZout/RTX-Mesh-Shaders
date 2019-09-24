@@ -44,6 +44,7 @@ protected:
 	{
 		// Categories
 		editor.RegisterCategory("File");
+		editor.RegisterCategory("Scene Graph");
 		editor.RegisterCategory("Stats");
 		editor.RegisterCategory("Help");
 
@@ -53,6 +54,68 @@ protected:
 		editor.RegisterAction("Report Issue", "Help", [&](){ OpenURL("https://github.com/VZout/RTX-Mesh-Shaders/issues"); });
 
 		// Windows
+		editor.RegisterWindow("World Outliner", "Scene Graph", [&]()
+		{
+			ImVec2 size = ImGui::GetContentRegionAvail();
+			size.y -= ImGui::GetItemsLineHeightWithSpacing();
+			if (ImGui::ListBoxHeader("##", size))
+			{
+				const auto& node_handles = m_scene_graph->GetNodeHandles();
+				for (std::size_t i = 0; i < node_handles.size(); i++)
+				{
+					auto handle = node_handles[i];
+					auto node = m_scene_graph->GetNode(handle);
+
+					std::string name_prefix = "Unknown Node";
+					if (node.m_mesh_component > -1)
+					{
+						name_prefix = "Mesh Node";
+					}
+					else if (node.m_camera_component > -1)
+					{
+						name_prefix = "Camera Node";
+					}
+					else if (node.m_transform_component > -1)
+					{
+						name_prefix = "Transform Node";
+					}
+
+					auto node_name = name_prefix + " (" + std::to_string(i) + ")";
+
+					bool pressed = ImGui::Selectable(node_name.c_str(), m_selected_node == handle);
+					if (pressed)
+					{
+						m_selected_node = handle;
+					}
+				}
+				}
+				ImGui::ListBoxFooter();
+		});
+
+		editor.RegisterWindow("Inspector", "Scene Graph", [&]()
+		{
+			if (!m_selected_node.has_value()) return;
+
+			auto node = m_scene_graph->GetNode(m_selected_node.value());
+
+			if (node.m_transform_component > -1)
+			{
+				ImGui::DragFloat3("Position", &m_scene_graph->m_positions[node.m_transform_component].m_value[0], 0.1f);
+
+				auto quaternion = m_scene_graph->m_rotations[node.m_transform_component].m_value;
+				auto euler = glm::degrees(glm::eulerAngles(quaternion));
+				ImGui::DragFloat3("Rotation", &euler[0], 0.1f);
+				m_scene_graph->m_rotations[node.m_transform_component].m_value = glm::quat(glm::radians(euler));
+
+				if (node.m_camera_component == -1)
+				{
+					ImGui::DragFloat3("Scale", &m_scene_graph->m_scales[node.m_transform_component].m_value[0], 0.01f);
+				}
+			}
+
+			m_scene_graph->m_requires_update[node.m_transform_component] = true;
+		});
+
 		editor.RegisterWindow("Performance", "Stats", [&]()
 		{
 			ImGui::Columns(2);
@@ -102,17 +165,31 @@ protected:
 		auto model_pool = m_renderer->GetModelPool();
 		auto texture_pool = m_renderer->GetTexturePool();
 		auto material_pool = m_renderer->GetMaterialPool();
-		auto model_handle = model_pool->LoadWithMaterials<Vertex>("robot/scene.gltf", material_pool, texture_pool, true);
+		auto robot_model_handle = model_pool->LoadWithMaterials<Vertex>("robot/scene.gltf", material_pool, texture_pool, true);
+		auto battery_model_handle = model_pool->LoadWithMaterials<Vertex>("scene.gltf", material_pool, texture_pool, true);
 
 		m_frame_graph->Setup(m_renderer);
 
 		m_renderer->Upload();
 
 		m_scene_graph = new sg::SceneGraph();
-		m_node = m_scene_graph->CreateNode();
-		m_scene_graph->PromoteNode<sg::MeshComponent>(m_node, model_handle);
-		sg::helper::SetPosition(m_scene_graph, m_node, glm::vec3(0, -1, 0));
+		m_scene_graph->SetPOConstantBufferPool(m_renderer->CreateConstantBufferPool(0));
+		m_scene_graph->SetCameraConstantBufferPool(m_renderer->CreateConstantBufferPool(1));
+
+		m_camera_node = m_scene_graph->CreateNode<sg::CameraComponent>();
+		sg::helper::SetPosition(m_scene_graph, m_camera_node, glm::vec3(0, 0, -2.5));
+
+		m_node = m_scene_graph->CreateNode<sg::MeshComponent>(robot_model_handle);
+		sg::helper::SetPosition(m_scene_graph, m_node, glm::vec3(-0.75, -1, 0));
 		sg::helper::SetScale(m_scene_graph, m_node, glm::vec3(0.01, 0.01, 0.01));
+
+		// second node
+		{
+			auto node = m_scene_graph->CreateNode<sg::MeshComponent>(battery_model_handle);
+			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(0.75, -0.65, 0));
+			sg::helper::SetScale(m_scene_graph, node, glm::vec3(0.01, 0.01, 0.01));
+			sg::helper::SetRotation(m_scene_graph, node, glm::vec3(glm::radians(-90.f), glm::radians(90.f), 0));
+		}
 
 		m_start = std::chrono::high_resolution_clock::now();
 	}
@@ -124,7 +201,7 @@ protected:
 
 		sg::helper::SetRotation(m_scene_graph, m_node, glm::vec3(glm::radians(-90.f), glm::radians(t * 0.0000001f), 0));
 
-		m_scene_graph->Update();
+		m_scene_graph->Update(m_renderer->GetFrameIdx());
 		m_renderer->Render(*m_scene_graph, *m_frame_graph);
 
 		auto append_graph_list = [](auto& list, auto time, auto max, auto& lowest, auto& highest)
@@ -161,6 +238,7 @@ protected:
 	sg::SceneGraph* m_scene_graph;
 
 	sg::NodeHandle m_node;
+	sg::NodeHandle m_camera_node;
 
 	// ImGui
 	std::chrono::time_point<std::chrono::high_resolution_clock> m_start;
@@ -168,6 +246,7 @@ protected:
 	int m_max_frame_rates = 1000;
 	float m_min_frame_rate;
 	float m_max_frame_rate;
+	std::optional<sg::NodeHandle> m_selected_node;
 };
 
 

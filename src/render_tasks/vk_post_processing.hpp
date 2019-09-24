@@ -69,8 +69,6 @@ namespace tasks
 			auto pipeline = PipelineRegistry::SFind(pipelines::post_processing);
 			auto render_target = fg.GetRenderTarget(handle);
 
-			glm::vec3 cam_pos = glm::vec3(0, 0, -2.5);
-
 			cb::Basic basic_cb_data;
 			std::vector<std::pair<gfx::DescriptorHeap*, std::uint32_t>> sets
 			{

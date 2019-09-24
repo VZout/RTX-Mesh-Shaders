@@ -13,6 +13,7 @@
 #include "tinygltf_model_loader.hpp"
 #include "vertex.hpp"
 #include "frame_graph/frame_graph.hpp"
+#include "graphics/vk_constant_buffer_pool.hpp"
 #include "graphics/vk_material_pool.hpp"
 #include "graphics/context.hpp"
 #include "graphics/vk_model_pool.hpp"
@@ -347,6 +348,11 @@ void Renderer::ResizeRenderTarget(gfx::RenderTarget* render_target, std::uint32_
 void Renderer::DestroyRenderTarget(gfx::RenderTarget* render_target)
 {
 	delete render_target;
+}
+
+ConstantBufferPool* Renderer::CreateConstantBufferPool(std::uint32_t binding)
+{
+	return new gfx::VkConstantBufferPool(m_context, binding);
 }
 
 gfx::RenderWindow* Renderer::GetRenderWindow()

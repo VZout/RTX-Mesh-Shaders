@@ -1,14 +1,13 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout(set = 1, binding = 1) uniform sampler2D ts_textures[2];
+layout(set = 2, binding = 2) uniform sampler2D ts_textures[2];
 
-layout(location = 0) in float g_time;
-layout(location = 1) in vec2 g_uv;
-layout(location = 2) in vec3 g_normal;
-layout(location = 3) in vec3 g_frag_pos;
-layout(location = 4) in vec3 g_tangent;
-layout(location = 5) in vec3 g_bitangent;
+layout(location = 0) in vec2 g_uv;
+layout(location = 1) in vec3 g_normal;
+layout(location = 2) in vec3 g_frag_pos;
+layout(location = 3) in vec3 g_tangent;
+layout(location = 4) in vec3 g_bitangent;
 
 layout(location = 0) out vec4 out_color;
 layout(location = 1) out vec4 out_normal;
