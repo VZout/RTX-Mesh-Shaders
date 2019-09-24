@@ -76,7 +76,7 @@ protected:
 			ImGui::Text("Turing Mesh Shading");
 			constexpr auto version = util::GetVersion();
 			std::string version_text = "Version: " + std::to_string(version.m_major) + "." + std::to_string(version.m_minor) + "." + std::to_string(version.m_patch);
-			ImGui::Text(version_text.c_str());
+			ImGui::Text("%s", version_text.c_str());
 			ImGui::Separator();
 			ImGui::Text("Copyright 2019 Viktor Zoutman");
 			if (ImGui::Button("License")) OpenURL("https://github.com/VZout/RTX-Mesh-Shaders/blob/master/LICENSE");
@@ -132,7 +132,7 @@ protected:
 			lowest = time < lowest ? time : lowest;
 			highest = time > highest ? time : highest;
 
-			if (list.size() > max) //Max seconds to show
+			if (static_cast<int>(list.size()) > max) //Max seconds to show
 			{
 				for (size_t i = 1; i < list.size(); i++)
 				{

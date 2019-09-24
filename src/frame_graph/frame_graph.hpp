@@ -13,6 +13,7 @@
 #include <deque>
 #include <future>
 #include <cstdint>
+#include <optional>
 #include <any>
 
 #include "../util/log.hpp"
