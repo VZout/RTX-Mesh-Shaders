@@ -50,13 +50,13 @@ Renderer::~Renderer()
 	{
 		delete fence;
 	}
+	delete m_desc_heap;
 	delete m_texture_pool;
 	delete m_model_pool;
 	delete m_material_pool;
 	delete m_render_window;
 	delete m_direct_cmd_list;
 	delete m_direct_queue;
-	delete m_desc_heap;
 	delete m_context;
 }
 
@@ -257,7 +257,6 @@ void Renderer::ResetCommandList(gfx::CommandList* cmd_list)
 
 void Renderer::StartRenderTask(gfx::CommandList* cmd_list, std::pair<gfx::RenderTarget*, RenderTargetProperties> render_target)
 {
-	auto frame_idx = GetFrameIdx();
 	auto desc = render_target.second;
 
 	if (render_target.second.m_is_render_window)

@@ -10,6 +10,7 @@
 #include <cctype>
 #include <cstring>
 #include <cstdint>
+#include <string>
 #include <cstdio>
 #include <stdexcept>
 
@@ -48,6 +49,11 @@ namespace util
 		constexpr std::uint32_t stoi(const char* str, std::uint32_t max) {
 			return stoi_impl(str, max);
 		}
+	}
+
+	std::string VersionToString(Version const & version)
+	{
+		return std::to_string(version.m_major) + "." + std::to_string(version.m_minor) + "." + std::to_string(version.m_patch);
 	}
 
 	constexpr Version GetVersion()

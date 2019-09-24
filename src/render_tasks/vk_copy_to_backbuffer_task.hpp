@@ -9,6 +9,7 @@
 #include "../application.hpp"
 #include "../frame_graph/frame_graph.hpp"
 #include "../renderer.hpp"
+#include "../graphics/render_window.hpp"
 
 namespace tasks
 {
@@ -26,13 +27,12 @@ namespace tasks
 			auto rt_to_copy = fg.GetPredecessorRenderTarget<T>();
 			auto cmd_list = fg.GetCommandList(handle);
 			auto render_window = rs.GetRenderWindow();
-			auto frame_idx = rs.GetFrameIdx();
 
-			cmd_list->TransitionRenderTarget(render_window, frame_idx, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+			cmd_list->TransitionRenderTarget(render_window, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
 			cmd_list->CopyRenderTargetToRenderWindow(rt_to_copy, IDX, render_window);
 
-			cmd_list->TransitionRenderTarget(render_window, frame_idx, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+			cmd_list->TransitionRenderTarget(render_window, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 		}
 
 	} /* internal */
