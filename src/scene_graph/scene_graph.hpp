@@ -17,6 +17,9 @@
 
 #include "../model_pool.hpp"
 #include "../util/delegate.hpp"
+#include "../buffer_definitions.hpp"
+#include "../constant_buffer_pool.hpp"
+#include "../graphics/gfx_settings.hpp"
 
 namespace sg
 {
@@ -35,10 +38,15 @@ namespace sg
 	{
 	};
 
+	class CameraComponent
+	{
+	};
+
 	struct Node
 	{
 		ComponentHandle m_transform_component;
 		ComponentHandle m_mesh_component;
+		ComponentHandle m_camera_component;
 	};
 
 	namespace internal
@@ -55,7 +63,7 @@ namespace sg
 	struct ComponentData : internal::BaseComponentData
 	{
 		ComponentData() = default;
-		ComponentData(T value, NodeHandle handle) { m_value = value; m_node_handle = handle; }
+		ComponentData(T value, NodeHandle handle) : BaseComponentData() { m_value = value; m_node_handle = handle; }
 		void operator=(T const & value) {
 			m_value = value;
 		}
@@ -68,11 +76,23 @@ namespace sg
 	{
 	public:
 		SceneGraph();
-		~SceneGraph() = default;
+		~SceneGraph();
 
 		NodeHandle CreateNode();
 
+		template<typename T, typename... Args>
+		NodeHandle CreateNode(Args... args)
+		{
+			auto handle = CreateNode();
+
+			PromoteNode<T>(handle, args...);
+
+			return handle;
+		}
+
 		Node GetNode(NodeHandle handle);
+		std::vector<NodeHandle> const & GetNodeHandles() const;
+		std::vector<NodeHandle> const & GetMeshNodeHandles() const;
 
 		template<typename A, typename B>
 		using Void_IsComponent = std::enable_if<std::is_same<A, B>::value, void>;
@@ -89,9 +109,23 @@ namespace sg
 			}
 
 			m_model_handles.emplace_back(ComponentData<ModelHandle>(
-				model_handle,
+				std::move(model_handle),
 				handle
 			));
+
+			// Allocate constant buffer.
+			auto transform_cb_handle = m_per_object_buffer_pool->Allocate(sizeof(cb::Basic));
+			m_transform_cb_handles.emplace_back(ComponentData<ConstantBufferHandle>(
+				transform_cb_handle,
+				handle
+			));
+
+			m_requires_buffer_update.emplace_back(ComponentData<std::vector<bool>>(
+				std::vector<bool>(gfx::settings::num_back_buffers, true),
+				handle
+			));
+
+			m_mesh_node_handles.push_back(handle);
 		}
 
 		template<typename T>
@@ -106,7 +140,39 @@ namespace sg
 			m_requires_update.emplace_back(false, handle);
 		}
 
-		void Update();
+		template<typename T>
+		typename Void_IsComponent<T, CameraComponent>::type PromoteNode(NodeHandle handle)
+		{
+			auto& node = m_nodes[handle];
+			node.m_camera_component = m_camera_cb_handles.size();
+
+			// A camera requires a transform.
+			if (node.m_transform_component == -1)
+			{
+				PromoteNode<TransformComponent>(handle);
+			}
+
+			// Allocate constant buffer.
+			auto camera_cb_handle = m_camera_buffer_pool->Allocate(sizeof(cb::Camera));
+			m_camera_cb_handles.emplace_back(ComponentData<ConstantBufferHandle>(
+				camera_cb_handle,
+				handle
+			));
+
+			m_requires_camera_buffer_update.emplace_back(ComponentData<std::vector<bool>>(
+				std::vector<bool>(gfx::settings::num_back_buffers, true),
+				handle
+			));
+
+			m_camera_node_handles.push_back(handle);
+		}
+
+		void Update(std::uint32_t frame_idx);
+
+		void SetPOConstantBufferPool(ConstantBufferPool* pool);
+		ConstantBufferPool* GetPOConstantBufferPool();
+		void SetCameraConstantBufferPool(ConstantBufferPool* pool);
+		ConstantBufferPool* GetCameraConstantBufferPool();
 
 		// Transformation Component
 		std::vector<ComponentData<glm::vec3>> m_positions;
@@ -115,11 +181,22 @@ namespace sg
 		std::vector<ComponentData<glm::mat4>> m_models;
 		std::vector<ComponentData<bool>> m_requires_update;
 
-		// Mesh Component;
+		// Mesh Component
 		std::vector<ComponentData<ModelHandle>> m_model_handles;
+		std::vector<ComponentData<ConstantBufferHandle>> m_transform_cb_handles;
+		std::vector<ComponentData<std::vector<bool>>> m_requires_buffer_update;
+
+		// Camera Component
+		std::vector<ComponentData<ConstantBufferHandle>> m_camera_cb_handles;
+		std::vector<ComponentData<std::vector<bool>>> m_requires_camera_buffer_update;
 
 	private:
 		std::vector<Node> m_nodes;
+		std::vector<NodeHandle> m_node_handles;
+		std::vector<NodeHandle> m_mesh_node_handles;
+		std::vector<NodeHandle> m_camera_node_handles;
+		ConstantBufferPool* m_per_object_buffer_pool;
+		ConstantBufferPool* m_camera_buffer_pool;
 
 	};
 
