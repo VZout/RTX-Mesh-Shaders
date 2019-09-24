@@ -42,10 +42,13 @@ gfx::RenderWindow::~RenderWindow()
 {
 	auto logical_device = m_context->m_logical_device;
 
-	for (auto& view : m_image_views) {
-		vkDestroyImageView(logical_device, view, nullptr);
-	}
 	vkDestroySwapchainKHR(logical_device, m_swapchain, nullptr);
+
+	// DestroySwapchainKHR destroys the images.
+	for (auto& image : m_images)
+	{
+		image = VK_NULL_HANDLE;
+	}
 }
 
 

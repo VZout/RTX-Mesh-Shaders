@@ -51,12 +51,14 @@ gfx::RenderTarget::~RenderTarget()
 	if (m_depth_buffer != VK_NULL_HANDLE) vkDestroyImage(logical_device, m_depth_buffer, nullptr);
 	if (m_depth_buffer_memory != VK_NULL_HANDLE) vkFreeMemory(logical_device, m_depth_buffer_memory, nullptr);
 
-	std::vector<VkImage> m_images;
-	std::vector<VkDeviceMemory> m_images_memory;
+	for (auto& view : m_image_views)
+	{
+		vkDestroyImageView(logical_device, view, nullptr);
+	}
 
 	for (auto& image : m_images)
 	{
-		vkDestroyImage(logical_device, image, nullptr);
+		if (image != VK_NULL_HANDLE) vkDestroyImage(logical_device, image, nullptr);
 	}
 
 	for (auto& image_memory : m_images_memory)

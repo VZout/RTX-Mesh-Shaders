@@ -17,6 +17,8 @@
 #include "../model_pool.hpp"
 #include "../texture_pool.hpp"
 #include "../vertex.hpp"
+#include "../pipeline_registry.hpp"
+#include "../root_signature_registry.hpp"
 #include "../imgui/imgui_impl_vulkan.hpp"
 #include "../graphics/vk_model_pool.hpp"
 #include "../graphics/descriptor_heap.hpp"
@@ -39,7 +41,7 @@ namespace tasks
 	{
 
 		template<typename T>
-		inline void SetupPostProcessingTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
+		inline void SetupPostProcessingTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool)
 		{
 			auto& data = fg.GetData<PostProcessingData>(handle);
 			auto context = rs.GetContext();
@@ -83,7 +85,7 @@ namespace tasks
 			cmd_list->Dispatch(render_target->GetWidth() / 16, render_target->GetHeight() / 16, 1);
 		}
 
-		inline void DestroyPostProcessingTask(fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
+		inline void DestroyPostProcessingTask(fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool)
 		{
 			auto& data = fg.GetData<PostProcessingData>(handle);
 			delete data.m_gbuffer_heap;

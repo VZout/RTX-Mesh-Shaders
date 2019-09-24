@@ -631,7 +631,7 @@ namespace fg
 			\param desc A description of the render task.
 		*/
 		template<typename T>
-		inline void AddTask(RenderTaskDesc& desc, std::wstring const & name, std::vector<std::reference_wrapper<const std::type_info>> dependencies = {})
+		inline void AddTask(RenderTaskDesc& desc, [[maybe_unused]] std::wstring const & name, [[maybe_unused]] std::vector<std::reference_wrapper<const std::type_info>> dependencies = {})
 		{
 			static_assert(std::is_class<T>::value ||
 				std::is_floating_point<T>::value ||

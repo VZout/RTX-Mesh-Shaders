@@ -10,6 +10,7 @@
 #include "application.hpp"
 #include "editor.hpp"
 #include "util/version.hpp"
+#include "util/user_literals.hpp"
 #include "render_tasks/vulkan_tasks.hpp"
 
 #ifdef _WIN32
@@ -75,7 +76,7 @@ protected:
 		{
 			ImGui::Text("Turing Mesh Shading");
 			constexpr auto version = util::GetVersion();
-			std::string version_text = "Version: " + std::to_string(version.m_major) + "." + std::to_string(version.m_minor) + "." + std::to_string(version.m_patch);
+			std::string version_text = "Version: " + util::VersionToString(version);
 			ImGui::Text("%s", version_text.c_str());
 			ImGui::Separator();
 			ImGui::Text("Copyright 2019 Viktor Zoutman");
@@ -122,7 +123,7 @@ protected:
 		auto diff = std::chrono::high_resolution_clock::now() - m_start;
 		float t = diff.count();
 
-		sg::helper::SetRotation(m_scene_graph, m_node, glm::vec3(glm::radians(-90.f), glm::radians(t * 0.0000001f), 0));
+		sg::helper::SetRotation(m_scene_graph, m_node, glm::vec3(-90._deg, glm::radians(t * 0.0000001f), 0));
 
 		m_scene_graph->Update();
 		m_renderer->Render(*m_scene_graph, *m_frame_graph);
