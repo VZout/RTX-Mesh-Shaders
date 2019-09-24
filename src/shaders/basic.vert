@@ -7,20 +7,21 @@ layout(location = 2) in vec3 normal;
 layout(location = 3) in vec3 tangent;
 layout(location = 4) in vec3 bitangent;
 
-layout(location = 0) out float g_time;
-layout(location = 1) out vec2 g_uv;
-layout(location = 2) out vec3 g_normal;
-layout(location = 3) out vec3 g_frag_pos;
-layout(location = 4) out vec3 g_tangent;
-layout(location = 5) out vec3 g_bitangent;
+layout(location = 0) out vec2 g_uv;
+layout(location = 1) out vec3 g_normal;
+layout(location = 2) out vec3 g_frag_pos;
+layout(location = 3) out vec3 g_tangent;
+layout(location = 4) out vec3 g_bitangent;
 
 // Uniforms
-layout(binding = 0) uniform UniformBufferObject {
-    float time;
+layout(set = 0, binding = 0) uniform UniformBufferObject {
     mat4 model;
+} ubo;
+
+layout(set = 1, binding = 1) uniform UniformBufferCameraObject {
     mat4 view;
     mat4 proj;
-} ubo;
+} camera;
 
 void main()
 {
@@ -30,8 +31,7 @@ void main()
     g_normal = normalize(ubo.model * vec4(normal, 0)).xyz;
 
     g_frag_pos = vec3(ubo.model * vec4(pos, 1.0));
-    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(pos, 1.0);
-    g_time = ubo.time;
+    gl_Position = camera.proj * camera.view * ubo.model * vec4(pos, 1.0);
     g_uv = uv;
     g_uv.y *= -1;
 }

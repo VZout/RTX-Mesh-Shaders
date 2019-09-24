@@ -64,6 +64,11 @@ gfx::DescriptorHeap::~DescriptorHeap()
 
 std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx)
 {
+	return CreateSRVFromCB(buffer, root_signature->m_descriptor_set_layouts[handle], handle, frame_idx);
+}
+
+std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx)
+{
 	auto logical_device = m_context->m_logical_device;
 
 	// Create the descriptor sets
@@ -71,7 +76,7 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, RootSignat
 	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	alloc_info.descriptorPool = m_descriptor_pools[frame_idx];
 	alloc_info.descriptorSetCount = 1;
-	alloc_info.pSetLayouts = &root_signature->m_descriptor_set_layouts[handle];
+	alloc_info.pSetLayouts = &layout;
 
 	VkDescriptorSet descriptor_set;
 	if (vkAllocateDescriptorSets(logical_device, &alloc_info, &descriptor_set) != VK_SUCCESS)
