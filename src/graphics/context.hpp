@@ -45,6 +45,7 @@ namespace gfx
 		friend class DescriptorHeap;
 		friend class Texture;
 		friend class VkMaterialPool;
+		friend class VkConstantBufferPool;
 
 		friend class ::ImGuiImpl; // TODO: probably dont want this
 	public:

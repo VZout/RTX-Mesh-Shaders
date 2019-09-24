@@ -12,11 +12,12 @@
 #include "resource_structs.hpp"
 
 class Application;
-class ModelData;
+struct ModelData;
 class TinyGLTFModelLoader;
 class ModelPool;
 class TexturePool;
 class MaterialPool;
+class ConstantBufferPool;
 
 namespace sg
 {
@@ -88,6 +89,8 @@ public:
 	void StopComputeTask(gfx::CommandList* cmd_list, std::pair<gfx::RenderTarget*, RenderTargetProperties> render_target);
 	void CloseCommandList(gfx::CommandList* cmd_list);
 	void DestroyCommandList(gfx::CommandList* cmd_list);
+
+	ConstantBufferPool* CreateConstantBufferPool(std::uint32_t binding);
 
 	gfx::RenderTarget* CreateRenderTarget(RenderTargetProperties const & properties, bool compute);
 	void ResizeRenderTarget(gfx::RenderTarget* render_target, std::uint32_t width, std::uint32_t height);

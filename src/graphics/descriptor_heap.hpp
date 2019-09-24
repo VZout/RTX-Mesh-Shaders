@@ -59,6 +59,7 @@ namespace gfx
 			.m_border_color = enums::BorderColor::BORDER_WHITE,
 		};
 
+		std::uint32_t CreateSRVFromCB(GPUBuffer* buffer, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx);
 		std::uint32_t CreateSRVFromCB(GPUBuffer* buffer, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx);
 		std::uint32_t CreateSRVSetFromTexture(std::vector<StagingTexture*> texture, RootSignature* root_signature,
 				std::uint32_t handle, std::uint32_t frame_idx, SamplerDesc sampler_desc = m_default_sampler_desc);
