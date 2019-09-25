@@ -38,8 +38,8 @@ namespace gfx
 		void Begin(std::uint32_t frame_idx);
 		void Close();
 
-		void BindRenderTargetVersioned(RenderTarget* render_target, bool clear = true, bool clear_depth = true);
-		void BindRenderTarget(RenderTarget* render_target, bool clear = true, bool clear_depth = true);
+		void BindRenderTargetVersioned(RenderTarget* render_target);
+		void BindRenderTarget(RenderTarget* render_target);
 		void UnbindRenderTarget();
 		void BindPipelineState(PipelineState* pipeline);
 		void BindComputePipelineState(PipelineState* pipeline);
