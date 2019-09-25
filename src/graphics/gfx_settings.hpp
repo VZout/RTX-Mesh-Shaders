@@ -11,14 +11,14 @@
 
 namespace gfx::settings
 {
-	static const bool enable_validation_layers = true;
+	static const bool enable_validation_layers = false;
 	static const std::vector<const char*> validation_layers =
 	{
 		"VK_LAYER_KHRONOS_validation"
 	};
 	static const std::vector<const char*> device_extensions =
 	{
-		"VK_KHR_swapchain",
+		"VK_KHR_swapchain"
 	};
 	static const std::uint32_t num_back_buffers = 3;
 	static const VkFormat swapchain_format = VK_FORMAT_B8G8R8A8_UNORM;

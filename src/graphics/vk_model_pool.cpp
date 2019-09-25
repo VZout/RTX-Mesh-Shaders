@@ -18,7 +18,7 @@ gfx::VkModelPool::VkModelPool(Context* context)
 
 gfx::VkModelPool::~VkModelPool()
 {
-	auto destroy_func = [](auto buffer_list)
+	auto destroy_func = [](auto& buffer_list)
 	{
 		for (auto& buffer : buffer_list)
 		{

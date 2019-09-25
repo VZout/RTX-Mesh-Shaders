@@ -9,6 +9,7 @@
 #include <stdexcept>
 
 #include "context.hpp"
+#include "gfx_defines.hpp"
 #include "../util/log.hpp"
 
 gfx::RenderTarget::RenderTarget(Context* context)
@@ -185,6 +186,7 @@ void gfx::RenderTarget::CreateImages()
 		{
 			LOGC("failed to allocate image memory!");
 		}
+		VK_NAME_OBJ_DEF(logical_device, m_images_memory[i], VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_MEMORY_EXT)
 
 		vkBindImageMemory(logical_device, m_images[i], m_images_memory[i], 0);
 	}
@@ -372,6 +374,7 @@ void gfx::RenderTarget::CreateDepthBuffer()
 	{
 		LOGC("failed to allocate image memory!");
 	}
+	VK_NAME_OBJ_DEF(logical_device, m_depth_buffer_memory, VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_MEMORY_EXT)
 
 	vkBindImageMemory(logical_device, m_depth_buffer, m_depth_buffer_memory, 0);
 
