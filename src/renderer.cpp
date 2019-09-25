@@ -66,6 +66,23 @@ void Renderer::Init(Application* app)
 	m_application = app;
 	m_context = new gfx::Context(app);
 
+	auto supported_extensions = m_context->GetSupportedExtensions();
+	auto supported_device_extensions = m_context->GetSupportedDeviceExtensions();
+
+	auto print_extensions_func = [](auto extensions)
+	{
+		for (auto extension : extensions)
+		{
+			LOG("\t- {} ({})", extension.extensionName, std::to_string(extension.specVersion));
+		}
+	};
+
+	LOG("Supported Instance Extensions:");
+	print_extensions_func(supported_extensions);
+
+	LOG("Supported Device Extensions:");
+	print_extensions_func(supported_device_extensions);
+
 	LOG("Initialized Vulkan");
 
 	m_viewport = new gfx::Viewport(app->GetWidth(), app->GetHeight());
@@ -262,7 +279,7 @@ void Renderer::StartRenderTask(gfx::CommandList* cmd_list, std::pair<gfx::Render
 
 	if (render_target.second.m_is_render_window)
 	{
-		cmd_list->BindRenderTargetVersioned(render_target.first, desc.m_clear, desc.m_clear_depth);
+		cmd_list->BindRenderTargetVersioned(render_target.first);
 	}
 	else
 	{
@@ -270,7 +287,7 @@ void Renderer::StartRenderTask(gfx::CommandList* cmd_list, std::pair<gfx::Render
 		{
 			cmd_list->TransitionRenderTarget(render_target.first, VK_IMAGE_LAYOUT_UNDEFINED, desc.m_state_execute.value());
 		}
-		cmd_list->BindRenderTarget(render_target.first, desc.m_clear, desc.m_clear_depth);
+		cmd_list->BindRenderTarget(render_target.first);
 	}
 }
 
