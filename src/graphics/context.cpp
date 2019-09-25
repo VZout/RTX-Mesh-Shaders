@@ -166,6 +166,11 @@ gfx::Context::Context(Application* app)
 	m_swapchain_support_details = GetSwapChainSupportDetails(m_physical_device);
 
 	CreateLogicalDevice();
+
+	if (gfx::settings::enable_validation_layers)
+	{
+		SetupDebugMarkerExtension();
+	}
 }
 
 gfx::Context::~Context()
@@ -453,6 +458,15 @@ void gfx::Context::EnableDebugCallback()
 	{
 		LOGC("failed to set up debug messenger!");
 	}
+}
+
+void gfx::Context::SetupDebugMarkerExtension()
+{
+	DebugMarkerSetObjectTag = reinterpret_cast<PFN_vkDebugMarkerSetObjectTagEXT>(vkGetDeviceProcAddr(m_logical_device, "vkDebugMarkerSetObjectTagEXT"));
+	DebugMarkerSetObjectName = reinterpret_cast<PFN_vkDebugMarkerSetObjectNameEXT>(vkGetDeviceProcAddr(m_logical_device, "vkDebugMarkerSetObjectNameEXT"));
+	CmdDebugMarkerBegin = reinterpret_cast<PFN_vkCmdDebugMarkerBeginEXT>(vkGetDeviceProcAddr(m_logical_device, "vkCmdDebugMarkerBeginEXT"));
+	CmdDebugMarkerEnd = reinterpret_cast<PFN_vkCmdDebugMarkerEndEXT>(vkGetDeviceProcAddr(m_logical_device, "vkCmdDebugMarkerEndEXT"));
+	CmdDebugMarkerInsert = reinterpret_cast<PFN_vkCmdDebugMarkerInsertEXT>(vkGetDeviceProcAddr(m_logical_device, "vkCmdDebugMarkerInsertEXT"));
 }
 
 bool gfx::QueueFamilyIndices::HasDirectFamily()

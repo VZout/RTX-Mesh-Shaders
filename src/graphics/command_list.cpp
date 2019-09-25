@@ -91,10 +91,10 @@ void gfx::CommandList::Close()
 	}
 }
 
-void gfx::CommandList::BindRenderTargetVersioned(RenderTarget* render_target, bool clear, bool clear_depth)
+void gfx::CommandList::BindRenderTargetVersioned(RenderTarget* render_target)
 {
 	std::array<VkClearValue, 2> clear_values = {};
-	clear_values[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+	clear_values[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
 	clear_values[1].depthStencil = {1.0f, 0};
 
 	VkRenderPassBeginInfo render_pass_begin_info = {};
@@ -110,13 +110,13 @@ void gfx::CommandList::BindRenderTargetVersioned(RenderTarget* render_target, bo
 	vkCmdBeginRenderPass(m_cmd_buffers[m_frame_idx], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-void gfx::CommandList::BindRenderTarget(RenderTarget* render_target, bool clear, bool clear_depth)
+void gfx::CommandList::BindRenderTarget(RenderTarget* render_target)
 {
 	auto num_render_targets = render_target->m_images.size();
 	std::vector<VkClearValue> clear_values(num_render_targets + 1);
 	for (std::size_t i = 0; i < num_render_targets; i++)
 	{
-		clear_values[i].color = {0.0f, 0.0f, 0.0f, 1.0f};
+		clear_values[i].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
 	}
 	clear_values.back().depthStencil = {1.0f, 0 };
 

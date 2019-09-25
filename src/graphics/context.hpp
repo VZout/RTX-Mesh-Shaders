@@ -59,6 +59,12 @@ namespace gfx
 		void WaitForDevice();
 		std::uint32_t FindMemoryType(std::uint32_t filter, VkMemoryPropertyFlags properties);
 
+		inline static PFN_vkDebugMarkerSetObjectTagEXT DebugMarkerSetObjectTag = VK_NULL_HANDLE;
+		inline static PFN_vkDebugMarkerSetObjectNameEXT DebugMarkerSetObjectName = VK_NULL_HANDLE;
+		inline static PFN_vkCmdDebugMarkerBeginEXT CmdDebugMarkerBegin = VK_NULL_HANDLE;
+		inline static PFN_vkCmdDebugMarkerEndEXT CmdDebugMarkerEnd = VK_NULL_HANDLE;
+		inline static PFN_vkCmdDebugMarkerInsertEXT CmdDebugMarkerInsert = VK_NULL_HANDLE;
+
 	private:
 		std::vector<VkExtensionProperties> GetSupportedDeviceExtensions(VkPhysicalDevice device);
 		void CreateSurface();
@@ -69,6 +75,7 @@ namespace gfx
 		std::uint32_t GetDeviceSuitabilityRating(VkPhysicalDevice device);
 		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 		void EnableDebugCallback();
+		void SetupDebugMarkerExtension();
 
 		VkApplicationInfo m_app_info = {};
 		VkInstanceCreateInfo  m_instance_create_info;

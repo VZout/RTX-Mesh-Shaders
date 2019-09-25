@@ -8,6 +8,7 @@
 
 #include "../util/log.hpp"
 #include "context.hpp"
+#include "gfx_defines.hpp"
 
 gfx::GPUBuffer::GPUBuffer(gfx::Context* context, std::uint64_t size)
 	: m_context(context), m_size(size), m_mapped(false), m_mapped_data(nullptr), m_buffer(VK_NULL_HANDLE),
@@ -97,6 +98,7 @@ void gfx::GPUBuffer::CreateBufferAndMemory(VkDeviceSize size, VkBufferUsageFlags
 	{
 		LOGC("failed to allocate vertex buffer memory!");
 	}
+	VK_NAME_OBJ_DEF(logical_device, memory, VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_MEMORY_EXT)
 
 	// Bind the buffer to the memory allocation
 	if (vkBindBufferMemory(logical_device, buffer, memory, 0))
@@ -229,6 +231,7 @@ void gfx::Texture::CreateImageAndMemory(VkImageTiling tiling, VkImageUsageFlags 
 	{
 		LOGC("failed to allocate image memory!");
 	}
+	VK_NAME_OBJ_DEF(logical_device, memory, VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_MEMORY_EXT)
 
 	vkBindImageMemory(logical_device, image, memory, 0);
 }

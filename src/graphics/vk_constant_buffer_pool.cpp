@@ -45,6 +45,8 @@ gfx::VkConstantBufferPool::VkConstantBufferPool(Context* context, std::uint32_t 
 
 gfx::VkConstantBufferPool::~VkConstantBufferPool()
 {
+	auto logical_device = m_context->m_logical_device;
+
 	for (auto & buffers_l : m_buffers)
 	{
 		for (auto & buffer : buffers_l)
@@ -53,6 +55,8 @@ gfx::VkConstantBufferPool::~VkConstantBufferPool()
 			delete buffer;
 		}
 	}
+
+	vkDestroyDescriptorSetLayout(logical_device, m_cb_set_layout, nullptr);
 
 	delete m_desc_heap;
 }
