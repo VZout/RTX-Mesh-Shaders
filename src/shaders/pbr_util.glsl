@@ -1,4 +1,4 @@
-#define M_PI 3.14159265358979
+#define M_PI 3.1415926535897932384626433832795
 
 // Normal distribution
 float D_GGX(float dotNH, float roughness)
@@ -22,14 +22,14 @@ float G_SchlicksmithGGX(float NdotL, float NdotV, float roughness)
 // Fresnel function
 vec3 F_Schlick(float cos_theta, float metallic, vec3 material_color)
 {
-    vec3 F0 = mix(vec3(0.04, 0.04, 0.04), material_color, metallic); // * material.specular
+    vec3 F0 = mix(vec3(0.04), material_color, metallic); // * material.specular
     vec3 F = F0 + (1.0 - F0) * pow(1.0 - cos_theta, 5.0);
     return F;
 }
 
 vec3 F_SchlickRoughness(float cos_theta, float metallic, vec3 material_color, float roughness)
 {
-    vec3 F0 = mix(vec3(0.04f, 0.04f, 0.04f), material_color, metallic); // * material.specular
+    vec3 F0 = mix(vec3(0.04f), material_color, metallic); // * material.specular
     vec3 F = F0 + (max(vec3(1.0f - roughness, 1.0f - roughness, 1.0f - roughness), F0) - F0) * pow(1.0f - cos_theta, 5.0f);
     return F;
 }

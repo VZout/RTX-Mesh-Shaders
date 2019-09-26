@@ -40,7 +40,7 @@ void main()
 
     // Constants
     const float specular_strength = 0.5;
-    const float irradiance = 0.2;
+    const float irradiance = 0.1;
     const vec3 view_pos = vec3(0, 0, -2.5);
 
     vec3 V = normalize(view_pos - world_pos);
