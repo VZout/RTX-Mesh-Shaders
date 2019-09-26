@@ -27,7 +27,6 @@ void main()
     float roughness = 0;
     if (true)
     {
-        vec2 uv = g_uv;
         vec3 compressed_mra = texture(ts_textures[2], g_uv).rgb;
         roughness = compressed_mra.g;
         metallic = compressed_mra.b;
