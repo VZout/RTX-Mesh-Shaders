@@ -11,7 +11,7 @@
 
 namespace gfx::settings
 {
-	static const bool enable_validation_layers = false;
+	static const bool enable_validation_layers = true;
 	static const std::vector<const char*> validation_layers =
 	{
 		"VK_LAYER_KHRONOS_validation"
@@ -25,4 +25,5 @@ namespace gfx::settings
 	static const VkPresentModeKHR swapchain_present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
 	static const VkColorSpaceKHR swapchain_color_space = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 	static const VkCullModeFlags cull_mode = VK_CULL_MODE_BACK_BIT;
+	static const std::uint32_t max_lights = 50;
 }

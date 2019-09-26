@@ -1,7 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout(set = 2, binding = 2) uniform sampler2D ts_textures[2];
+layout(set = 2, binding = 2) uniform sampler2D ts_textures[3];
 
 layout(location = 0) in vec2 g_uv;
 layout(location = 1) in vec3 g_normal;
@@ -15,22 +15,24 @@ layout(location = 2) out vec4 out_pos;
 
 void main()
 {
-    vec3 normal = g_normal;
+    vec3 normal = normalize(g_normal);
     normal.y = -normal.y;
-    mat3 TBN = { g_tangent, g_bitangent, g_normal };
-    vec3 obj_normal = normalize(texture(ts_textures[1], g_uv).xyz * TBN);
+    mat3 TBN = mat3( normalize(g_tangent), normalize(g_bitangent), normal );
+    vec3 normal_t = normalize(texture(ts_textures[1], g_uv).xyz * 2.0f - vec3(1.0));
+    vec3 obj_normal = TBN * normal_t;
     vec3 albedo = texture(ts_textures[0], g_uv).xyz;
 
     float metallic = 0;
     float roughness = 0;
     if (true)
     {
-        vec2 compressed_mr = texture(ts_textures[0], g_uv).rg;
-        float roughness = compressed_mr.x;
-        float metallic = compressed_mr.y;
+        vec2 uv = g_uv;
+        vec3 compressed_mra = texture(ts_textures[2], g_uv).rgb;
+        roughness = compressed_mra.g;
+        metallic = compressed_mra.b;
     }
 
-    out_color = vec4(albedo, 1);
-    out_normal = vec4(obj_normal, 1);
+    out_color = vec4(albedo, roughness);
+    out_normal = vec4(obj_normal, metallic);
     out_pos = vec4(g_frag_pos, 1);
 }

@@ -42,11 +42,16 @@ namespace sg
 	{
 	};
 
+	class LightComponent
+	{
+	};
+
 	struct Node
 	{
 		ComponentHandle m_transform_component;
 		ComponentHandle m_mesh_component;
 		ComponentHandle m_camera_component;
+		ComponentHandle m_light_component;
 	};
 
 	namespace internal
@@ -167,12 +172,37 @@ namespace sg
 			m_camera_node_handles.push_back(handle);
 		}
 
+		template<typename T>
+		typename Void_IsComponent<T, LightComponent>::type PromoteNode(NodeHandle handle, glm::vec3 color = { 1, 1, 1 })
+		{
+			auto& node = m_nodes[handle];
+			node.m_light_component = m_light_node_handles.size();
+
+			// A light requires a transform.
+			if (node.m_transform_component == -1)
+			{
+				PromoteNode<TransformComponent>(handle);
+			}
+
+			m_requires_light_buffer_update.emplace_back(ComponentData<std::vector<bool>>(
+					std::vector<bool>(gfx::settings::num_back_buffers, true),
+					handle
+			));
+
+			m_colors.emplace_back(ComponentData<glm::vec3>{color, handle});
+
+			m_light_node_handles.push_back(handle);
+		}
+
 		void Update(std::uint32_t frame_idx);
 
 		void SetPOConstantBufferPool(ConstantBufferPool* pool);
 		ConstantBufferPool* GetPOConstantBufferPool();
 		void SetCameraConstantBufferPool(ConstantBufferPool* pool);
 		ConstantBufferPool* GetCameraConstantBufferPool();
+		void SetLightConstantBufferPool(ConstantBufferPool* pool);
+		ConstantBufferPool* GetLightConstantBufferPool();
+		ConstantBufferHandle GetLightBufferHandle();
 
 		// Transformation Component
 		std::vector<ComponentData<glm::vec3>> m_positions;
@@ -190,13 +220,21 @@ namespace sg
 		std::vector<ComponentData<ConstantBufferHandle>> m_camera_cb_handles;
 		std::vector<ComponentData<std::vector<bool>>> m_requires_camera_buffer_update;
 
+		// Light Component
+		std::vector<ComponentData<std::vector<bool>>> m_requires_light_buffer_update;
+		std::vector<ComponentData<glm::vec3>> m_colors;
+		std::vector<std::size_t> m_num_lights;
+
 	private:
 		std::vector<Node> m_nodes;
 		std::vector<NodeHandle> m_node_handles;
 		std::vector<NodeHandle> m_mesh_node_handles;
 		std::vector<NodeHandle> m_camera_node_handles;
+		std::vector<NodeHandle> m_light_node_handles;
 		ConstantBufferPool* m_per_object_buffer_pool;
 		ConstantBufferPool* m_camera_buffer_pool;
+		ConstantBufferPool* m_light_buffer_pool;
+		ConstantBufferHandle m_light_buffer_handle;
 
 	};
 

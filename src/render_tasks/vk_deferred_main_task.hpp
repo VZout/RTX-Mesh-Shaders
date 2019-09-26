@@ -105,11 +105,12 @@ namespace tasks
 			.m_width = std::nullopt,
 			.m_height = std::nullopt,
 			.m_dsv_format = VK_FORMAT_D32_SFLOAT,
-			.m_rtv_formats = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R16G16B16A16_SFLOAT, VK_FORMAT_R16G16B16A16_SFLOAT },
+			.m_rtv_formats = { VK_FORMAT_R16G16B16A16_SFLOAT, VK_FORMAT_R16G16B16A16_SFLOAT, VK_FORMAT_R16G16B16A16_SFLOAT },
 			.m_state_execute = std::nullopt,
-			.m_state_finished = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			.m_state_finished = VK_IMAGE_LAYOUT_GENERAL,
 			.m_clear = true,
-			.m_clear_depth = true
+			.m_clear_depth = true,
+			.m_allow_direct_access = true
 		};
 
 		fg::RenderTaskDesc desc;

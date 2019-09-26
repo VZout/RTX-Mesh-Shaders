@@ -22,4 +22,18 @@ namespace cb
 		alignas(16) glm::mat4 m_proj;
 	};
 
+	enum class LightType : int
+	{
+		POINT, DIRECTIONAL, SPOT, FREE
+	};
+
+	struct Light
+	{
+		glm::vec3 m_pos = { 0, 0, 0 };
+		float m_radius = 0.0f;
+
+		glm::vec3 m_color = { 1, 1, 1 };
+		std::uint32_t m_type = (std::uint32_t)LightType::FREE;
+	};
+
 } /* CB */

@@ -72,7 +72,7 @@ gfx::PipelineState::PipelineState(Context* context, Desc desc)
 	// Color Blend Attachment
 	VkPipelineColorBlendAttachmentState color_blend_attachment_info = {};
 	color_blend_attachment_info.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-	color_blend_attachment_info.blendEnable = VK_TRUE;
+	color_blend_attachment_info.blendEnable = VK_FALSE;
 	color_blend_attachment_info.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 	color_blend_attachment_info.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 	color_blend_attachment_info.colorBlendOp = VK_BLEND_OP_ADD;

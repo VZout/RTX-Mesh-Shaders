@@ -30,7 +30,7 @@ public:
 	virtual ~ConstantBufferPool() = default;
 
 	ConstantBufferHandle Allocate(std::uint64_t size);
-	virtual void Update(ConstantBufferHandle handle, std::uint64_t size, void* data, std::uint32_t frame_idx) = 0;
+	virtual void Update(ConstantBufferHandle handle, std::uint64_t size, void* data, std::uint32_t frame_idx, std::uint64_t offset = 0) = 0;
 
 private:
 	virtual void Allocate_Impl(ConstantBufferHandle& handle, std::uint64_t size) = 0;

@@ -18,10 +18,10 @@ namespace gfx
 	class VkConstantBufferPool : public ConstantBufferPool
 	{
 	public:
-		explicit VkConstantBufferPool(Context* context, std::uint32_t binding);
+		explicit VkConstantBufferPool(Context* context, std::uint32_t binding, VkShaderStageFlags flags = VK_SHADER_STAGE_VERTEX_BIT);
 		~VkConstantBufferPool() final;
 
-		void Update(ConstantBufferHandle handle, std::uint64_t size, void* data, std::uint32_t frame_idx) final;
+		void Update(ConstantBufferHandle handle, std::uint64_t size, void* data, std::uint32_t frame_idx, std::uint64_t offset = 0) final;
 
 		gfx::DescriptorHeap* GetDescriptorHeap();
 

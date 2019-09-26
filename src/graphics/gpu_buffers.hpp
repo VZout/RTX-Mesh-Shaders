@@ -31,7 +31,7 @@ namespace gfx
 
 		virtual void Map();
 		virtual void Unmap();
-		virtual void Update(void* data, std::uint64_t size);
+		void Update(void* data, std::uint64_t size, std::uint64_t offset = 0);
 
 	protected:
 		void CreateBufferAndMemory(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,

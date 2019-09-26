@@ -16,7 +16,7 @@ REGISTER(pipelines::basic, PipelineRegistry)({
 	.m_input_layout = Vertex::GetInputLayout(),
 
 	.m_type = gfx::enums::PipelineType::GRAPHICS_PIPE,
-	.m_rtv_formats = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R16G16B16A16_SFLOAT, VK_FORMAT_R16G16B16A16_SFLOAT },
+	.m_rtv_formats = { VK_FORMAT_R16G16B16A16_SFLOAT, VK_FORMAT_R16G16B16A16_SFLOAT, VK_FORMAT_R16G16B16A16_SFLOAT },
     .m_depth_format = VK_FORMAT_D32_SFLOAT,
 	.m_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	.m_counter_clockwise = true

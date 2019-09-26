@@ -12,7 +12,7 @@
 #include "gpu_buffers.hpp"
 #include "../util/log.hpp"
 
-gfx::VkConstantBufferPool::VkConstantBufferPool(Context* context, std::uint32_t binding)
+gfx::VkConstantBufferPool::VkConstantBufferPool(Context* context, std::uint32_t binding, VkShaderStageFlags flags)
 	: m_context(context), m_binding(binding), m_cb_set_layout(VK_NULL_HANDLE), m_desc_heap(nullptr)
 {
 	auto logical_device = context->m_logical_device;
@@ -29,7 +29,7 @@ gfx::VkConstantBufferPool::VkConstantBufferPool(Context* context, std::uint32_t 
 	parameters[0].binding = m_binding;
 	parameters[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	parameters[0].descriptorCount = 1;
-	parameters[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	parameters[0].stageFlags = flags;
 	parameters[0].pImmutableSamplers = nullptr;
 
 	VkDescriptorSetLayoutCreateInfo descriptor_set_create_info = {};
@@ -61,9 +61,9 @@ gfx::VkConstantBufferPool::~VkConstantBufferPool()
 	delete m_desc_heap;
 }
 
-void gfx::VkConstantBufferPool::Update(ConstantBufferHandle handle, std::uint64_t size, void* data, std::uint32_t frame_idx)
+void gfx::VkConstantBufferPool::Update(ConstantBufferHandle handle, std::uint64_t size, void* data, std::uint32_t frame_idx, std::uint64_t offset)
 {
-	m_buffers[frame_idx][handle.m_cb_id]->Update(data, size);
+	m_buffers[frame_idx][handle.m_cb_id]->Update(data, size, offset);
 }
 
 gfx::DescriptorHeap* gfx::VkConstantBufferPool::GetDescriptorHeap()

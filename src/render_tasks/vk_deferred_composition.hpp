@@ -56,26 +56,27 @@ namespace tasks
 				.m_border_color = gfx::enums::BorderColor::BORDER_WHITE,
 			};
 
+			// GPU Heap
 			gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
 			descriptor_heap_desc.m_versions = 1;
 			descriptor_heap_desc.m_num_descriptors = 3;
 			data.m_gbuffer_heap = new gfx::DescriptorHeap(rs.GetContext(), descriptor_heap_desc);
-			data.m_gbuffer_set = data.m_gbuffer_heap->CreateSRVSetFromRT(deferred_main_rt, data.m_root_sig, 1, 0, false, gbuffer_sampler_desc);
+			data.m_gbuffer_set = data.m_gbuffer_heap->CreateSRVSetFromRT(deferred_main_rt, data.m_root_sig, 1, 0,false, std::nullopt);
 			data.m_uav_target_set = data.m_gbuffer_heap->CreateUAVSetFromRT(render_target, 0, data.m_root_sig, 2, 0, gbuffer_sampler_desc);
 
 			if (resize) return;
 
+
+			// Descriptors uniform camera
 			auto desc_heap = rs.GetDescHeap();
 			data.m_cb_sets.resize(gfx::settings::num_back_buffers);
-
-			// Descriptors uniform
 			data.m_cbs.resize(gfx::settings::num_back_buffers);
-			for (std::uint32_t i = 0; i < gfx::settings::num_back_buffers; i++)
+			for (std::uint32_t frame_idx = 0; frame_idx < gfx::settings::num_back_buffers; frame_idx++)
 			{
-				data.m_cbs[i] = new gfx::GPUBuffer(context, sizeof(cb::Basic), gfx::enums::BufferUsageFlag::CONSTANT_BUFFER);
-				data.m_cbs[i]->Map();
+				data.m_cbs[frame_idx] = new gfx::GPUBuffer(context, sizeof(cb::Basic), gfx::enums::BufferUsageFlag::CONSTANT_BUFFER);
+				data.m_cbs[frame_idx]->Map();
 
-				data.m_cb_sets[i].push_back(desc_heap->CreateSRVFromCB(data.m_cbs[i], data.m_root_sig, 0, i));
+				data.m_cb_sets[frame_idx].push_back(desc_heap->CreateSRVFromCB(data.m_cbs[frame_idx], data.m_root_sig, 0, frame_idx));
 			}
 		}
 
@@ -87,8 +88,8 @@ namespace tasks
 			auto pipeline = PipelineRegistry::SFind(pipelines::composition);
 			auto desc_heap = rs.GetDescHeap();
 			auto render_target = fg.GetRenderTarget(handle);
-
-			glm::vec3 cam_pos = glm::vec3(0, 0, -2.5);
+			auto light_pool = static_cast<gfx::VkConstantBufferPool*>(sg.GetLightConstantBufferPool());
+			auto light_buffer_handle = sg.GetLightBufferHandle();
 
 			cb::Basic basic_cb_data;
 			data.m_cbs[frame_idx]->Update(&basic_cb_data, sizeof(cb::Basic));
@@ -98,6 +99,7 @@ namespace tasks
 				{ desc_heap, data.m_cb_sets[frame_idx][0] },
 				{ data.m_gbuffer_heap, data.m_gbuffer_set },
 				{ data.m_gbuffer_heap, data.m_uav_target_set },
+				{ light_pool->GetDescriptorHeap(), light_buffer_handle.m_cb_set_id }
 			};
 
 			cmd_list->BindComputePipelineState(pipeline);
@@ -128,7 +130,7 @@ namespace tasks
 			.m_width = std::nullopt,
 			.m_height = std::nullopt,
 			.m_dsv_format = VK_FORMAT_UNDEFINED,
-			.m_rtv_formats = { VK_FORMAT_B8G8R8A8_UNORM },
+			.m_rtv_formats = { VK_FORMAT_R16G16B16A16_SFLOAT },
 			.m_state_execute = VK_IMAGE_LAYOUT_GENERAL,
 			.m_state_finished = std::nullopt,
 			.m_clear = false,
