@@ -1,40 +1,69 @@
 #version 450
 
+#include "pbr_util.glsl"
+
 layout (local_size_x = 16, local_size_y = 16) in;
 
-layout(set = 1, binding = 1) uniform sampler2D ts_gbuffers[3];
-layout(set = 2, binding = 2, rgba8) uniform image2D t_output;
+layout(set = 1, binding = 1, rgba8) uniform readonly image2D ts_gbuffers[3];
+layout(set = 2, binding = 2, rgba8) uniform writeonly image2D t_output;
+
+struct Light
+{
+    vec3 m_pos;
+    float m_radius;
+
+    vec3 m_color;
+    uint m_type;
+};
+
+layout(set = 3, binding = 3) uniform UniformBufferLightObject {
+    Light lights[50];
+} lights;
 
 void main()
 {
     const ivec2 resolution = imageSize(t_output);
     const vec2 uv = (vec2(gl_GlobalInvocationID.xy + 0.5f) / resolution);
+    const ivec2 s_uv = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
 
     // GBuffers
-    const vec3 albedo = texture(ts_gbuffers[0], uv).rgb;
-    const vec3 normal = texture(ts_gbuffers[1], uv).rgb;
-    const vec3 world_pos = texture(ts_gbuffers[2], uv).xyz;
+    const vec4 albedo_roughness = imageLoad(ts_gbuffers[0], s_uv);
+    const vec4 normal_metallic = imageLoad(ts_gbuffers[1], s_uv);
+    const vec3 world_pos = imageLoad(ts_gbuffers[2], s_uv).xyz;
+
+    const vec3 albedo = albedo_roughness.rgb;
+    const vec3 N = normalize(normal_metallic.xyz);
+    const float roughness = albedo_roughness.a;
+    const float metallic = normal_metallic.a;
 
     // Constants
     const float specular_strength = 0.5;
-    const float ambient = 0.1;
-    const vec3 light_color = vec3(1);
+    const float irradiance = 0.1;
     const vec3 view_pos = vec3(0, 0, -2.5);
-    const vec3 light_pos = view_pos;
 
-    // Diffuse
-    vec3 norm = normalize(normal);
-    vec3 light_dir = normalize(light_pos - world_pos);
-    float diff = max(dot(norm, light_dir), 0.0);
-    vec3 diffuse = diff * light_color;
+    vec3 V = normalize(view_pos - world_pos);
+    vec3 R = reflect(-V, N);
 
-    // Specular
-    vec3 view_dir = normalize(view_pos - world_pos);
-    vec3 reflect_dir = reflect(-light_dir, norm);
-    float spec = pow(max(dot(view_dir, reflect_dir), 0.0), 32);
-    vec3 specular = specular_strength * spec * light_color;
+    uint num_lights = lights.lights[0].m_type >> 2; //Light count is stored in 30 upper-bits of first light
 
-    vec3 color = (ambient + diffuse + specular) * albedo;
+    vec3 lighting = vec3(0);
+    for (uint i = 0; i < num_lights; i++)
+    {
+        const vec3 light_color = lights.lights[i].m_color;
+        const vec3 light_pos = lights.lights[i].m_pos;
+
+        vec3 L = normalize(light_pos - world_pos);
+
+        lighting += BRDF(L, V, N, metallic, roughness, albedo, light_color);
+    }
+
+    vec3 diffuse = irradiance * albedo;
+    vec3 F = F_SchlickRoughness(max(dot(N, V), 0.0), metallic, albedo, roughness);
+    vec3 specular = vec3(0);
+
+    vec3 kD = 1.0 - F;
+    kD *= 1.0 - metallic;
+    vec3 color = (kD * diffuse + specular) + lighting;
 
     if (world_pos.z == 0)
     {

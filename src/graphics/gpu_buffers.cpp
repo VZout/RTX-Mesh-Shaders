@@ -57,14 +57,14 @@ void gfx::GPUBuffer::Unmap()
 	Unmap_Internal(m_buffer_memory);
 }
 
-void gfx::GPUBuffer::Update(void* data, std::uint64_t size)
+void gfx::GPUBuffer::Update(void* data, std::uint64_t size, std::uint64_t offset)
 {
 	if (!m_mapped)
 	{
 		LOGC("Can't update a buffer that is not mapped.");
 	}
 
-	memcpy(m_mapped_data, data, static_cast<std::size_t>(size));
+	memcpy(static_cast<std::uint8_t*>(m_mapped_data) + offset, data, static_cast<std::size_t>(size));
 }
 
 void gfx::GPUBuffer::CreateBufferAndMemory(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,

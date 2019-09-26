@@ -8,7 +8,7 @@
 
 sg::SceneGraph::SceneGraph()
 {
-
+	m_num_lights.resize(gfx::settings::num_back_buffers, 0);
 }
 
 sg::SceneGraph::~SceneGraph()
@@ -24,7 +24,8 @@ sg::NodeHandle sg::SceneGraph::CreateNode()
 	m_nodes.emplace_back(Node{
 		.m_transform_component = -1,
 		.m_mesh_component = -1,
-		.m_camera_component = -1
+		.m_camera_component = -1,
+		.m_light_component = -1
 	});
 
 	m_node_handles.push_back(new_node_handle);
@@ -56,6 +57,10 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 		if (parent_node.m_camera_component != -1)
 		{
 			m_requires_camera_buffer_update[parent_node.m_camera_component] = std::vector<bool>(gfx::settings::num_back_buffers, true);
+		}
+		if (parent_node.m_light_component != -1)
+		{
+			m_requires_light_buffer_update[parent_node.m_light_component] = std::vector<bool>(gfx::settings::num_back_buffers, true);
 		}
 	}
 
@@ -95,6 +100,53 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 
 		m_requires_camera_buffer_update[node.m_camera_component].m_value[frame_idx] = false;
 	}
+
+	// Update constant bufffer for lights
+	for (auto& requires_update : m_requires_light_buffer_update)
+	{
+		if (!requires_update.m_value[frame_idx]) continue;
+
+		auto node = m_nodes[requires_update.m_node_handle];
+
+		glm::vec3 pos = m_positions[node.m_transform_component].m_value;
+		glm::vec3 color = m_colors[node.m_light_component].m_value;
+
+		cb::Light light;
+		light.m_pos = pos;
+		light.m_type = (std::uint32_t)cb::LightType::POINT;
+		if (node.m_light_component == 0)
+		{
+			light.m_type &= 0x3; // Keep id
+			light.m_type |= std::uint32_t(m_light_node_handles.size() + 1) << 2; // Set number of lights
+		}
+		light.m_color = color;
+
+		auto light_id = node.m_light_component;
+		auto offset = light_id * sizeof(cb::Light);
+
+		m_light_buffer_pool->Update(m_light_buffer_handle, sizeof(cb::Light), &light, frame_idx, offset);
+
+		m_requires_light_buffer_update[node.m_light_component].m_value[frame_idx] = false;
+	}
+
+	// A light was added or removed
+	if (m_num_lights[frame_idx] != m_light_node_handles.size())
+	{
+		cb::Light light{};
+		if (!m_light_node_handles.empty())
+		{
+			auto node = m_nodes[m_light_node_handles[0]];
+			light.m_pos = m_positions[node.m_transform_component].m_value;
+			light.m_color = m_colors[node.m_light_component].m_value;
+			light.m_type = (std::uint32_t)cb::LightType::POINT;
+		}
+		light.m_type &= 0x3; // Keep id
+		light.m_type |= std::uint32_t(m_light_node_handles.size() + 1) << 2; // Set number of lights
+
+		m_light_buffer_pool->Update(m_light_buffer_handle, sizeof(cb::Light), &light, frame_idx, 0);
+
+		m_num_lights[frame_idx] = m_light_node_handles.size();
+	}
 }
 
 void sg::SceneGraph::SetPOConstantBufferPool(ConstantBufferPool* pool)
@@ -115,6 +167,32 @@ void sg::SceneGraph::SetCameraConstantBufferPool(ConstantBufferPool* pool)
 ConstantBufferPool* sg::SceneGraph::GetCameraConstantBufferPool()
 {
 	return m_camera_buffer_pool;
+}
+
+void sg::SceneGraph::SetLightConstantBufferPool(ConstantBufferPool* pool)
+{
+	m_light_buffer_pool = pool;
+	m_light_buffer_handle = m_light_buffer_pool->Allocate(sizeof(cb::Light) * gfx::settings::max_lights);
+
+	cb::Light light = {};
+	light.m_type &= 3;
+	light.m_type |= 0 << 2;
+
+	// Initialize the buffer as empty.
+	for (std::uint32_t i = 0; i < gfx::settings::num_back_buffers; i++)
+	{
+		m_light_buffer_pool->Update(m_light_buffer_handle, sizeof(cb::Light), &light, i);
+	}
+}
+
+ConstantBufferPool* sg::SceneGraph::GetLightConstantBufferPool()
+{
+	return m_light_buffer_pool;
+}
+
+ConstantBufferHandle sg::SceneGraph::GetLightBufferHandle()
+{
+	return m_light_buffer_handle;
 }
 
 sg::Node sg::SceneGraph::GetNode(sg::NodeHandle handle)

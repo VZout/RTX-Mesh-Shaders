@@ -16,8 +16,8 @@ void main()
 
     //ImageData data = GetNeighbours();
     //vec3 rgb = Sharpen(data);
-    //vec3 rgb = imageLoad(t_input, ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y)).rgb;
-    vec3 rgb = ChromaticAberration(uv, 0.4, 0.95f, resolution);
+    vec3 rgb = imageLoad(t_input, ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y)).rgb;
+    //vec3 rgb = ChromaticAberration(uv, 0.4, 0.95f, resolution);
 
     const float gamma = 2.2;
     const float exposure = 1.5;

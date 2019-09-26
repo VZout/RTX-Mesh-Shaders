@@ -291,6 +291,10 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromRT(RenderTarget* render_targe
 		view_info.format = render_target->m_desc.m_rtv_formats[i];
 		view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		view_info.subresourceRange.baseMipLevel = 0;
+		view_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		view_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+		view_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+		view_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
 		view_info.subresourceRange.levelCount = 1;
 		view_info.subresourceRange.baseArrayLayer = 0;
 		view_info.subresourceRange.layerCount = 1;

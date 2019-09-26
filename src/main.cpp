@@ -76,9 +76,9 @@ protected:
 					{
 						name_prefix = "Camera Node";
 					}
-					else if (node.m_transform_component > -1)
+					else if (node.m_light_component > -1)
 					{
-						name_prefix = "Transform Node";
+						name_prefix = "Light Node";
 					}
 
 					auto node_name = name_prefix + " (" + std::to_string(i) + ")";
@@ -108,10 +108,16 @@ protected:
 				ImGui::DragFloat3("Rotation", &euler[0], 0.1f);
 				m_scene_graph->m_rotations[node.m_transform_component].m_value = glm::quat(glm::radians(euler));
 
-				if (node.m_camera_component == -1)
+				if (node.m_camera_component == -1 && node.m_light_component == -1)
 				{
 					ImGui::DragFloat3("Scale", &m_scene_graph->m_scales[node.m_transform_component].m_value[0], 0.01f);
 				}
+			}
+
+			if (node.m_light_component > -1)
+			{
+				ImGui::Separator();
+				ImGui::DragFloat3("Color", &m_scene_graph->m_colors[node.m_light_component].m_value[0], 0.1f);
 			}
 
 			m_scene_graph->m_requires_update[node.m_transform_component] = true;
@@ -176,6 +182,7 @@ protected:
 		m_scene_graph = new sg::SceneGraph();
 		m_scene_graph->SetPOConstantBufferPool(m_renderer->CreateConstantBufferPool(0));
 		m_scene_graph->SetCameraConstantBufferPool(m_renderer->CreateConstantBufferPool(1));
+		m_scene_graph->SetLightConstantBufferPool(m_renderer->CreateConstantBufferPool(3, VK_SHADER_STAGE_COMPUTE_BIT));
 
 		m_camera_node = m_scene_graph->CreateNode<sg::CameraComponent>();
 		sg::helper::SetPosition(m_scene_graph, m_camera_node, glm::vec3(0, 0, -2.5));
@@ -190,6 +197,22 @@ protected:
 			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(0.75, -0.65, 0));
 			sg::helper::SetScale(m_scene_graph, node, glm::vec3(0.01, 0.01, 0.01));
 			sg::helper::SetRotation(m_scene_graph, node, glm::vec3(glm::radians(-90.f), glm::radians(90.f), 0));
+		}
+
+		// light node
+		{
+			auto node = m_scene_graph->CreateNode<sg::LightComponent>();
+			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(0.f, 0.f, -4));
+		}
+		// light node
+		{
+			auto node = m_scene_graph->CreateNode<sg::LightComponent>(glm::vec3{ 1, 0, 0 });
+			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(1.f, 0.f, -2.25));
+		}
+		// light node
+		{
+			auto node = m_scene_graph->CreateNode<sg::LightComponent>(glm::vec3{ 0, 0, 1 });
+			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(-1.f, 0.f, -2.25));
 		}
 
 		m_start = std::chrono::high_resolution_clock::now();

@@ -32,14 +32,14 @@ REGISTER(root_signatures::basic, RootSignatureRegistry)({
 REGISTER(root_signatures::composition, RootSignatureRegistry)({
     .m_parameters = []() -> decltype(RootSignatureDesc::m_parameters)
     {
-        decltype(RootSignatureDesc::m_parameters) params(3);
+        decltype(RootSignatureDesc::m_parameters) params(4);
 	    params[0].binding = 0; // root parameter 0
 	    params[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	    params[0].descriptorCount = 1;
 	    params[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 	    params[0].pImmutableSamplers = nullptr;
 	    params[1].binding = 1; // root parameter 1
-	    params[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	    params[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 	    params[1].descriptorCount = 3;
 	    params[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 	    params[1].pImmutableSamplers = nullptr;
@@ -48,6 +48,11 @@ REGISTER(root_signatures::composition, RootSignatureRegistry)({
 	    params[2].descriptorCount = 1;
 	    params[2].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 	    params[2].pImmutableSamplers = nullptr;
+	    params[3].binding = 3; // root parameter 3
+	    params[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	    params[3].descriptorCount = 1;
+	    params[3].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+	    params[3].pImmutableSamplers = nullptr;
         return params;
     }(),
 });

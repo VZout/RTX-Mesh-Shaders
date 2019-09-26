@@ -348,7 +348,7 @@ gfx::RenderTarget* Renderer::CreateRenderTarget(RenderTargetProperties const & p
 		desc.m_depth_format = properties.m_dsv_format;
 		desc.m_width = properties.m_width.has_value() ? properties.m_width.value() : m_application->GetWidth();
 		desc.m_height = properties.m_height.has_value() ? properties.m_height.value() : m_application->GetHeight();
-		desc.m_allow_uav = compute;
+		desc.m_allow_uav = properties.m_allow_direct_access || compute;
 		desc.m_clear = properties.m_clear;
 		desc.m_clear_depth = properties.m_clear_depth;
 		auto new_rt = new gfx::RenderTarget(m_context, desc);
@@ -366,9 +366,9 @@ void Renderer::DestroyRenderTarget(gfx::RenderTarget* render_target)
 	delete render_target;
 }
 
-ConstantBufferPool* Renderer::CreateConstantBufferPool(std::uint32_t binding)
+ConstantBufferPool* Renderer::CreateConstantBufferPool(std::uint32_t binding, VkShaderStageFlags flags)
 {
-	return new gfx::VkConstantBufferPool(m_context, binding);
+	return new gfx::VkConstantBufferPool(m_context, binding, flags);
 }
 
 gfx::RenderWindow* Renderer::GetRenderWindow()

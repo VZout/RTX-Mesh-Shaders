@@ -250,7 +250,7 @@ TinyGLTFModelLoader::AnonResource TinyGLTFModelLoader::LoadFromDisc(std::string 
 
 	if (!loader.LoadASCIIFromFile(&tg_model, &err, &warn, path))
 	{
-		LOGC("TinyGLTF Parsing Failed");
+		LOGC("TinyGLTF Parsing Failed {}", err);
 	}
 
 	if (!warn.empty())
