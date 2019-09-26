@@ -51,7 +51,7 @@ vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float roughness, vec3 albedo, 
         // G = Geometric shadowing term (Microfacets shadowing)
         float G = G_SchlicksmithGGX(dotNL, dotNV, roughness);
         // F = Fresnel factor (Reflectance depending on angle of incidence)
-        vec3 F = F_Schlick(dotNH, metallic, albedo);
+        vec3 F = F_Schlick(dotNV, metallic, albedo);
 
         vec3 spec = (D * F * G) / (4.0 * dotNL * dotNV + 0.001f);
 
