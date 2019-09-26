@@ -29,22 +29,23 @@ void main()
     // GBuffers
     const vec4 albedo_roughness = imageLoad(ts_gbuffers[0], s_uv);
     const vec4 normal_metallic = imageLoad(ts_gbuffers[1], s_uv);
-    const vec3 world_pos = imageLoad(ts_gbuffers[2], s_uv).xyz;
+    const vec4 world_pos_ao = imageLoad(ts_gbuffers[2], s_uv);
 
+    const vec3 world_pos = world_pos_ao.xyz;
     const vec3 albedo = albedo_roughness.rgb;
     const vec3 N = normalize(normal_metallic.xyz);
     const float roughness = albedo_roughness.a;
     const float metallic = normal_metallic.a;
+    const float ao = world_pos_ao.a;
 
     // Constants
     const float specular_strength = 0.5;
-    const float irradiance = 0.1;
+    const float irradiance = 0.2;
     const vec3 view_pos = vec3(0, 0, -2.5);
 
     vec3 V = normalize(view_pos - world_pos);
-    vec3 R = reflect(-V, N);
 
-    uint num_lights = lights.lights[0].m_type >> 2; //Light count is stored in 30 upper-bits of first light
+    uint num_lights = 3; //Light count is stored in 30 upper-bits of first light
 
     vec3 lighting = vec3(0);
     for (uint i = 0; i < num_lights; i++)
@@ -53,7 +54,6 @@ void main()
         const vec3 light_pos = lights.lights[i].m_pos;
 
         vec3 L = normalize(light_pos - world_pos);
-
         lighting += BRDF(L, V, N, metallic, roughness, albedo, light_color);
     }
 
@@ -64,6 +64,8 @@ void main()
     vec3 kD = 1.0 - F;
     kD *= 1.0 - metallic;
     vec3 color = (kD * diffuse + specular) + lighting;
+
+    color *= ao;
 
     if (world_pos.z == 0)
     {
