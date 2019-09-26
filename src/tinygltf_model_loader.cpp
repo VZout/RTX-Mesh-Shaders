@@ -294,7 +294,7 @@ TinyGLTFModelLoader::AnonResource TinyGLTFModelLoader::LoadFromDisc(std::string 
 			if (!rotation.empty())
 			{
 				rotation_mat = glm::rotate(
-						glm::mat4(1), (float)rotation[0], glm::vec3((float)rotation[1], (float)rotation[2], (float)rotation[3]));
+						glm::mat4(1), glm::radians((float)rotation[0]), glm::vec3((float)rotation[1], (float)rotation[2], (float)rotation[3]));
 			}
 			if (!scale.empty())
 			{

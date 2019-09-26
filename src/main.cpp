@@ -196,7 +196,7 @@ protected:
 			auto node = m_scene_graph->CreateNode<sg::MeshComponent>(battery_model_handle);
 			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(0.75, -0.65, 0));
 			sg::helper::SetScale(m_scene_graph, node, glm::vec3(0.01, 0.01, 0.01));
-			sg::helper::SetRotation(m_scene_graph, node, glm::vec3(glm::radians(-90.f), glm::radians(90.f), 0));
+			sg::helper::SetRotation(m_scene_graph, node, glm::vec3(glm::radians(-90.f), glm::radians(40.f), 0));
 		}
 
 		// light node
@@ -207,12 +207,12 @@ protected:
 		// light node
 		{
 			auto node = m_scene_graph->CreateNode<sg::LightComponent>(glm::vec3{ 1, 0, 0 });
-			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(1.f, 0.f, -2.25));
+			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(1.f, 0.f, -0.5));
 		}
 		// light node
 		{
 			auto node = m_scene_graph->CreateNode<sg::LightComponent>(glm::vec3{ 0, 0, 1 });
-			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(-1.f, 0.f, -2.25));
+			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(-1.f, 0.f, -0.5));
 		}
 
 		m_start = std::chrono::high_resolution_clock::now();

@@ -20,7 +20,7 @@ void main()
     //vec3 rgb = ChromaticAberration(uv, 0.4, 0.95f, resolution);
 
     const float gamma = 2.2;
-    const float exposure = 1.5;
+    const float exposure = 1;
 
     rgb = ExposureCorrect(rgb, exposure);
     rgb = ACESFittedHighQuality(rgb);
