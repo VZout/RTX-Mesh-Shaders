@@ -28,7 +28,7 @@ TinyGLTFModelLoader::TinyGLTFModelLoader()
 
 }
 
-inline std::pair<std::vector<glm::vec3>, std::vector<glm::vec3>> ComputeTangents(MeshData const & mesh_data)
+inline std::pair<std::vector<glm::vec3>, std::vector<glm::vec3>> ComputeTangents(MeshData & mesh_data)
 {
 	size_t num_vertices = mesh_data.m_positions.size();
 	std::vector<glm::vec3> tanA(num_vertices, { 0, 0, 0 });
@@ -82,7 +82,19 @@ inline std::pair<std::vector<glm::vec3>, std::vector<glm::vec3>> ComputeTangents
 		tanB[i0] = bitangent;
 		tanB[i1] = bitangent;
 		tanB[i2] = bitangent;
+	}
 
+	for (std::size_t i = 0; i < mesh_data.m_positions.size(); i++)
+	{
+		const glm::vec3& n = mesh_data.m_normals[i];
+		const glm::vec3& t = tanA[i];
+
+		// Gram-Schmidt orthogonalize
+		tanA[i] = glm::normalize(t - n * glm::dot(n, t));
+
+		// Calculate handedness
+		float w = (glm::dot(glm::cross(n, t), tanB[i]) < 0.0F) ? -1.0F : 1.0F;
+		tanB[i] *= w;
 	}
 
 	return { tanA, tanB };
