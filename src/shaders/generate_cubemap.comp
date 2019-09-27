@@ -65,25 +65,23 @@ void main()
     }
     else if (face == 1)
     {
-        dir = vec3(0, 1, 0);
-        up = vec3(0, 0, -1);
+        dir = vec3(-1, 0, 0); // back
     }
     else if (face == 2)
     {
-        dir = vec3(0, 0, 1);
+        dir = vec3(0, 0, -1); // top?
     }
     else if (face == 3)
     {
-        dir = vec3(-1, 0, 0);
+        dir = vec3(-1, 0, 0); // bottom?
     }
-    else if (face == 4)
-    {
-        dir = vec3(0, -1, 0);
-        up = vec3(0, 0, 1);
-    }
-    else if (face == 5)
+    else if (face == 4) // right
     {
         dir = vec3(0, 0, -1);
+    }
+    else if (face == 5) // left
+    {
+        dir = vec3(0, 0, 1);
     }
 
     const vec2 inUV = (vec2(gl_GlobalInvocationID.xy + 0.5f) / 1024.f);

@@ -89,7 +89,7 @@ namespace tasks
 			data.m_cbs.resize(gfx::settings::num_back_buffers);
 			for (std::uint32_t frame_idx = 0; frame_idx < gfx::settings::num_back_buffers; frame_idx++)
 			{
-				data.m_cbs[frame_idx] = new gfx::GPUBuffer(context, sizeof(cb::Basic), gfx::enums::BufferUsageFlag::CONSTANT_BUFFER);
+				data.m_cbs[frame_idx] = new gfx::GPUBuffer(context, sizeof(cb::Camera), gfx::enums::BufferUsageFlag::CONSTANT_BUFFER);
 				data.m_cbs[frame_idx]->Map();
 
 				data.m_cb_sets[frame_idx].push_back(desc_heap->CreateSRVFromCB(data.m_cbs[frame_idx], data.m_root_sig, 0, frame_idx));
@@ -105,16 +105,16 @@ namespace tasks
 			auto desc_heap = rs.GetDescHeap();
 			auto render_target = fg.GetRenderTarget(handle);
 			auto light_pool = static_cast<gfx::VkConstantBufferPool*>(sg.GetLightConstantBufferPool());
+			auto camera_pool = static_cast<gfx::VkConstantBufferPool*>(sg.GetCameraConstantBufferPool());
 			auto light_buffer_handle = sg.GetLightBufferHandle();
+			auto camera_handle = sg.m_camera_cb_handles[0].m_value;
 
 			fg.WaitForPredecessorTask<GenerateCubemapData>();
 
-			cb::Basic basic_cb_data;
-			data.m_cbs[frame_idx]->Update(&basic_cb_data, sizeof(cb::Basic));
 
 			std::vector<std::pair<gfx::DescriptorHeap*, std::uint32_t>> sets
 			{
-				{ desc_heap, data.m_cb_sets[frame_idx][0] },
+				{ camera_pool->GetDescriptorHeap(), camera_handle.m_cb_set_id },
 				{ data.m_gbuffer_heap, data.m_gbuffer_set },
 				{ data.m_gbuffer_heap, data.m_uav_target_set },
 				{ light_pool->GetDescriptorHeap(), light_buffer_handle.m_cb_set_id },
