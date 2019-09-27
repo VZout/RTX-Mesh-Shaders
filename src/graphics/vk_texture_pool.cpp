@@ -36,9 +36,23 @@ void gfx::VkTexturePool::Load_Impl(TextureData const & data, std::uint32_t id, b
 	auto desc = StagingTexture::Desc();
 	desc.m_width = data.m_width;
 	desc.m_height = data.m_height;
-	desc.m_format = srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+	desc.m_channels = data.m_channels;
 
-	auto texture = new StagingTexture(m_context, desc, const_cast<unsigned char*>(data.m_pixels.data()));
+	if (data.m_is_hdr && srgb)
+	{
+		LOGW("A texture is specified as HDR and SRGB. This is not supported. Using the HDR format instead.");
+	}
+
+	if (data.m_is_hdr)
+	{
+		desc.m_format = VK_FORMAT_R32G32B32_SFLOAT;
+	}
+	else
+	{
+		desc.m_format = srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+	}
+
+	auto texture = new StagingTexture(m_context, desc, data.m_pixels);
 	m_queued_for_staging_textures.insert(std::make_pair(id, texture));
 }
 

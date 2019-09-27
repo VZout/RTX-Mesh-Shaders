@@ -33,6 +33,7 @@ namespace gfx
 			bool m_allow_uav = false;
 			bool m_clear = false;
 			bool m_clear_depth = false;
+			bool m_allow_direct_access = false;
 		};
 
 		explicit RenderTarget(Context* context);

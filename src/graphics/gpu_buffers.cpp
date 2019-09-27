@@ -246,7 +246,7 @@ gfx::StagingTexture::StagingTexture(Context* context, Desc desc)
 	                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_texture, m_texture_memory);
 }
 
-gfx::StagingTexture::StagingTexture(Context* context, Desc desc, unsigned char* pixels)
+gfx::StagingTexture::StagingTexture(Context* context, Desc desc, void* pixels)
 		: GPUBuffer(context, desc.m_width * desc.m_height * 4), Texture(context, desc)
 {
 	CreateBufferAndMemory(m_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,

@@ -25,3 +25,8 @@ REGISTER(shaders::post_processing_cs, ShaderRegistry)({
     .m_path = "shaders/post_processing.comp.spv",
     .m_type = gfx::enums::ShaderType::COMPUTE,
 });
+
+REGISTER(shaders::generate_cubemap_cs, ShaderRegistry)({
+    .m_path = "shaders/generate_cubemap.comp.spv",
+    .m_type = gfx::enums::ShaderType::COMPUTE,
+});

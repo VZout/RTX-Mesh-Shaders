@@ -109,13 +109,13 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, VkDescript
 	return descriptor_set_id;
 }
 
-std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromTexture(std::vector<StagingTexture*> texture, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx, SamplerDesc sampler_desc)
+std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromTexture(std::vector<StagingTexture*> texture, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx, std::optional<SamplerDesc> sampler_desc)
 {
 	return CreateSRVSetFromTexture(texture, root_signature->m_descriptor_set_layouts[handle], handle, frame_idx, sampler_desc);
 }
 
 
-std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromTexture(std::vector<StagingTexture*> texture, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx, SamplerDesc sampler_desc)
+std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromTexture(std::vector<StagingTexture*> texture, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx, std::optional<SamplerDesc> sampler_desc)
 {
 	auto logical_device = m_context->m_logical_device;
 
@@ -133,8 +133,12 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromTexture(std::vector<StagingTe
 	}
 	m_descriptor_sets[frame_idx].push_back(descriptor_set);
 
-	auto new_sampler = CreateSampler(sampler_desc);
-	m_image_samplers.push_back(new_sampler);
+	VkSampler new_sampler = VK_NULL_HANDLE;
+	if (sampler_desc.has_value())
+	{
+		new_sampler = CreateSampler(sampler_desc.value());
+		m_image_samplers.push_back(new_sampler);
+	}
 
 	std::vector<VkDescriptorImageInfo> image_infos;
 
@@ -160,7 +164,7 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromTexture(std::vector<StagingTe
 		m_image_views.push_back(new_view);
 
 		VkDescriptorImageInfo image_info = {};
-		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		image_info.imageLayout = sampler_desc.has_value() ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_GENERAL;;
 		image_info.imageView = new_view;
 		image_info.sampler = new_sampler;
 		image_infos.push_back(image_info);
@@ -184,7 +188,7 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromTexture(std::vector<StagingTe
 	return descriptor_set_id;
 }
 
-std::uint32_t gfx::DescriptorHeap::CreateUAVSetFromTexture(std::vector<Texture*> texture, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx, SamplerDesc sampler_desc)
+std::uint32_t gfx::DescriptorHeap::CreateUAVSetFromTexture(std::vector<Texture*> texture, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx, std::optional<SamplerDesc> sampler_desc)
 {
 	auto logical_device = m_context->m_logical_device;
 
@@ -202,8 +206,12 @@ std::uint32_t gfx::DescriptorHeap::CreateUAVSetFromTexture(std::vector<Texture*>
 	}
 	m_descriptor_sets[frame_idx].push_back(descriptor_set);
 
-	auto new_sampler = CreateSampler(sampler_desc);
-	m_image_samplers.push_back(new_sampler);
+	VkSampler new_sampler = VK_NULL_HANDLE;
+	if (sampler_desc.has_value())
+	{
+		new_sampler = CreateSampler(sampler_desc.value());
+		m_image_samplers.push_back(new_sampler);
+	}
 
 	std::vector<VkDescriptorImageInfo> image_infos;
 
@@ -229,7 +237,7 @@ std::uint32_t gfx::DescriptorHeap::CreateUAVSetFromTexture(std::vector<Texture*>
 		m_image_views.push_back(new_view);
 
 		VkDescriptorImageInfo image_info = {};
-		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		image_info.imageLayout = sampler_desc.has_value() ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_GENERAL;;
 		image_info.imageView = new_view;
 		image_info.sampler = new_sampler;
 		image_infos.push_back(image_info);

@@ -35,6 +35,7 @@
 Renderer::Renderer() : m_application(nullptr), m_context(nullptr), m_direct_queue(nullptr), m_render_window(nullptr), m_direct_cmd_list(nullptr)
 {
 	TexturePool::RegisterLoader<STBImageLoader>();
+	TexturePool::RegisterLoader<STBHDRImageLoader>();
 	ModelPool::RegisterLoader<TinyGLTFModelLoader>();
 }
 
@@ -348,7 +349,8 @@ gfx::RenderTarget* Renderer::CreateRenderTarget(RenderTargetProperties const & p
 		desc.m_depth_format = properties.m_dsv_format;
 		desc.m_width = properties.m_width.has_value() ? properties.m_width.value() : m_application->GetWidth();
 		desc.m_height = properties.m_height.has_value() ? properties.m_height.value() : m_application->GetHeight();
-		desc.m_allow_uav = properties.m_allow_direct_access || compute;
+		desc.m_allow_uav = compute;
+		desc.m_allow_direct_access = properties.m_allow_direct_access;
 		desc.m_clear = properties.m_clear;
 		desc.m_clear_depth = properties.m_clear_depth;
 		auto new_rt = new gfx::RenderTarget(m_context, desc);

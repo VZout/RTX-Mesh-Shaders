@@ -24,15 +24,17 @@
 #include "../graphics/descriptor_heap.hpp"
 #include "../graphics/vk_material_pool.hpp"
 #include "../graphics/gfx_enums.hpp"
+#include "../graphics/vk_texture_pool.hpp"
 
 namespace tasks
 {
 
-	struct PostProcessingData
+	struct GenerateCubemapData
 	{
+		std::uint32_t m_sky_texture_id;
 		std::uint32_t m_input_set;
 		std::uint32_t m_uav_target_set;
-		gfx::DescriptorHeap* m_gbuffer_heap;
+		gfx::DescriptorHeap* m_desc_heap;
 
 		gfx::RootSignature* m_root_sig;
 	};
@@ -40,14 +42,15 @@ namespace tasks
 	namespace internal
 	{
 
-		template<typename T>
-		inline void SetupPostProcessingTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool)
+		inline void SetupGenerateCubemapTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool)
 		{
-			auto& data = fg.GetData<PostProcessingData>(handle);
-			auto context = rs.GetContext();
-			data.m_root_sig = RootSignatureRegistry::SFind(root_signatures::post_processing);
+			auto& data = fg.GetData<GenerateCubemapData>(handle);
+			data.m_root_sig = RootSignatureRegistry::SFind(root_signatures::generate_cubemap);
 			auto render_target = fg.GetRenderTarget(handle);
-			auto predecessor_rt = fg.GetPredecessorRenderTarget<T>();
+
+			auto texture_pool = static_cast<gfx::VkTexturePool*>(rs.GetTexturePool());
+			data.m_sky_texture_id = texture_pool->Load("mountain_4k.hdr");
+			auto textures = texture_pool->GetTextures({ data.m_sky_texture_id });
 
 			gfx::SamplerDesc input_sampler_desc
 			{
@@ -59,40 +62,40 @@ namespace tasks
 			gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
 			descriptor_heap_desc.m_versions = 1;
 			descriptor_heap_desc.m_num_descriptors = 3;
-			data.m_gbuffer_heap = new gfx::DescriptorHeap(rs.GetContext(), descriptor_heap_desc);
-			data.m_input_set = data.m_gbuffer_heap->CreateSRVSetFromRT(predecessor_rt, data.m_root_sig, 0, 0, false, std::nullopt);
-			data.m_uav_target_set = data.m_gbuffer_heap->CreateUAVSetFromRT(render_target, 0, data.m_root_sig, 1, 0, input_sampler_desc);
+			data.m_desc_heap = new gfx::DescriptorHeap(rs.GetContext(), descriptor_heap_desc);
+			data.m_input_set = data.m_desc_heap->CreateSRVSetFromTexture(textures, data.m_root_sig, 0, 0, input_sampler_desc);
+			data.m_uav_target_set = data.m_desc_heap->CreateUAVSetFromRT(render_target, 0, data.m_root_sig, 1, 0, input_sampler_desc);
 		}
 
-		inline void ExecutePostProcessingTask(Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, fg::RenderTaskHandle handle)
+		inline void ExecuteGenerateCubemapTask(Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, fg::RenderTaskHandle handle)
 		{
-			auto& data = fg.GetData<PostProcessingData>(handle);
+			auto& data = fg.GetData<GenerateCubemapData>(handle);
 			auto cmd_list = fg.GetCommandList(handle);
-			auto pipeline = PipelineRegistry::SFind(pipelines::post_processing);
+			auto pipeline = PipelineRegistry::SFind(pipelines::generate_cubemap);
 			auto render_target = fg.GetRenderTarget(handle);
 
-			cb::Basic basic_cb_data;
 			std::vector<std::pair<gfx::DescriptorHeap*, std::uint32_t>> sets
 			{
-				{ data.m_gbuffer_heap, data.m_input_set },
-				{ data.m_gbuffer_heap, data.m_uav_target_set },
+				{ data.m_desc_heap, data.m_input_set },
+				{ data.m_desc_heap, data.m_uav_target_set },
 			};
 
 			cmd_list->BindComputePipelineState(pipeline);
 			cmd_list->BindComputeDescriptorHeap(data.m_root_sig, sets);
 			cmd_list->Dispatch(render_target->GetWidth() / 16, render_target->GetHeight() / 16, 1);
+
+			fg.SetShouldExecute<GenerateCubemapData>(false);
 		}
 
-		inline void DestroyPostProcessingTask(fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool)
+		inline void DestroyGenerateCubemapTask(fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool)
 		{
-			auto& data = fg.GetData<PostProcessingData>(handle);
-			delete data.m_gbuffer_heap;
+			auto& data = fg.GetData<GenerateCubemapData>(handle);
+			delete data.m_desc_heap;
 		}
 
 	} /* internal */
 
-	template<typename T>
-	inline void AddPostProcessingTask(fg::FrameGraph& fg)
+	inline void AddGenerateCubemapTask(fg::FrameGraph& fg)
 	{
 		RenderTargetProperties rt_properties
 		{
@@ -102,7 +105,7 @@ namespace tasks
 			.m_dsv_format = VK_FORMAT_UNDEFINED,
 			.m_rtv_formats = { VK_FORMAT_B8G8R8A8_UNORM },
 			.m_state_execute = VK_IMAGE_LAYOUT_GENERAL,
-			.m_state_finished = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			.m_state_finished = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			.m_clear = false,
 			.m_clear_depth = false
 		};
@@ -110,22 +113,22 @@ namespace tasks
 		fg::RenderTaskDesc desc;
 		desc.m_setup_func = [](Renderer& rs, fg::FrameGraph& fg, ::fg::RenderTaskHandle handle, bool resize)
 		{
-			internal::SetupPostProcessingTask<T>(rs, fg, handle, resize);
+			internal::SetupGenerateCubemapTask(rs, fg, handle, resize);
 		};
 		desc.m_execute_func = [](Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, ::fg::RenderTaskHandle handle)
 		{
-			internal::ExecutePostProcessingTask(rs, fg, sg, handle);
+			internal::ExecuteGenerateCubemapTask(rs, fg, sg, handle);
 		};
 		desc.m_destroy_func = [](fg::FrameGraph& fg, ::fg::RenderTaskHandle handle, bool resize)
 		{
-			internal::DestroyPostProcessingTask(fg, handle, resize);
+			internal::DestroyGenerateCubemapTask(fg, handle, resize);
 		};
 
 		desc.m_properties = rt_properties;
 		desc.m_type = fg::RenderTaskType::COMPUTE;
 		desc.m_allow_multithreading = true;
 
-		fg.AddTask<PostProcessingData>(desc, L"Post Processing Task", FG_DEPS<T>());
+		fg.AddTask<GenerateCubemapData>(desc, L"Generate Cubemap Task");
 	}
 
 } /* tasks */

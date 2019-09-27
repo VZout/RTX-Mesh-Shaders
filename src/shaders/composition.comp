@@ -6,6 +6,7 @@ layout (local_size_x = 16, local_size_y = 16) in;
 
 layout(set = 1, binding = 1, rgba8) uniform readonly image2D ts_gbuffers[3];
 layout(set = 2, binding = 2, rgba8) uniform writeonly image2D t_output;
+layout(set = 4, binding = 4) uniform sampler2D t_skybox;
 
 struct Light
 {
@@ -69,7 +70,7 @@ void main()
 
     if (world_pos.z == 0)
     {
-        color = vec3(33, 27, 21) / 255.f;
+        color = pow(texture(t_skybox, uv).rgb, vec3(2.2));
     }
 
     imageStore(t_output, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1));
