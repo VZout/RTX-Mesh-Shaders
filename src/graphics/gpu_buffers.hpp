@@ -75,9 +75,11 @@ namespace gfx
 
 			std::uint32_t m_width = 0u;
 			std::uint32_t m_height = 0u;
+			std::uint32_t m_channels = 0u;
 			std::uint32_t m_depth = 1u;
 			std::uint32_t m_array_size = 1u;
 			std::uint32_t m_mip_levels = 1u;
+			bool m_is_hdr = false;
 		};
 
 		Texture(Context* context, Desc desc, bool uav = false);
@@ -102,7 +104,7 @@ namespace gfx
 	public:
 
 		StagingTexture(Context* context, Desc desc);
-		StagingTexture(Context* context, Desc desc, unsigned char* pixels);
+		StagingTexture(Context* context, Desc desc, void* pixels);
 		~StagingTexture() final = default;
 
 		void FreeStagingResources();

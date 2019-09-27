@@ -62,11 +62,11 @@ namespace gfx
 		std::uint32_t CreateSRVFromCB(GPUBuffer* buffer, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx);
 		std::uint32_t CreateSRVFromCB(GPUBuffer* buffer, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx);
 		std::uint32_t CreateSRVSetFromTexture(std::vector<StagingTexture*> texture, RootSignature* root_signature,
-				std::uint32_t handle, std::uint32_t frame_idx, SamplerDesc sampler_desc = m_default_sampler_desc);
+				std::uint32_t handle, std::uint32_t frame_idx, std::optional<SamplerDesc> sampler_desc = m_default_sampler_desc);
 		std::uint32_t CreateSRVSetFromTexture(std::vector<StagingTexture*> texture, VkDescriptorSetLayout layout, // TODO: Change this to texture instead of staging texture.
-				std::uint32_t handle, std::uint32_t frame_idx, SamplerDesc sampler_desc = m_default_sampler_desc);
+				std::uint32_t handle, std::uint32_t frame_idx, std::optional<SamplerDesc> sampler_desc = m_default_sampler_desc);
 		std::uint32_t CreateUAVSetFromTexture(std::vector<Texture*> texture, RootSignature* root_signature,
-				std::uint32_t handle, std::uint32_t frame_idx, SamplerDesc sampler_desc = m_default_sampler_desc);
+				std::uint32_t handle, std::uint32_t frame_idx, std::optional<SamplerDesc> sampler_desc = m_default_sampler_desc);
 		std::uint32_t CreateSRVSetFromRT(RenderTarget* render_target, RootSignature* root_signature,
 				std::uint32_t handle,std::uint32_t frame_idx, bool include_depth = true, std::optional<SamplerDesc> sampler_desc = m_default_sampler_desc);
 		std::uint32_t CreateUAVSetFromRT(RenderTarget* render_target, std::uint32_t rt_idx, RootSignature* root_signature,

@@ -18,3 +18,12 @@ public:
 
 	AnonResource LoadFromDisc(std::string const & path) final;
 };
+
+class STBHDRImageLoader : public ResourceLoader<TextureData>
+{
+public:
+	STBHDRImageLoader();
+	~STBHDRImageLoader() final = default;
+
+	AnonResource LoadFromDisc(std::string const & path) final;
+};

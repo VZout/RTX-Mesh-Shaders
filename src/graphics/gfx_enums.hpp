@@ -7,6 +7,7 @@
 #pragma once
 
 #include <vector>
+#include "../util/log.hpp"
 #include "vulkan/vulkan.h"
 
 namespace gfx::enums
@@ -62,6 +63,29 @@ namespace gfx::enums
 	inline bool FormatHasStencilComponent(VkFormat format)
 	{
 		return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+	}
+
+	inline std::size_t BitsPerPixel(VkFormat format)
+	{
+		switch(format)
+		{
+			case VK_FORMAT_R32G32B32A32_SFLOAT:
+			case VK_FORMAT_R32G32B32A32_SINT:
+			case VK_FORMAT_R32G32B32A32_UINT:
+				return 128;
+			case VK_FORMAT_R32G32B32_SFLOAT:
+			case VK_FORMAT_R32G32B32_SINT:
+			case VK_FORMAT_R32G32B32_UINT:
+				return 96;
+			case VK_FORMAT_R8G8B8A8_UNORM:
+			case VK_FORMAT_B8G8R8A8_UNORM:
+			case VK_FORMAT_B8G8R8A8_SRGB:
+				return 32;
+
+			default:
+				LOGW("Unsupported format in bytes per pixel returning 4");
+				return 4;
+		}
 	}
 
 }

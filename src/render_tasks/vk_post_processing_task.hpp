@@ -44,7 +44,6 @@ namespace tasks
 		inline void SetupPostProcessingTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool)
 		{
 			auto& data = fg.GetData<PostProcessingData>(handle);
-			auto context = rs.GetContext();
 			data.m_root_sig = RootSignatureRegistry::SFind(root_signatures::post_processing);
 			auto render_target = fg.GetRenderTarget(handle);
 			auto predecessor_rt = fg.GetPredecessorRenderTarget<T>();

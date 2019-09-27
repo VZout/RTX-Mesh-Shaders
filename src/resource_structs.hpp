@@ -17,7 +17,8 @@ struct TextureData
 	std::uint32_t m_width;
 	std::uint32_t m_height;
 	std::uint32_t m_channels;
-	std::vector<unsigned char> m_pixels;
+	bool m_is_hdr;
+	void* m_pixels;
 };
 
 struct MaterialData

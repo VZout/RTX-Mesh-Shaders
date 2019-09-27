@@ -18,6 +18,7 @@ struct root_signatures
 	static RegistryHandle basic;
 	static RegistryHandle composition;
 	static RegistryHandle post_processing;
+	static RegistryHandle generate_cubemap;
 
 }; /* root_signatures */
 

@@ -22,6 +22,7 @@
 #include "../graphics/descriptor_heap.hpp"
 #include "../graphics/vk_material_pool.hpp"
 #include "vk_deferred_main_task.hpp"
+#include "vk_generate_cubemap.hpp"
 #include "../graphics/gfx_enums.hpp"
 
 namespace tasks
@@ -32,6 +33,7 @@ namespace tasks
 		std::vector<gfx::GPUBuffer*> m_cbs;
 		std::vector<std::vector<std::uint32_t>> m_cb_sets;
 		std::uint32_t m_gbuffer_set;
+		std::uint32_t m_skybox_set;
 		std::uint32_t m_uav_target_set;
 		gfx::DescriptorHeap* m_gbuffer_heap;
 
@@ -56,6 +58,13 @@ namespace tasks
 				.m_border_color = gfx::enums::BorderColor::BORDER_WHITE,
 			};
 
+			gfx::SamplerDesc skybox_sampler_desc
+			{
+				.m_filter = gfx::enums::TextureFilter::FILTER_LINEAR,
+				.m_address_mode = gfx::enums::TextureAddressMode::TAM_WRAP,
+				.m_border_color = gfx::enums::BorderColor::BORDER_WHITE,
+			};
+
 			// GPU Heap
 			gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
 			descriptor_heap_desc.m_versions = 1;
@@ -64,8 +73,15 @@ namespace tasks
 			data.m_gbuffer_set = data.m_gbuffer_heap->CreateSRVSetFromRT(deferred_main_rt, data.m_root_sig, 1, 0,false, std::nullopt);
 			data.m_uav_target_set = data.m_gbuffer_heap->CreateUAVSetFromRT(render_target, 0, data.m_root_sig, 2, 0, gbuffer_sampler_desc);
 
-			if (resize) return;
+			// Skybox
+			if (fg.HasTask<GenerateCubemapData>())
+			{
+				auto skybox_rt = fg.GetPredecessorRenderTarget<GenerateCubemapData>();
+				data.m_skybox_set = data.m_gbuffer_heap->CreateSRVSetFromRT(skybox_rt, data.m_root_sig, 4, 0, false, skybox_sampler_desc);
+			}
 
+
+			if (resize) return;
 
 			// Descriptors uniform camera
 			auto desc_heap = rs.GetDescHeap();
@@ -91,6 +107,8 @@ namespace tasks
 			auto light_pool = static_cast<gfx::VkConstantBufferPool*>(sg.GetLightConstantBufferPool());
 			auto light_buffer_handle = sg.GetLightBufferHandle();
 
+			fg.WaitForPredecessorTask<GenerateCubemapData>();
+
 			cb::Basic basic_cb_data;
 			data.m_cbs[frame_idx]->Update(&basic_cb_data, sizeof(cb::Basic));
 
@@ -99,7 +117,8 @@ namespace tasks
 				{ desc_heap, data.m_cb_sets[frame_idx][0] },
 				{ data.m_gbuffer_heap, data.m_gbuffer_set },
 				{ data.m_gbuffer_heap, data.m_uav_target_set },
-				{ light_pool->GetDescriptorHeap(), light_buffer_handle.m_cb_set_id }
+				{ light_pool->GetDescriptorHeap(), light_buffer_handle.m_cb_set_id },
+				{ data.m_gbuffer_heap, data.m_skybox_set },
 			};
 
 			cmd_list->BindComputePipelineState(pipeline);

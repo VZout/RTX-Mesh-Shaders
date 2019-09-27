@@ -106,10 +106,13 @@ inline void LoadMaterial(ModelData* model, tinygltf::Model tg_model, tinygltf::M
 
 	auto set_img_data = [&](auto& target, auto source)
 	{
-		target.m_pixels = source.image;
+		auto data_size = sizeof(unsigned char) * source.width * source.height * source.component;
+		target.m_pixels = malloc(data_size); // TODO: Destroy this
+		memcpy(target.m_pixels, source.image.data(), data_size);
 		target.m_width = source.width;
 		target.m_height = source.height;
 		target.m_channels = source.component;
+		target.m_is_hdr = false;
 	};
 
 	for (auto value : mat.values)
