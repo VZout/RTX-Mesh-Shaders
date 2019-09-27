@@ -9,6 +9,7 @@
 #include <stb_image.h>
 
 #include "util/log.hpp"
+#include "graphics/gfx_enums.hpp"
 #include "resource_structs.hpp"
 
 STBImageLoader::STBImageLoader()
@@ -52,14 +53,14 @@ STBHDRImageLoader::AnonResource STBHDRImageLoader::LoadFromDisc(std::string cons
 	auto texture = std::make_unique<TextureData>();
 
 	int width = 0, height = 0, channels = 0;
-	float* x = stbi_loadf(path.c_str(), &width, &height, &channels, STBI_default);
+	float* x = stbi_loadf(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
 	if (!x || width <= 0 || height <=0 || channels <= 0)
 	{
 		LOGC("STB Failed to load texture.");
 	}
 
-	auto data_size = width * height * 4; // TODO: 4 but only 3 components.
+	auto data_size = width * height * gfx::enums::BytesPerPixel(VK_FORMAT_R32G32B32A32_SFLOAT); // TODO: 4 but only 3 components.
 	texture->m_pixels = malloc(data_size); // TODO: Destroy this
 	memcpy(texture->m_pixels, x, data_size);
 	texture->m_width = static_cast<std::uint32_t>(width);

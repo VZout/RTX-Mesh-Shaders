@@ -13,44 +13,6 @@ layout(set = 0, binding = 0) uniform UniformBufferCameraObject {
     mat4 proj;
 } camera;
 
-mat4 perspective(float fovy, float aspect, float zNear, float zFar)
-{
-    float rad = fovy;
-    float tanHalfFovy = tan(rad / 2.f);
-
-    mat4 result = mat4(0);
-    result[0][0] = 1.f / (aspect * tanHalfFovy);
-    result[1][1] = 1.f / (tanHalfFovy);
-    result[2][2] = - (zFar + zNear) / (zFar - zNear);
-    result[2][3] = - 1.f;
-    result[3][2] = - (2.f * zFar * zNear) / (zFar - zNear);
-    return result;
-}
-
-mat4 look_at(vec3 eye, vec3 center, vec3 up)
-{
-    vec3 f = vec3(normalize(center - eye));
-    vec3 s = vec3(normalize(cross(f, up)));
-    vec3 u = vec3(cross(s, f));
-
-    mat4 result = mat4(1);
-    result[0][0] = s.x;
-    result[1][0] = s.y;
-    result[2][0] = s.z;
-    result[0][1] = u.x;
-    result[1][1] = u.y;
-    result[2][1] = u.z;
-    result[0][2] =-f.x;
-    result[1][2] =-f.y;
-    result[2][2] =-f.z;
-    result[3][0] =-dot(s, eye);
-    result[3][1] =-dot(u, eye);
-    result[3][2] = dot(f, eye);
-
-    return result;
-}
-
-
 struct Light
 {
     vec3 m_pos;
@@ -85,7 +47,8 @@ void main()
     // Constants
     const float specular_strength = 0.5;
     const float irradiance = 0.1;
-    const vec3 view_pos = vec3(0, 0, -2.5);
+    mat4 inv_view = inverse(camera.view);
+    const vec3 view_pos = vec3(inv_view[3][0], inv_view[3][1], inv_view[3][2]);
 
     vec3 V = normalize(view_pos - world_pos);
     vec3 R = reflect(-V, N);
@@ -104,7 +67,7 @@ void main()
 
     vec3 diffuse = irradiance * albedo;
     vec3 F = F_SchlickRoughness(max(dot(N, V), 0.0), metallic, albedo, roughness);
-    vec3 reflection = pow(texture(t_skybox, R).rgb, vec3(2.2));
+    vec3 reflection = texture(t_skybox, R).rgb;
     vec3 specular = reflection * (F);
 
     vec3 kD = 1.0 - F;
@@ -115,14 +78,12 @@ void main()
 
     if (world_pos.z == 0)
     {
-        const vec2 pixelCenter = vec2(gl_GlobalInvocationID.xy) + vec2(0.5);
-        const vec2 inUV = pixelCenter/resolution;
-        vec2 d = inUV;
+        vec2 d = uv * 2.0f - 1.0;
 
         vec4 target = inverse(camera.proj) * vec4(d.x, d.y, 1, 1) ;
-        vec4 direction = inverse(camera.view) * vec4(normalize(target.xyz), 0);
+        vec4 direction = inv_view * vec4(normalize(target.xyz), 0);
 
-        color = pow(texture(t_skybox, direction.xyz).rgb, vec3(2.2));
+        color = texture(t_skybox, direction.xyz).rgb;
     }
 
     imageStore(t_output, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1));

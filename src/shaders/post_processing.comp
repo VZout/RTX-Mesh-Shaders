@@ -9,24 +9,51 @@ layout(set = 1, binding = 1, rgba8) uniform writeonly image2D t_output;
 #include "lens_fx.glsl"
 #include "tone_mapping.glsl"
 
+//#define SHOW_TONEMAPPING_ALGOS
+#define NUM_TONEMAPPING_ALGOS 12
+
 void main()
 {
     const ivec2 resolution = imageSize(t_output);
-    const vec2 uv = (vec2(gl_GlobalInvocationID.xy + 0.5f) / resolution);
+    vec2 uv = (vec2(gl_GlobalInvocationID.xy + 0.5f) / resolution);
+
+    vec2 n_uv = vec2(gl_GlobalInvocationID.xy);
+#ifdef SHOW_TONEMAPPING_ALGOS
+    n_uv.x = mod(n_uv.x, ceil(resolution.x / NUM_TONEMAPPING_ALGOS)); // Repeate a part of the frame
+#endif
 
     //ImageData data = GetNeighbours();
     //vec3 rgb = Sharpen(data);
-    vec3 rgb = imageLoad(t_input, ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y)).rgb;
-    //vec3 rgb = ChromaticAberration(uv, 0.4, 0.95f, resolution);
+    //vec3 rgb = imageLoad(t_input, ivec2(n_uv)).rgb;
+    vec3 rgb = ChromaticAberration(uv, 0.1, 0.97f, resolution);
 
     const float gamma = 2.2;
     const float exposure = 1;
 
-    rgb = ExposureCorrect(rgb, exposure);
-    rgb = ACESFittedHighQuality(rgb);
-    rgb = GammaCorrect(rgb, gamma);
+    vec3 color = ExposureCorrect(rgb, exposure);
 
-    rgb = Vignette(rgb, uv, 1.5, 0.5, 0.5);
+    #ifdef SHOW_TONEMAPPING_ALGOS
+    float rotation = uv.x;
+    int i = int(floor(NUM_TONEMAPPING_ALGOS * rotation));
+    if (i == 0) color = ACESHighPerformance(color);
+    else if (i == 1) color = ACESHighQuality(color);
+    else if (i == 2) color = Unreal3_Gamma(color);
+    else if (i == 3) color = Lottes(color);
+    else if (i == 4) color = Uchimura(color);
+    else if (i == 5) color = Filmic(color);
+    else if (i == 6) color = Reinhard(color);
+    else if (i == 7) color = LumaBasedReinhard(color);
+    else if (i == 8) color = WhitePreservingLumaBasedReinhard(color);
+    else if (i == 9) color = RomBinDaHouse(color);
+    else if (i == 10) color = HaarmPeterDuiker_Gamma(color);
+    else if (i == 11) color = Uncharted2(color);
 
-    imageStore(t_output, ivec2(gl_GlobalInvocationID.xy), vec4(rgb, 1));
+    if (i != 2 && i != 10) color = GammaCorrect(color, gamma);
+    #else
+    color = HaarmPeterDuiker_Gamma(color);
+    #endif
+
+    //rgb = Vignette(rgb, uv, 1.5, 0.5, 0.5);
+
+    imageStore(t_output, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1));
 }

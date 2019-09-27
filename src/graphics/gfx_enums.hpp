@@ -80,12 +80,18 @@ namespace gfx::enums
 			case VK_FORMAT_R8G8B8A8_UNORM:
 			case VK_FORMAT_B8G8R8A8_UNORM:
 			case VK_FORMAT_B8G8R8A8_SRGB:
+			case VK_FORMAT_R8G8B8A8_SRGB:
 				return 32;
 
 			default:
 				LOGW("Unsupported format in bytes per pixel returning 4");
 				return 4;
 		}
+	}
+
+	inline std::size_t BytesPerPixel(VkFormat format)
+	{
+		return BitsPerPixel(format) / 8;
 	}
 
 }
