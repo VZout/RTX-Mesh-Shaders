@@ -45,7 +45,7 @@ void gfx::VkTexturePool::Load_Impl(TextureData const & data, std::uint32_t id, b
 
 	if (data.m_is_hdr)
 	{
-		desc.m_format = VK_FORMAT_R32G32B32_SFLOAT;
+		desc.m_format = VK_FORMAT_R32G32B32A32_SFLOAT;
 	}
 	else
 	{

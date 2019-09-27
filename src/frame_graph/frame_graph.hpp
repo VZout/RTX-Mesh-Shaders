@@ -286,7 +286,9 @@ namespace fg
 			{
 				m_destroy_funcs[i](*this, i, true);
 
-				if (m_rt_properties[i].has_value() && !m_rt_properties[i].value().m_is_render_window)
+				if (m_rt_properties[i].has_value() && // dont resize a render target that doesn't exist.
+					!m_rt_properties[i].value().m_is_render_window && // dont resize the window.
+					!(m_rt_properties[i].value().m_width.has_value() || m_rt_properties[i].value().m_height.has_value())) // dont resize render targets with fixed size
 				{
 					 m_renderer->ResizeRenderTarget(m_render_targets[i],
 						static_cast<std::uint32_t>(std::ceil(width * m_rt_properties[i].value().m_resolution_scale)),

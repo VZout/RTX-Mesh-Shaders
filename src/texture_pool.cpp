@@ -19,12 +19,12 @@ std::uint32_t TexturePool::Load(std::string const& path, bool srgb)
 
 	for (auto& loader : m_registered_loaders)
 	{
-		loader->IsSupportedExtension(extension);
-		auto texture_data = loader->Load(path);
-
-		Load_Impl(*texture_data, new_id, srgb);
-
-		break;
+		if (loader->IsSupportedExtension(extension))
+		{
+			auto texture_data = loader->Load(path);
+			Load_Impl(*texture_data, new_id, srgb);
+			break;
+		}
 	}
 
 	m_next_id++;

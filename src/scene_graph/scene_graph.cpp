@@ -96,7 +96,7 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 
 		cb::Camera data;
 		data.m_view = rotate * translate;
-		data.m_proj = glm::perspective(glm::radians(70.0f), (float) 1280 / (float) 720, 0.01f, 1000.0f);
+		data.m_proj = glm::perspective(glm::radians(45.0f), (float) 1280 / (float) 720, 0.01f, 1000.0f);
 		data.m_proj[1][1] *= -1;
 
 		// TODO: In theory right now the cb handle and the mesh component will always have the same value.

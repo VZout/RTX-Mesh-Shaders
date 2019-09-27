@@ -69,11 +69,13 @@ void main()
     }
     else if (face == 2)
     {
-        dir = vec3(0, 0, -1); // top?
+        dir = vec3(0, -1, 0); // top
+        up = vec3(0, 0, -1);
     }
     else if (face == 3)
     {
-        dir = vec3(-1, 0, 0); // bottom?
+        dir = vec3(0, 1, 0); // bottom
+        up = vec3(0, 0, 1);
     }
     else if (face == 4) // right
     {
@@ -84,10 +86,11 @@ void main()
         dir = vec3(0, 0, 1);
     }
 
-    const vec2 inUV = (vec2(gl_GlobalInvocationID.xy + 0.5f) / 1024.f);
+    const float resolution = 4096.f;
+    const vec2 inUV = (vec2(gl_GlobalInvocationID.xy + 0.5f) / resolution);
     vec2 d = inUV * 2.0 - 1.0;
 
-    mat4 persp = perspective(1.5708f, 1024.f / 1024.f, 1.f, 100.f);
+    mat4 persp = perspective(1.5708f, resolution / resolution, 1.f, 100.f);
     mat4 view = look_at(vec3(0, 0, 0), dir, up);
 
     vec4 target = inverse(persp) * vec4(d.x, d.y, 1, 1) ;

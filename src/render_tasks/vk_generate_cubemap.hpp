@@ -42,14 +42,16 @@ namespace tasks
 	namespace internal
 	{
 
-		inline void SetupGenerateCubemapTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool)
+		inline void SetupGenerateCubemapTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
 		{
+			if (resize) return;
+
 			auto& data = fg.GetData<GenerateCubemapData>(handle);
 			data.m_root_sig = RootSignatureRegistry::SFind(root_signatures::generate_cubemap);
 			auto render_target = fg.GetRenderTarget(handle);
 
 			auto texture_pool = static_cast<gfx::VkTexturePool*>(rs.GetTexturePool());
-			data.m_sky_texture_id = texture_pool->Load("mountain_4k.hdr");
+			data.m_sky_texture_id = texture_pool->Load("mountain_8k.hdr", false);
 			auto textures = texture_pool->GetTextures({ data.m_sky_texture_id });
 
 			gfx::SamplerDesc input_sampler_desc
@@ -82,13 +84,15 @@ namespace tasks
 
 			cmd_list->BindComputePipelineState(pipeline);
 			cmd_list->BindComputeDescriptorHeap(data.m_root_sig, sets);
-			cmd_list->Dispatch(render_target->GetWidth() / 8, render_target->GetHeight() / 8, 6);
+			cmd_list->Dispatch(render_target->GetWidth() / 8, render_target->GetHeight() / 8, 1);
 
-			fg.SetShouldExecute<GenerateCubemapData>(false);
+			//fg.SetShouldExecute<GenerateCubemapData>(false);
 		}
 
-		inline void DestroyGenerateCubemapTask(fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool)
+		inline void DestroyGenerateCubemapTask(fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
 		{
+			if (resize) return;
+
 			auto& data = fg.GetData<GenerateCubemapData>(handle);
 			delete data.m_desc_heap;
 		}
@@ -100,10 +104,10 @@ namespace tasks
 		RenderTargetProperties rt_properties
 		{
 			.m_is_render_window = false,
-			.m_width = 1024,
-			.m_height = 1024,
+			.m_width = 4096,
+			.m_height = 4096,
 			.m_dsv_format = VK_FORMAT_UNDEFINED,
-			.m_rtv_formats = { VK_FORMAT_R8G8B8A8_UNORM },
+			.m_rtv_formats = { VK_FORMAT_R32G32B32A32_SFLOAT },
 			.m_state_execute = VK_IMAGE_LAYOUT_GENERAL,
 			.m_state_finished = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			.m_clear = false,

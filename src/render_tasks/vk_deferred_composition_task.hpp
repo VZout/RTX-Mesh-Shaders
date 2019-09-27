@@ -80,7 +80,6 @@ namespace tasks
 				data.m_skybox_set = data.m_gbuffer_heap->CreateSRVSetFromRT(skybox_rt, data.m_root_sig, 4, 0, false, skybox_sampler_desc);
 			}
 
-
 			if (resize) return;
 
 			// Descriptors uniform camera
@@ -149,7 +148,7 @@ namespace tasks
 			.m_width = std::nullopt,
 			.m_height = std::nullopt,
 			.m_dsv_format = VK_FORMAT_UNDEFINED,
-			.m_rtv_formats = { VK_FORMAT_R16G16B16A16_SFLOAT },
+			.m_rtv_formats = { VK_FORMAT_R32G32B32A32_SFLOAT },
 			.m_state_execute = VK_IMAGE_LAYOUT_GENERAL,
 			.m_state_finished = std::nullopt,
 			.m_clear = false,
