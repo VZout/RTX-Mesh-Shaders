@@ -28,9 +28,9 @@ STBImageLoader::AnonResource STBImageLoader::LoadFromDisc(std::string const & pa
 	{
 		LOGC("STB Failed to load texture.");
 	}
-	channels = 4; //TODO: forcing a alpha component to make my job easier.
+	//channels = 4; //TODO: forcing a alpha component to make my job easier.
 
-	auto data_size = sizeof(decltype(x[0])) * width * height * channels;
+	auto data_size =  width * height * 4;
 	texture->m_pixels = malloc(data_size); // TODO: Destroy this
 	memcpy(texture->m_pixels, x, data_size);
 	texture->m_width = static_cast<std::uint32_t>(width);
@@ -59,7 +59,7 @@ STBHDRImageLoader::AnonResource STBHDRImageLoader::LoadFromDisc(std::string cons
 		LOGC("STB Failed to load texture.");
 	}
 
-	auto data_size = sizeof(decltype(x[0])) * width * height * channels;
+	auto data_size = width * height * 4; // TODO: 4 but only 3 components.
 	texture->m_pixels = malloc(data_size); // TODO: Destroy this
 	memcpy(texture->m_pixels, x, data_size);
 	texture->m_width = static_cast<std::uint32_t>(width);

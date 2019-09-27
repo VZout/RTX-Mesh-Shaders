@@ -295,7 +295,7 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromRT(RenderTarget* render_targe
 		VkImageViewCreateInfo view_info = {};
 		view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		view_info.image = render_target->m_images[i];
-		view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		view_info.viewType = render_target->m_desc.m_is_cube_map ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
 		view_info.format = render_target->m_desc.m_rtv_formats[i];
 		view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		view_info.subresourceRange.baseMipLevel = 0;
@@ -303,9 +303,10 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromRT(RenderTarget* render_targe
 		view_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
 		view_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
 		view_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+		view_info.subresourceRange.baseMipLevel = 0;
 		view_info.subresourceRange.levelCount = 1;
 		view_info.subresourceRange.baseArrayLayer = 0;
-		view_info.subresourceRange.layerCount = 1;
+		view_info.subresourceRange.layerCount = render_target->m_desc.m_is_cube_map ? 6 : 1;;
 
 		VkImageView new_view;
 		if (vkCreateImageView(logical_device, &view_info, nullptr, &new_view) != VK_SUCCESS)
@@ -328,13 +329,14 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromRT(RenderTarget* render_targe
 		VkImageViewCreateInfo view_info = {};
 		view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		view_info.image = render_target->m_depth_buffer;
-		view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		view_info.viewType = render_target->m_desc.m_is_cube_map ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
 		view_info.format = render_target->m_desc.m_depth_format;
 		view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 		view_info.subresourceRange.baseMipLevel = 0;
+		view_info.subresourceRange.baseMipLevel = 0;
 		view_info.subresourceRange.levelCount = 1;
 		view_info.subresourceRange.baseArrayLayer = 0;
-		view_info.subresourceRange.layerCount = 1;
+		view_info.subresourceRange.layerCount = render_target->m_desc.m_is_cube_map ? 6 : 1;;
 
 		VkImageView new_view;
 		if (vkCreateImageView(logical_device, &view_info, nullptr, &new_view) != VK_SUCCESS)
@@ -395,13 +397,14 @@ std::uint32_t gfx::DescriptorHeap::CreateUAVSetFromRT(RenderTarget* render_targe
 	VkImageViewCreateInfo view_info = {};
 	view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	view_info.image = render_target->m_images[rt_idx];
-	view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	view_info.viewType = render_target->m_desc.m_is_cube_map ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
 	view_info.format = render_target->m_desc.m_rtv_formats[rt_idx];
 	view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	view_info.subresourceRange.baseMipLevel = 0;
+	view_info.subresourceRange.baseMipLevel = 0;
 	view_info.subresourceRange.levelCount = 1;
 	view_info.subresourceRange.baseArrayLayer = 0;
-	view_info.subresourceRange.layerCount = 1;
+	view_info.subresourceRange.layerCount = render_target->m_desc.m_is_cube_map ? 6 : 1;;
 
 	VkImageView new_view;
 	if (vkCreateImageView(logical_device, &view_info, nullptr, &new_view) != VK_SUCCESS)

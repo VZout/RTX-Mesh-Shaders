@@ -40,7 +40,7 @@ REGISTER(root_signatures::composition, RootSignatureRegistry)({
 	    params[0].pImmutableSamplers = nullptr;
 	    params[1].binding = 1; // root parameter 1
 	    params[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-	    params[1].descriptorCount = 3;
+	    params[1].descriptorCount = 3; // color, normal, whatever, depth
 	    params[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 	    params[1].pImmutableSamplers = nullptr;
 	    params[2].binding = 2; // root parameter 2
