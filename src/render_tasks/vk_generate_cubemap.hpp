@@ -82,7 +82,7 @@ namespace tasks
 
 			cmd_list->BindComputePipelineState(pipeline);
 			cmd_list->BindComputeDescriptorHeap(data.m_root_sig, sets);
-			cmd_list->Dispatch(render_target->GetWidth() / 16, render_target->GetHeight() / 16, 1);
+			cmd_list->Dispatch(render_target->GetWidth() / 8, render_target->GetHeight() / 8, 6);
 
 			fg.SetShouldExecute<GenerateCubemapData>(false);
 		}
@@ -100,14 +100,16 @@ namespace tasks
 		RenderTargetProperties rt_properties
 		{
 			.m_is_render_window = false,
-			.m_width = std::nullopt,
-			.m_height = std::nullopt,
+			.m_width = 1024,
+			.m_height = 1024,
 			.m_dsv_format = VK_FORMAT_UNDEFINED,
-			.m_rtv_formats = { VK_FORMAT_B8G8R8A8_UNORM },
+			.m_rtv_formats = { VK_FORMAT_R8G8B8A8_UNORM },
 			.m_state_execute = VK_IMAGE_LAYOUT_GENERAL,
 			.m_state_finished = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			.m_clear = false,
-			.m_clear_depth = false
+			.m_clear_depth = false,
+			.m_allow_direct_access = false,
+			.m_is_cube_map = true,
 		};
 
 		fg::RenderTaskDesc desc;

@@ -34,6 +34,7 @@ namespace gfx
 			bool m_clear = false;
 			bool m_clear_depth = false;
 			bool m_allow_direct_access = false;
+			bool m_is_cube_map = false;
 		};
 
 		explicit RenderTarget(Context* context);

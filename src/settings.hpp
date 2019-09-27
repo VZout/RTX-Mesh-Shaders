@@ -9,7 +9,7 @@
 namespace settings
 {
 
-	static const bool use_multithreading = true;
+	static const bool use_multithreading = false;
 	static const std::uint32_t num_frame_graph_threads = 4;
 
 } /* settings */

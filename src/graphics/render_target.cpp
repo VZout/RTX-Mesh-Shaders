@@ -162,7 +162,7 @@ void gfx::RenderTarget::CreateImages()
 		image_info.extent.height = m_desc.m_height;
 		image_info.extent.depth = 1;
 		image_info.mipLevels = 1;
-		image_info.arrayLayers = 1;
+		image_info.arrayLayers = m_desc.m_is_cube_map ? 6 : 1;
 		image_info.format = m_desc.m_rtv_formats[i];
 		image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
 		image_info.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
@@ -170,7 +170,7 @@ void gfx::RenderTarget::CreateImages()
 		if (m_desc.m_allow_uav || m_desc.m_allow_direct_access) image_info.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
 		image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		image_info.samples = VK_SAMPLE_COUNT_1_BIT;
-		image_info.flags = 0;
+		image_info.flags = m_desc.m_is_cube_map ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
 
 		if (vkCreateImage(logical_device, &image_info, nullptr, &m_images[i]) != VK_SUCCESS)
 		{
@@ -205,7 +205,7 @@ void gfx::RenderTarget::CreateImageViews()
 		VkImageViewCreateInfo create_info = {};
 		create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		create_info.image = m_images[i];
-		create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		create_info.viewType = m_desc.m_is_cube_map ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
 		create_info.format = m_desc.m_rtv_formats[i];
 		create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
 		create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -215,7 +215,7 @@ void gfx::RenderTarget::CreateImageViews()
 		create_info.subresourceRange.baseMipLevel = 0;
 		create_info.subresourceRange.levelCount = 1;
 		create_info.subresourceRange.baseArrayLayer = 0;
-		create_info.subresourceRange.layerCount = 1;
+		create_info.subresourceRange.layerCount = m_desc.m_is_cube_map ? 6 : 1;;
 
 		if (vkCreateImageView(logical_device, &create_info, nullptr, &m_image_views[i]) != VK_SUCCESS)
 		{
@@ -346,7 +346,6 @@ void gfx::RenderTarget::CreateDepthBuffer()
 	auto logical_device = m_context->m_logical_device;
 
 	// TODO: Check if we support the depth buffer format.
-
 	m_depth_buffer_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	m_depth_buffer_create_info.imageType = VK_IMAGE_TYPE_2D;
 	m_depth_buffer_create_info.extent.width = m_desc.m_width;
@@ -357,7 +356,7 @@ void gfx::RenderTarget::CreateDepthBuffer()
 	m_depth_buffer_create_info.format = m_desc.m_depth_format;
 	m_depth_buffer_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
 	m_depth_buffer_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	m_depth_buffer_create_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	m_depth_buffer_create_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 	m_depth_buffer_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
 	m_depth_buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -391,7 +390,7 @@ void gfx::RenderTarget::CreateDepthBufferView()
 	VkImageViewCreateInfo view_create_info = {};
 	view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	view_create_info.image = m_depth_buffer;
-	view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	view_create_info.viewType = m_desc.m_is_cube_map ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
 	view_create_info.format = m_depth_buffer_create_info.format;
 	view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 	view_create_info.subresourceRange.baseMipLevel = 0;
