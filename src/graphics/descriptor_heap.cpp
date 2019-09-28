@@ -136,7 +136,7 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromTexture(std::vector<StagingTe
 	VkSampler new_sampler = VK_NULL_HANDLE;
 	if (sampler_desc.has_value())
 	{
-		new_sampler = CreateSampler(sampler_desc.value());
+		new_sampler = CreateSampler(sampler_desc.value(), texture[0]->m_desc.m_mip_levels);
 		m_image_samplers.push_back(new_sampler);
 	}
 
@@ -152,7 +152,7 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromTexture(std::vector<StagingTe
 		view_info.format = t->m_desc.m_format;
 		view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		view_info.subresourceRange.baseMipLevel = 0;
-		view_info.subresourceRange.levelCount = 1;
+		view_info.subresourceRange.levelCount = t->m_desc.m_mip_levels;
 		view_info.subresourceRange.baseArrayLayer = 0;
 		view_info.subresourceRange.layerCount = 1;
 
@@ -209,7 +209,7 @@ std::uint32_t gfx::DescriptorHeap::CreateUAVSetFromTexture(std::vector<Texture*>
 	VkSampler new_sampler = VK_NULL_HANDLE;
 	if (sampler_desc.has_value())
 	{
-		new_sampler = CreateSampler(sampler_desc.value());
+		new_sampler = CreateSampler(sampler_desc.value(), texture[0]->m_desc.m_mip_levels);
 		m_image_samplers.push_back(new_sampler);
 	}
 
@@ -225,7 +225,7 @@ std::uint32_t gfx::DescriptorHeap::CreateUAVSetFromTexture(std::vector<Texture*>
 		view_info.format = t->m_desc.m_format;
 		view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		view_info.subresourceRange.baseMipLevel = 0;
-		view_info.subresourceRange.levelCount = 1;
+		view_info.subresourceRange.levelCount = t->m_desc.m_mip_levels;
 		view_info.subresourceRange.baseArrayLayer = 0;
 		view_info.subresourceRange.layerCount = 1;
 
@@ -438,7 +438,7 @@ std::uint32_t gfx::DescriptorHeap::CreateUAVSetFromRT(RenderTarget* render_targe
 }
 
 
-VkSampler gfx::DescriptorHeap::CreateSampler(SamplerDesc sampler_desc)
+VkSampler gfx::DescriptorHeap::CreateSampler(SamplerDesc sampler_desc, std::uint32_t num_mips)
 {
 	auto logical_device = m_context->m_logical_device;
 
@@ -476,7 +476,7 @@ VkSampler gfx::DescriptorHeap::CreateSampler(SamplerDesc sampler_desc)
 	sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
 	sampler_info.mipLodBias = 0.0f;
 	sampler_info.minLod = 0.0f;
-	sampler_info.maxLod = 0.0f;
+	sampler_info.maxLod = num_mips;
 
 	VkSampler new_sampler;
 	if (vkCreateSampler(logical_device, &sampler_info, nullptr, &new_sampler) != VK_SUCCESS)

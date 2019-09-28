@@ -31,12 +31,13 @@ gfx::VkTexturePool::~VkTexturePool()
 	m_queued_for_staging_textures.clear();
 }
 
-void gfx::VkTexturePool::Load_Impl(TextureData const & data, std::uint32_t id, bool srgb)
+void gfx::VkTexturePool::Load_Impl(TextureData const & data, std::uint32_t id, bool mipmap, bool srgb)
 {
 	auto desc = StagingTexture::Desc();
 	desc.m_width = data.m_width;
 	desc.m_height = data.m_height;
 	desc.m_channels = data.m_channels;
+	desc.m_mip_levels = mipmap ? static_cast<std::uint32_t>(std::floor(std::log2(std::max(desc.m_width, desc.m_height)))) + 1 : 1;
 
 	if (data.m_is_hdr && srgb)
 	{
@@ -62,7 +63,17 @@ void gfx::VkTexturePool::Stage(gfx::CommandList* command_list)
 	{
 		command_list->TransitionTexture(texture.second, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 		command_list->StageTexture(texture.second);
-		command_list->TransitionTexture(texture.second, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+		// Generate mipmaps or transition it to shader read only.
+		if (texture.second->HasMipMaps())
+		{
+			command_list->GenerateMipMap(texture.second);
+		}
+		else
+		{
+			command_list->TransitionTexture(texture.second, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		}
+
 		m_staged_textures.insert(texture);
 		m_queued_for_release_staging_resources_textures.push_back(texture.first);
 	}

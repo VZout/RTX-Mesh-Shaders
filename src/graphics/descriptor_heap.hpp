@@ -73,7 +73,7 @@ namespace gfx
 		                                 std::uint32_t handle,std::uint32_t frame_idx, SamplerDesc sampler_desc = m_default_sampler_desc);
 
 	private:
-		VkSampler CreateSampler(SamplerDesc sampler);
+		VkSampler CreateSampler(SamplerDesc sampler, std::uint32_t num_mips = 1);
 
 		Context* m_context;
 

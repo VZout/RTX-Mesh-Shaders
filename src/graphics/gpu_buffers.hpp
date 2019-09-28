@@ -85,6 +85,8 @@ namespace gfx
 		Texture(Context* context, Desc desc, bool uav = false);
 		virtual ~Texture();
 
+		bool HasMipMaps();
+
 	protected:
 		void CreateImageAndMemory(VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
 		                          VkImage& image, VkDeviceMemory memory);

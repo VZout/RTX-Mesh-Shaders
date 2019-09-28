@@ -86,7 +86,7 @@ void main()
         dir = vec3(0, 0, 1);
     }
 
-    const float resolution = 4096.f;
+    const float resolution = 2048.f;
     const vec2 inUV = (vec2(gl_GlobalInvocationID.xy + 0.5f) / resolution);
     vec2 d = inUV * 2.0 - 1.0;
 

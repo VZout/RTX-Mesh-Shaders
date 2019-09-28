@@ -28,7 +28,7 @@ namespace gfx
 		std::vector<gfx::StagingTexture*> GetTextures(std::vector<std::uint32_t> texture_handles) final;
 
 	private:
-		void Load_Impl(TextureData const & data, std::uint32_t id, bool srgb) final;
+		void Load_Impl(TextureData const & data, std::uint32_t id, bool mipmap, bool srgb) final;
 
 		Context* m_context;
 

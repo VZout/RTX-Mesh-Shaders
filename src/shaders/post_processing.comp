@@ -24,8 +24,8 @@ void main()
 
     //ImageData data = GetNeighbours();
     //vec3 rgb = Sharpen(data);
-    //vec3 rgb = imageLoad(t_input, ivec2(n_uv)).rgb;
-    vec3 rgb = ChromaticAberration(uv, 0.1, 0.97f, resolution);
+    vec3 rgb = imageLoad(t_input, ivec2(n_uv)).rgb;
+    //vec3 rgb = ChromaticAberration(uv, 0.1, 0.97f, resolution);
 
     const float gamma = 2.2;
     const float exposure = 1;

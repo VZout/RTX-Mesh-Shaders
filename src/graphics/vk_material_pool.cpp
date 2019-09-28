@@ -70,9 +70,16 @@ gfx::DescriptorHeap* gfx::VkMaterialPool::GetDescriptorHeap()
 
 void gfx::VkMaterialPool::Load_Impl(MaterialHandle& handle, MaterialData const & data, TexturePool* texture_pool)
 {
+	gfx::SamplerDesc sampler_desc
+	{
+		.m_filter = gfx::enums::TextureFilter::FILTER_LINEAR,
+		.m_address_mode = gfx::enums::TextureAddressMode::TAM_WRAP,
+		.m_border_color = gfx::enums::BorderColor::BORDER_WHITE,
+	};
+
 	// Textures
 	auto textures = texture_pool->GetTextures({ handle.m_albedo_texture_handle, handle.m_normal_texture_handle, handle.m_roughness_texture_handle });
-	auto descriptor_set_id = m_desc_heap->CreateSRVSetFromTexture(textures, m_material_set_layout, 2, 0);
+	auto descriptor_set_id = m_desc_heap->CreateSRVSetFromTexture(textures, m_material_set_layout, 2, 0, sampler_desc);
 	handle.m_material_set_id = descriptor_set_id;
 	m_descriptor_sets.insert({ handle.m_material_id, descriptor_set_id }); //TODO: Unhardcode this handle (1). We want this to be a global static. see line 25
 }
