@@ -193,6 +193,11 @@ gfx::Texture::~Texture()
 	if (m_texture_memory) vkFreeMemory(logical_device, m_texture_memory, nullptr);
 }
 
+bool gfx::Texture::HasMipMaps()
+{
+	return m_desc.m_mip_levels > 1;
+}
+
 void gfx::Texture::CreateImageAndMemory(VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
                                         VkImage& image, VkDeviceMemory memory)
 {
@@ -210,6 +215,7 @@ void gfx::Texture::CreateImageAndMemory(VkImageTiling tiling, VkImageUsageFlags 
 	image_info.tiling = tiling;
 	image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	image_info.usage = usage;
+	if (m_desc.m_mip_levels > 1) image_info.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 	image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	image_info.samples = VK_SAMPLE_COUNT_1_BIT;
 	image_info.flags = 0;

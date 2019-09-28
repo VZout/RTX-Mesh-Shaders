@@ -77,8 +77,8 @@ namespace tasks
 
 					std::vector<std::pair<gfx::DescriptorHeap*, std::uint32_t>> sets
 					{
-						{ per_obj_pool->GetDescriptorHeap(), cb_handle.m_cb_set_id }, // TODO: Shitty naming of set_id. just use a vector in the handle instead probably.
 						{ camera_pool->GetDescriptorHeap(), camera_handle.m_cb_set_id }, // TODO: Shitty naming of set_id. just use a vector in the handle instead probably.
+						{ per_obj_pool->GetDescriptorHeap(), cb_handle.m_cb_set_id }, // TODO: Shitty naming of set_id. just use a vector in the handle instead probably.
 						{ material_pool->GetDescriptorHeap(), mesh_handle.m_material_handle->m_material_set_id }
 					};
 

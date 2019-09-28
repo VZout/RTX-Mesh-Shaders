@@ -25,6 +25,7 @@ namespace gfx
 	class PipelineState;
 	class StagingTexture;
 	class StagingBuffer;
+	class Texture;
 
 	class CommandList
 	{
@@ -54,6 +55,7 @@ namespace gfx
 		void TransitionTexture(StagingTexture* texture, VkImageLayout from, VkImageLayout to);
 		void TransitionRenderTarget(RenderTarget* render_target, VkImageLayout from, VkImageLayout to);
 		void TransitionRenderTarget(RenderTarget* render_target, std::uint32_t rt_idx, VkImageLayout from, VkImageLayout to);
+		void GenerateMipMap(gfx::Texture* texture);
 		void Draw(std::uint32_t vertex_count, std::uint32_t instance_count,
 				std::uint32_t first_vertex = 0, std::uint32_t first_instance = 0);
 		void DrawIndexed(std::uint32_t idx_count, std::uint32_t instance_count,

@@ -39,15 +39,27 @@ void main()
 
     const vec3 world_pos = world_pos_ao.xyz;
     const vec3 albedo = albedo_roughness.rgb;
-    const vec3 N = normalize(normal_metallic.xyz);
+    const vec3 N = normal_metallic.xyz;
     const float roughness = albedo_roughness.a;
     const float metallic = normal_metallic.a;
     const float ao = world_pos_ao.a;
 
+    mat4 inv_view = inverse(camera.view);
+
+    if (world_pos.z == 0)
+    {
+        vec2 d = uv * 2.0f - 1.0;
+
+        vec4 target = inverse(camera.proj) * vec4(d.x, d.y, 1, 1) ;
+        vec4 direction = inv_view * vec4(normalize(target.xyz), 0);
+
+        imageStore(t_output, ivec2(gl_GlobalInvocationID.xy), texture(t_skybox, direction.xyz));
+        return;
+    }
+
     // Constants
     const float specular_strength = 0.5;
     const float irradiance = 0.1;
-    mat4 inv_view = inverse(camera.view);
     const vec3 view_pos = vec3(inv_view[3][0], inv_view[3][1], inv_view[3][2]);
 
     vec3 V = normalize(view_pos - world_pos);
@@ -75,16 +87,6 @@ void main()
     vec3 color = (kD * diffuse + specular) + lighting;
 
     color *= ao;
-
-    if (world_pos.z == 0)
-    {
-        vec2 d = uv * 2.0f - 1.0;
-
-        vec4 target = inverse(camera.proj) * vec4(d.x, d.y, 1, 1) ;
-        vec4 direction = inv_view * vec4(normalize(target.xyz), 0);
-
-        color = texture(t_skybox, direction.xyz).rgb;
-    }
 
     imageStore(t_output, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1));
 }

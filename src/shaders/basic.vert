@@ -14,11 +14,11 @@ layout(location = 3) out vec3 g_tangent;
 layout(location = 4) out vec3 g_bitangent;
 
 // Uniforms
-layout(set = 0, binding = 0) uniform UniformBufferObject {
+layout(set = 1, binding = 1) uniform UniformBufferObject {
     mat4 model;
 } ubo;
 
-layout(set = 1, binding = 1) uniform UniformBufferCameraObject {
+layout(set = 0, binding = 0) uniform UniformBufferCameraObject {
     mat4 view;
     mat4 proj;
 } camera;

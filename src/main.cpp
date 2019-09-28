@@ -181,8 +181,8 @@ protected:
 		m_renderer->Upload();
 
 		m_scene_graph = new sg::SceneGraph();
-		m_scene_graph->SetPOConstantBufferPool(m_renderer->CreateConstantBufferPool(0));
-		m_scene_graph->SetCameraConstantBufferPool(m_renderer->CreateConstantBufferPool(1));
+		m_scene_graph->SetPOConstantBufferPool(m_renderer->CreateConstantBufferPool(1));
+		m_scene_graph->SetCameraConstantBufferPool(m_renderer->CreateConstantBufferPool(0, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT));
 		m_scene_graph->SetLightConstantBufferPool(m_renderer->CreateConstantBufferPool(3, VK_SHADER_STAGE_COMPUTE_BIT));
 
 		m_camera_node = m_scene_graph->CreateNode<sg::CameraComponent>();
