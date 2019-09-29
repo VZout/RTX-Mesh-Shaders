@@ -18,7 +18,7 @@ struct root_signatures
 	static RegistryHandle basic;
 	static RegistryHandle composition;
 	static RegistryHandle post_processing;
-	static RegistryHandle generate_cubemap;
+	static RegistryHandle generate_cubemap; // Also used by `generate_irradiance`
 
 }; /* root_signatures */
 

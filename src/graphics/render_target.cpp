@@ -166,8 +166,9 @@ void gfx::RenderTarget::CreateImages()
 		image_info.format = m_desc.m_rtv_formats[i];
 		image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
 		image_info.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
-		image_info.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT; // TODO: Optimize this
+		image_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT; // TODO: Optimize this
 		if (m_desc.m_allow_uav || m_desc.m_allow_direct_access) image_info.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+		if (!m_desc.m_allow_uav) image_info.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		image_info.samples = VK_SAMPLE_COUNT_1_BIT;
 		image_info.flags = m_desc.m_is_cube_map ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;

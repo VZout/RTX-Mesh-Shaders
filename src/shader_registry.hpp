@@ -20,6 +20,7 @@ struct shaders
 	static RegistryHandle composition_cs;
 	static RegistryHandle post_processing_cs;
 	static RegistryHandle generate_cubemap_cs;
+	static RegistryHandle generate_irradiancemap_cs;
 
 }; /* shaders */
 

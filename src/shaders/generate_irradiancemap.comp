@@ -1,0 +1,201 @@
+#version 450
+
+#define M_PI 3.1415926535897932384626433832795
+
+layout (local_size_x = 32, local_size_y = 32) in;
+
+layout(set = 0, binding = 0) uniform samplerCube t_input;
+layout(set = 1, binding = 1, rgba8) uniform writeonly imageCube t_output;
+
+mat4 perspective(float fovy, float aspect, float zNear, float zFar)
+{
+    float rad = fovy;
+    float tanHalfFovy = tan(rad / 2.f);
+
+    mat4 result = mat4(0);
+    result[0][0] = 1.f / (aspect * tanHalfFovy);
+    result[1][1] = 1.f / (tanHalfFovy);
+    result[2][2] = - (zFar + zNear) / (zFar - zNear);
+    result[2][3] = - 1.f;
+    result[3][2] = - (2.f * zFar * zNear) / (zFar - zNear);
+    return result;
+}
+
+mat4 look_at(vec3 eye, vec3 center, vec3 up)
+{
+    vec3 f = vec3(normalize(center - eye));
+    vec3 s = vec3(normalize(cross(f, up)));
+    vec3 u = vec3(cross(s, f));
+
+    mat4 result = mat4(1);
+    result[0][0] = s.x;
+    result[1][0] = s.y;
+    result[2][0] = s.z;
+    result[0][1] = u.x;
+    result[1][1] = u.y;
+    result[2][1] = u.z;
+    result[0][2] =-f.x;
+    result[1][2] =-f.y;
+    result[2][2] =-f.z;
+    result[3][0] =-dot(s, eye);
+    result[3][1] =-dot(u, eye);
+    result[3][2] = dot(f, eye);
+
+    return result;
+}
+
+float max3 (vec3 v) {
+    return max (max (v.x, v.y), v.z);
+}
+
+vec3 cubeCoordToWorld(ivec3 cubeCoord, vec2 cubemapSize)
+{
+    vec2 texCoord = vec2(cubeCoord.xy) / cubemapSize;
+    texCoord = texCoord  * 2.0 - 1.0; // -1..1
+    switch(cubeCoord.z)
+    {
+        case 0: return vec3(1.0, -texCoord.yx); // posx
+        case 1: return vec3(-1.0, -texCoord.y, texCoord.x); //negx
+        case 2: return vec3(texCoord.x, 1.0, texCoord.y); // posy
+        case 3: return vec3(texCoord.x, -1.0, -texCoord.y); //negy
+        case 4: return vec3(texCoord.x, -texCoord.y, 1.0); // posz
+        case 5: return vec3(-texCoord.xy, -1.0); // negz
+    }
+    return vec3(0.0);
+}
+
+ivec3 texCoordToCube(vec3 texCoord, vec2 cubemapSize)
+{
+    vec3 abst = abs(texCoord);
+    texCoord /= max3(abst);
+
+    float cubeFace;
+    vec2 uvCoord;
+    if (abst.x > abst.y && abst.x > abst.z)
+    {
+        // x major
+        float negx = step(texCoord.x, 0.0);
+        uvCoord = mix(-texCoord.zy, vec2(texCoord.z, -texCoord.y), negx);
+        cubeFace = negx;
+    }
+    else if (abst.y > abst.z)
+    {
+        // y major
+        float negy = step(texCoord.y, 0.0);
+        uvCoord = mix(texCoord.xz, vec2(texCoord.x, -texCoord.z), negy);
+        cubeFace = 2.0 + negy;
+    }
+    else
+    {
+        // z major
+        float negz = step(texCoord.z, 0.0);
+        uvCoord = mix(vec2(texCoord.x, -texCoord.y), -texCoord.xy, negz);
+        cubeFace = 4.0 + negz;
+    }
+    uvCoord = (uvCoord + 1.0) * 0.5; // 0..1
+    uvCoord = uvCoord * cubemapSize;
+    uvCoord = clamp(uvCoord, vec2(0.0), cubemapSize - vec2(1.0));
+
+    return ivec3(ivec2(uvCoord), int(cubeFace));
+}
+
+void main()
+{
+    uint face = gl_GlobalInvocationID.z;
+
+    vec3 view_dir = vec3(0);
+    vec3 view_up = vec3(0, 1, 0);
+    if (face == 0)
+    {
+        view_dir = vec3(1, 0, 0);
+    }
+    else if (face == 1)
+    {
+        view_dir = vec3(-1, 0, 0); // back
+    }
+    else if (face == 2)
+    {
+        view_dir = vec3(0, -1, 0); // top
+        view_up = vec3(0, 0, -1);
+    }
+    else if (face == 3)
+    {
+        view_dir = vec3(0, 1, 0); // bottom
+        view_up = vec3(0, 0, 1);
+    }
+    else if (face == 4) // right
+    {
+        view_dir = vec3(0, 0, -1);
+    }
+    else if (face == 5) // left
+    {
+        view_dir = vec3(0, 0, 1);
+    }
+
+    const float resolution = 128;
+    const vec2 inUV = (vec2(gl_GlobalInvocationID.xy + 0.5f) / resolution);
+    vec2 d = inUV * 2.0 - 1.0;
+
+    mat4 persp = perspective(1.5708f, resolution / resolution, 1.f, 100.f);
+    mat4 view = look_at(vec3(0, 0, 0), view_dir, view_up);
+
+    vec4 target = inverse(persp) * vec4(d.x, d.y, 1, 1) ;
+    vec4 direction = inverse(view) * vec4(normalize(target.xyz), 0);
+
+    ivec3 cubeCoord = ivec3(gl_GlobalInvocationID);
+    vec3 worldPos = cubeCoordToWorld(cubeCoord, vec2(resolution));
+
+    vec3 N = normalize(direction.xyz);
+    vec3 up = vec3(0, 1, 0);
+    vec3 right = normalize(cross(up, N));
+    up = cross(N, right);
+
+    #define VULKAN_EX
+#ifdef VULKAN_EX
+    const float deltaPhi = (2.0f * float(M_PI)) / 180.0f;
+    const float deltaTheta = (0.5f * float(M_PI)) / 64.0f;
+
+    const float TWO_PI = M_PI * 2.0;
+    const float HALF_PI = M_PI * 0.5;
+
+    vec3 color = vec3(0.0);
+    float sampleCount = 0u;
+    for (float phi = 0.0; phi < TWO_PI; phi += deltaPhi)
+    {
+        for (float theta = 0.0; theta < HALF_PI; theta += deltaTheta)
+        {
+            vec3 tempVec = cos(phi) * right + sin(phi) * up;
+            vec3 sample_vec = cos(theta) * N + sin(theta) * tempVec;
+            ivec3 sample_coord = texCoordToCube(sample_vec, vec2(resolution));
+            color += texture(t_input, sample_vec).rgb * cos(theta) * sin(theta);
+            sampleCount++;
+        }
+    }
+
+    imageStore(t_output, ivec3(gl_GlobalInvocationID), vec4(color / float(sampleCount), 1.0));
+#else
+    float sample_delta = 0.025f;
+    float nr_samples = 0.0f;
+    vec3 irradiance = vec3(0);
+
+    for (float phi = 0.0f; phi < 2.0f * M_PI; phi += sample_delta)
+    {
+        for (float theta = 0.0f; theta < 0.5f * M_PI; theta += sample_delta)
+        {
+            float cos_theta = cos(theta);
+            float sin_theta = sin(theta);
+
+            vec3 tangent_sample = vec3(sin_theta * cos(phi), sin_theta * sin(phi), cos_theta);
+            vec3 sample_vec = tangent_sample.x * right + tangent_sample.y * up + tangent_sample.z * N;
+            ivec3 sample_coord = texCoordToCube(sample_vec, vec2(resolution));
+
+            irradiance += texture(t_input, sample_vec).rgb * cos_theta * sin_theta;
+
+            nr_samples++;
+        }
+    }
+
+    irradiance = M_PI * irradiance * (1.0f / float(nr_samples));
+    imageStore(t_output, ivec3(gl_GlobalInvocationID), vec4(irradiance, 1.f));
+#endif
+}

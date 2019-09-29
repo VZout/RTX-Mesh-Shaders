@@ -30,3 +30,8 @@ REGISTER(shaders::generate_cubemap_cs, ShaderRegistry)({
     .m_path = "shaders/generate_cubemap.comp.spv",
     .m_type = gfx::enums::ShaderType::COMPUTE,
 });
+
+REGISTER(shaders::generate_irradiancemap_cs, ShaderRegistry)({
+   .m_path = "shaders/generate_irradiancemap.comp.spv",
+   .m_type = gfx::enums::ShaderType::COMPUTE,
+});

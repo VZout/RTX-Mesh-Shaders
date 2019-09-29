@@ -136,6 +136,8 @@ void Renderer::Upload()
 
 void Renderer::Render(sg::SceneGraph& sg, fg::FrameGraph& fg)
 {
+	LOGW("Begin Frame");
+
 	auto frame_idx = m_render_window->GetFrameIdx();
 
 	m_present_fences[frame_idx]->Wait();
@@ -147,6 +149,11 @@ void Renderer::Render(sg::SceneGraph& sg, fg::FrameGraph& fg)
 	m_direct_queue->Execute(fg_cmd_lists, m_present_fences[frame_idx], frame_idx);
 
 	m_render_window->Present(m_direct_queue, m_present_fences[frame_idx]);
+	m_direct_queue->Wait();
+
+	//Sleep(2000);
+
+	LOGW("End Frame");
 }
 
 void Renderer::WaitForAllPreviousWork()

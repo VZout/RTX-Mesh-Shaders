@@ -23,6 +23,7 @@
 #include "../graphics/vk_material_pool.hpp"
 #include "vk_deferred_main_task.hpp"
 #include "vk_generate_cubemap.hpp"
+#include "vk_generate_irradiance_map.hpp"
 #include "../graphics/gfx_enums.hpp"
 
 namespace tasks
@@ -34,6 +35,7 @@ namespace tasks
 		std::vector<std::vector<std::uint32_t>> m_cb_sets;
 		std::uint32_t m_gbuffer_set;
 		std::uint32_t m_skybox_set;
+		std::uint32_t m_irradiance_set;
 		std::uint32_t m_uav_target_set;
 		gfx::DescriptorHeap* m_gbuffer_heap;
 
@@ -68,7 +70,7 @@ namespace tasks
 			// GPU Heap
 			gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
 			descriptor_heap_desc.m_versions = 1;
-			descriptor_heap_desc.m_num_descriptors = 3;
+			descriptor_heap_desc.m_num_descriptors = 4;
 			data.m_gbuffer_heap = new gfx::DescriptorHeap(rs.GetContext(), descriptor_heap_desc);
 			data.m_gbuffer_set = data.m_gbuffer_heap->CreateSRVSetFromRT(deferred_main_rt, data.m_root_sig, 1, 0,false, std::nullopt);
 			data.m_uav_target_set = data.m_gbuffer_heap->CreateUAVSetFromRT(render_target, 0, data.m_root_sig, 2, 0, gbuffer_sampler_desc);
@@ -78,6 +80,13 @@ namespace tasks
 			{
 				auto skybox_rt = fg.GetPredecessorRenderTarget<GenerateCubemapData>();
 				data.m_skybox_set = data.m_gbuffer_heap->CreateSRVSetFromRT(skybox_rt, data.m_root_sig, 4, 0, false, skybox_sampler_desc);
+			}
+
+			// Irradiance
+			if (fg.HasTask<GenerateIrradianceMapData>())
+			{
+				auto irradiance_rt = fg.GetPredecessorRenderTarget<GenerateIrradianceMapData>();
+				data.m_irradiance_set = data.m_gbuffer_heap->CreateSRVSetFromRT(irradiance_rt, data.m_root_sig, 5, 0, false, skybox_sampler_desc);
 			}
 
 			if (resize) return;
@@ -118,6 +127,7 @@ namespace tasks
 				{ data.m_gbuffer_heap, data.m_uav_target_set },
 				{ light_pool->GetDescriptorHeap(), light_buffer_handle.m_cb_set_id },
 				{ data.m_gbuffer_heap, data.m_skybox_set },
+				{ data.m_gbuffer_heap, data.m_irradiance_set },
 			};
 
 			cmd_list->BindComputePipelineState(pipeline);

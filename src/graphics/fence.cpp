@@ -43,5 +43,9 @@ void gfx::Fence::Wait()
 	auto logical_device = m_context->m_logical_device;
 
 	vkWaitForFences(logical_device, 1, &m_fence, VK_TRUE, UINT64_MAX);
-	vkResetFences(logical_device, 1, &m_fence);
+	auto result = vkResetFences(logical_device, 1, &m_fence);
+	if (result == VK_TIMEOUT)
+	{
+		LOGW("Fence timeout");
+	}
 }

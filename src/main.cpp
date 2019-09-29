@@ -161,6 +161,7 @@ protected:
 
 		m_frame_graph = new fg::FrameGraph();
 		tasks::AddGenerateCubemapTask(*m_frame_graph);
+		tasks::AddGenerateIrradianceMapTask(*m_frame_graph);
 		tasks::AddDeferredMainTask(*m_frame_graph);
 		tasks::AddDeferredCompositionTask(*m_frame_graph);
 		tasks::AddPostProcessingTask<tasks::DeferredCompositionData>(*m_frame_graph);
@@ -253,8 +254,8 @@ protected:
 
 	void ResizeCallback(std::uint32_t width, std::uint32_t height) final
 	{
-		m_renderer->Resize(width, height);
-		m_frame_graph->Resize(width, height);
+		//m_renderer->Resize(width, height);
+		//m_frame_graph->Resize(width, height);
 	}
 
 	Editor editor;
