@@ -12,3 +12,4 @@
 #include "vk_deferred_composition_task.hpp"
 #include "vk_post_processing_task.hpp"
 #include "vk_generate_cubemap.hpp"
+#include "vk_generate_irradiance_map.hpp"

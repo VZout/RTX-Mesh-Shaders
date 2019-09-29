@@ -58,7 +58,8 @@ void gfx::CommandQueue::Execute(std::vector<CommandList*> cmd_lists, Fence* fenc
 		submit_info.pSignalSemaphores = signal_semaphores.data();
 	}
 
-	if (vkQueueSubmit(m_queue, 1, &submit_info, fence ? fence->m_fence : VK_NULL_HANDLE) != VK_SUCCESS)
+	auto result = vkQueueSubmit(m_queue, 1, &submit_info, fence ? fence->m_fence : VK_NULL_HANDLE);
+	if (result != VK_SUCCESS)
 	{
 		LOGC("failed to submit draw command buffer!");
 	}

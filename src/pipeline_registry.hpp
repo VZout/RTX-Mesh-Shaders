@@ -19,6 +19,7 @@ struct pipelines
 	static RegistryHandle composition;
 	static RegistryHandle post_processing;
 	static RegistryHandle generate_cubemap;
+	static RegistryHandle generate_irradiancemap;
 
 }; /* pipelines */
 

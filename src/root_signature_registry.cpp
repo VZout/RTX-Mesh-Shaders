@@ -32,7 +32,7 @@ REGISTER(root_signatures::basic, RootSignatureRegistry)({
 REGISTER(root_signatures::composition, RootSignatureRegistry)({
     .m_parameters = []() -> decltype(RootSignatureDesc::m_parameters)
     {
-        decltype(RootSignatureDesc::m_parameters) params(5);
+        decltype(RootSignatureDesc::m_parameters) params(6);
 	    params[0].binding = 0; // camera
 	    params[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	    params[0].descriptorCount = 1;
@@ -58,6 +58,11 @@ REGISTER(root_signatures::composition, RootSignatureRegistry)({
 	    params[4].descriptorCount = 1;
 	    params[4].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 	    params[4].pImmutableSamplers = nullptr;
+	    params[5].binding = 5; // irradiance
+	    params[5].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	    params[5].descriptorCount = 1;
+	    params[5].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+	    params[5].pImmutableSamplers = nullptr;
         return params;
     }(),
 });

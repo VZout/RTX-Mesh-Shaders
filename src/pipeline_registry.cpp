@@ -45,3 +45,11 @@ REGISTER(pipelines::generate_cubemap, PipelineRegistry)({
 
    .m_type = gfx::enums::PipelineType::COMPUTE_PIPE,
 });
+
+REGISTER(pipelines::generate_irradiancemap, PipelineRegistry)({
+    .m_root_signature_handle = root_signatures::generate_cubemap,
+    .m_shader_handles = { shaders::generate_irradiancemap_cs },
+    .m_input_layout = std::nullopt,
+
+    .m_type = gfx::enums::PipelineType::COMPUTE_PIPE,
+});
