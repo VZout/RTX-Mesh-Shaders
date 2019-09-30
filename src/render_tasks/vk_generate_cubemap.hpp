@@ -57,7 +57,7 @@ namespace tasks
 			gfx::SamplerDesc input_sampler_desc
 			{
 				.m_filter = gfx::enums::TextureFilter::FILTER_LINEAR,
-				.m_address_mode = gfx::enums::TextureAddressMode::TAM_WRAP,
+				.m_address_mode = gfx::enums::TextureAddressMode::TAM_CLAMP,
 				.m_border_color = gfx::enums::BorderColor::BORDER_WHITE,
 			};
 
@@ -86,6 +86,9 @@ namespace tasks
 			cmd_list->BindComputeDescriptorHeap(data.m_root_sig, sets);
 			cmd_list->Dispatch(render_target->GetWidth() / 8, render_target->GetHeight() / 8, 6);
 
+			cmd_list->TransitionRenderTarget(render_target, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+			cmd_list->GenerateMipMap(render_target);
+
 			fg.SetShouldExecute<GenerateCubemapData>(false);
 		}
 
@@ -107,13 +110,14 @@ namespace tasks
 			.m_width = 1024,
 			.m_height = 1024,
 			.m_dsv_format = VK_FORMAT_UNDEFINED,
-			.m_rtv_formats = { VK_FORMAT_R32G32B32A32_SFLOAT },
+			.m_rtv_formats = { VK_FORMAT_R16G16B16A16_SFLOAT },
 			.m_state_execute = VK_IMAGE_LAYOUT_GENERAL,
-			.m_state_finished = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			.m_state_finished = std::nullopt,
 			.m_clear = false,
 			.m_clear_depth = false,
 			.m_allow_direct_access = false,
 			.m_is_cube_map = true,
+			.m_mip_levels = static_cast<std::uint32_t>(std::floor(std::log2(rt_properties.m_width.value()))) + 1
 		};
 
 		fg::RenderTaskDesc desc;

@@ -283,7 +283,7 @@ void gfx::CommandList::TransitionDepth(RenderTarget* render_target, VkImageLayou
 	}
 
 	barrier.subresourceRange.baseMipLevel = 0;
-	barrier.subresourceRange.levelCount = 1;
+	barrier.subresourceRange.levelCount = render_target->m_desc.m_mip_levels;
 	barrier.subresourceRange.baseArrayLayer = 0;
 	barrier.subresourceRange.layerCount = 1;
 
@@ -424,7 +424,7 @@ void gfx::CommandList::TransitionRenderTarget(RenderTarget* render_target, std::
 	barrier.image = render_target->m_images[rt_idx];
 	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	barrier.subresourceRange.baseMipLevel = 0;
-	barrier.subresourceRange.levelCount = 1;
+	barrier.subresourceRange.levelCount = render_target->m_desc.m_mip_levels;
 	barrier.subresourceRange.baseArrayLayer = 0;
 	barrier.subresourceRange.layerCount = render_target->m_desc.m_is_cube_map ? 6 : 1;
 
@@ -445,6 +445,22 @@ void gfx::CommandList::TransitionRenderTarget(RenderTarget* render_target, std::
 		barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
 
 		source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		destination_stage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+	}
+	else if (from == VK_IMAGE_LAYOUT_GENERAL && to == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+	{
+		barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+		source_stage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+		destination_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}
+	else if (from == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && to == VK_IMAGE_LAYOUT_GENERAL)
+	{
+		barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+		source_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 		destination_stage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 	}
 	else if (from == VK_IMAGE_LAYOUT_GENERAL && to == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
@@ -545,9 +561,23 @@ void gfx::CommandList::TransitionRenderTarget(RenderTarget* render_target, std::
 // Note that it transitions it to `VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL`
 void gfx::CommandList::GenerateMipMap(gfx::Texture* texture)
 {
+	GenerateMipMap(texture->m_texture, texture->m_desc.m_format, texture->m_desc.m_width, texture->m_desc.m_height, texture->m_desc.m_mip_levels, texture->m_desc.m_array_size);
+}
+
+// Note that it transitions it to `VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL`
+void gfx::CommandList::GenerateMipMap(gfx::RenderTarget* render_target)
+{
+	for (std::size_t i = 0; i < render_target->m_images.size(); i++)
+	{
+		GenerateMipMap(render_target->m_images[i], render_target->m_desc.m_rtv_formats[i], render_target->GetWidth(), render_target->GetHeight(), render_target->m_desc.m_mip_levels, render_target->m_desc.m_is_cube_map ? 6 : 1);
+	}
+}
+
+void gfx::CommandList::GenerateMipMap(VkImage& image, VkFormat format, std::int32_t width, std::int32_t height, std::uint32_t mip_levels, std::uint32_t layers)
+{
 	// Check if image format supports linear blitting
 	VkFormatProperties formatProperties;
-	vkGetPhysicalDeviceFormatProperties(m_context->m_physical_device, texture->m_desc.m_format, &formatProperties);
+	vkGetPhysicalDeviceFormatProperties(m_context->m_physical_device, format, &formatProperties);
 
 	if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
 	{
@@ -557,18 +587,15 @@ void gfx::CommandList::GenerateMipMap(gfx::Texture* texture)
 
 	VkImageMemoryBarrier barrier = {};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	barrier.image = texture->m_texture;
+	barrier.image = image;
 	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	barrier.subresourceRange.baseArrayLayer = 0;
-	barrier.subresourceRange.layerCount = 1;
+	barrier.subresourceRange.layerCount = layers;
 	barrier.subresourceRange.levelCount = 1;
 
-	std::int32_t width = (std::int32_t)texture->m_desc.m_width;
-	std::int32_t height = (std::int32_t)texture->m_desc.m_height;
-
-	for (std::uint32_t i = 1; i < texture->m_desc.m_mip_levels; i++) {
+	for (std::uint32_t i = 1; i < mip_levels; i++) {
 		barrier.subresourceRange.baseMipLevel = i - 1;
 		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
@@ -587,17 +614,17 @@ void gfx::CommandList::GenerateMipMap(gfx::Texture* texture)
 		blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		blit.srcSubresource.mipLevel = i - 1;
 		blit.srcSubresource.baseArrayLayer = 0;
-		blit.srcSubresource.layerCount = 1;
+		blit.srcSubresource.layerCount = layers;
 		blit.dstOffsets[0] = { 0, 0, 0 };
 		blit.dstOffsets[1] = { width > 1 ? width / 2 : 1, height > 1 ? height / 2 : 1, 1 };
 		blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		blit.dstSubresource.mipLevel = i;
 		blit.dstSubresource.baseArrayLayer = 0;
-		blit.dstSubresource.layerCount = 1;
+		blit.dstSubresource.layerCount = layers;
 
 		vkCmdBlitImage(m_cmd_buffers[m_frame_idx],
-		               texture->m_texture, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-		               texture->m_texture, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		               image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+		               image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		               1, &blit,
 		               VK_FILTER_LINEAR);
 
@@ -616,7 +643,7 @@ void gfx::CommandList::GenerateMipMap(gfx::Texture* texture)
 		if (height > 1) height /= 2;
 	}
 
-	barrier.subresourceRange.baseMipLevel = texture->m_desc.m_mip_levels - 1;
+	barrier.subresourceRange.baseMipLevel = mip_levels - 1;
 	barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 	barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;

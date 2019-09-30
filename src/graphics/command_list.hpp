@@ -56,6 +56,8 @@ namespace gfx
 		void TransitionRenderTarget(RenderTarget* render_target, VkImageLayout from, VkImageLayout to);
 		void TransitionRenderTarget(RenderTarget* render_target, std::uint32_t rt_idx, VkImageLayout from, VkImageLayout to);
 		void GenerateMipMap(gfx::Texture* texture);
+		void GenerateMipMap(gfx::RenderTarget* render_target);
+		void GenerateMipMap(VkImage& image, VkFormat format, std::int32_t width, std::int32_t height, std::uint32_t mip_levels, std::uint32_t layers);
 		void Draw(std::uint32_t vertex_count, std::uint32_t instance_count,
 				std::uint32_t first_vertex = 0, std::uint32_t first_instance = 0);
 		void DrawIndexed(std::uint32_t idx_count, std::uint32_t instance_count,
