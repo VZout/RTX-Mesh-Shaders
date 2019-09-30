@@ -215,6 +215,7 @@ void Renderer::PrepareRootSignatureRegistry()
 	{
 		gfx::RootSignature::Desc n_desc;
 		n_desc.m_parameters = desc.m_parameters;
+		n_desc.m_push_constants = desc.m_push_constants;
 
 		auto rs = new gfx::RootSignature(m_context, n_desc);
 		rs->Compile();

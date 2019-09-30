@@ -32,7 +32,7 @@ REGISTER(root_signatures::basic, RootSignatureRegistry)({
 REGISTER(root_signatures::composition, RootSignatureRegistry)({
     .m_parameters = []() -> decltype(RootSignatureDesc::m_parameters)
     {
-        decltype(RootSignatureDesc::m_parameters) params(6);
+        decltype(RootSignatureDesc::m_parameters) params(7);
 	    params[0].binding = 0; // camera
 	    params[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	    params[0].descriptorCount = 1;
@@ -58,11 +58,16 @@ REGISTER(root_signatures::composition, RootSignatureRegistry)({
 	    params[4].descriptorCount = 1;
 	    params[4].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 	    params[4].pImmutableSamplers = nullptr;
-	    params[5].binding = 5; // irradiance
+	    params[5].binding = 5; // irradiance map
 	    params[5].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	    params[5].descriptorCount = 1;
 	    params[5].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 	    params[5].pImmutableSamplers = nullptr;
+	    params[6].binding = 6; // envionment map
+	    params[6].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	    params[6].descriptorCount = 1;
+	    params[6].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+	    params[6].pImmutableSamplers = nullptr;
         return params;
     }(),
 });
@@ -101,4 +106,30 @@ REGISTER(root_signatures::generate_cubemap, RootSignatureRegistry)({
       params[1].pImmutableSamplers = nullptr;
       return params;
   }(),
+});
+
+REGISTER(root_signatures::generate_environmentmap, RootSignatureRegistry)({
+  .m_parameters = []() -> decltype(RootSignatureDesc::m_parameters)
+  {
+      decltype(RootSignatureDesc::m_parameters) params(2);
+      params[0].binding = 0; // root parameter 1
+      params[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+      params[0].descriptorCount = 1;
+      params[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+      params[0].pImmutableSamplers = nullptr;
+      params[1].binding = 1; // root parameter 2
+	  params[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	  params[1].descriptorCount = 1;
+	  params[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+	  params[1].pImmutableSamplers = nullptr;
+      return params;
+  }(),
+  .m_push_constants = []() -> decltype(RootSignatureDesc::m_push_constants)
+    {
+	    decltype(RootSignatureDesc::m_push_constants) constants(1);
+	    constants[0].offset = 0;
+	    constants[0].size = sizeof(float) * 2; // roughness and face
+	    constants[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+  	    return constants;
+	}()
 });

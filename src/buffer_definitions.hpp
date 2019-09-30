@@ -36,4 +36,9 @@ namespace cb
 		std::uint32_t m_type = (std::uint32_t)LightType::FREE;
 	};
 
+	struct PrefilterInfo
+	{
+		float roughness;
+	};
+
 } /* CB */

@@ -21,6 +21,7 @@ struct shaders
 	static RegistryHandle post_processing_cs;
 	static RegistryHandle generate_cubemap_cs;
 	static RegistryHandle generate_irradiancemap_cs;
+	static RegistryHandle generate_environmentmap_cs;
 
 }; /* shaders */
 

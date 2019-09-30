@@ -43,8 +43,8 @@ void gfx::RootSignature::Compile()
 	m_pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	m_pipeline_layout_info.setLayoutCount = m_descriptor_set_layouts.size();
 	m_pipeline_layout_info.pSetLayouts = m_descriptor_set_layouts.data();
-	m_pipeline_layout_info.pushConstantRangeCount = 0;
-	m_pipeline_layout_info.pPushConstantRanges = nullptr;
+	m_pipeline_layout_info.pushConstantRangeCount = m_desc.m_push_constants.size();
+	m_pipeline_layout_info.pPushConstantRanges = m_desc.m_push_constants.data();
 
 	if (vkCreatePipelineLayout(logical_device, &m_pipeline_layout_info, nullptr, &m_pipeline_layout) != VK_SUCCESS)
 	{

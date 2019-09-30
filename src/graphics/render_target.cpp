@@ -146,6 +146,11 @@ std::uint32_t gfx::RenderTarget::GetHeight()
 	return m_desc.m_height;
 }
 
+std::uint32_t gfx::RenderTarget::GetMipLevels()
+{
+	return m_desc.m_mip_levels;
+}
+
 void gfx::RenderTarget::CreateImages()
 {
 	auto num_rtvs = m_desc.m_rtv_formats.size();
@@ -252,7 +257,6 @@ void gfx::RenderTarget::CreateFrameBuffers()
 	{
 		LOGC("failed to create framebuffer!");
 	}
-	int x = 0;
 }
 
 void gfx::RenderTarget::CreateRenderPass()

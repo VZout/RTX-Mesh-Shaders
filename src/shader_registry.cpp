@@ -35,3 +35,8 @@ REGISTER(shaders::generate_irradiancemap_cs, ShaderRegistry)({
    .m_path = "shaders/generate_irradiancemap.comp.spv",
    .m_type = gfx::enums::ShaderType::COMPUTE,
 });
+
+REGISTER(shaders::generate_environmentmap_cs, ShaderRegistry)({
+   .m_path = "shaders/generate_environmentmap.comp.spv",
+   .m_type = gfx::enums::ShaderType::COMPUTE,
+});
