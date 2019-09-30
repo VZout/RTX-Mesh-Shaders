@@ -20,6 +20,7 @@ struct pipelines
 	static RegistryHandle post_processing;
 	static RegistryHandle generate_cubemap;
 	static RegistryHandle generate_irradiancemap;
+	static RegistryHandle generate_environmentmap;
 
 }; /* pipelines */
 
@@ -30,7 +31,7 @@ struct PipelineDesc
 	std::optional<gfx::PipelineState::InputLayout> m_input_layout;
 
 	gfx::enums::PipelineType m_type;
-	std::vector<VkFormat> m_rtv_formats;
+	std::vector<VkFormat> m_rtv_formats = {};
 	VkFormat m_depth_format = VK_FORMAT_UNDEFINED;
 	VkPrimitiveTopology m_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 	bool m_counter_clockwise = true;

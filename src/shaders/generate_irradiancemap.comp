@@ -132,7 +132,7 @@ void main()
         view_dir = vec3(0, 0, 1);
     }
 
-    const float resolution = 128;
+    const float resolution = imageSize(t_output).x;
     const vec2 inUV = (vec2(gl_GlobalInvocationID.xy + 0.5f) / resolution);
     vec2 d = inUV * 2.0 - 1.0;
 
@@ -150,7 +150,7 @@ void main()
     vec3 right = normalize(cross(up, N));
     up = cross(N, right);
 
-    //#define VULKAN_EX
+//#define VULKAN_EX
 #ifdef VULKAN_EX
     const float deltaPhi = (2.0f * float(M_PI)) / 180.0f;
     const float deltaTheta = (0.5f * float(M_PI)) / 64.0f;
@@ -188,7 +188,7 @@ void main()
             vec3 tangent_sample = vec3(sin_theta * cos(phi), sin_theta * sin(phi), cos_theta);
             vec3 sample_vec = tangent_sample.x * right + tangent_sample.y * up + tangent_sample.z * N;
 
-            irradiance += textureLod(t_input, sample_vec, 8).rgb * cos_theta * sin_theta;
+            irradiance += textureLod(t_input, sample_vec, 7).rgb * cos_theta * sin_theta;
             nr_samples++;
         }
     }

@@ -159,9 +159,11 @@ protected:
 	{
 		SetupEditor();
 
+
 		m_frame_graph = new fg::FrameGraph();
 		tasks::AddGenerateCubemapTask(*m_frame_graph);
 		tasks::AddGenerateIrradianceMapTask(*m_frame_graph);
+		tasks::AddGenerateEnvironmentMapTask(*m_frame_graph);
 		tasks::AddDeferredMainTask(*m_frame_graph);
 		tasks::AddDeferredCompositionTask(*m_frame_graph);
 		tasks::AddPostProcessingTask<tasks::DeferredCompositionData>(*m_frame_graph);
@@ -195,10 +197,10 @@ protected:
 
 		// second node
 		{
-			auto node = m_scene_graph->CreateNode<sg::MeshComponent>(battery_model_handle);
-			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(0.75, -0.65, 0));
-			sg::helper::SetScale(m_scene_graph, node, glm::vec3(0.01, 0.01, 0.01));
-			sg::helper::SetRotation(m_scene_graph, node, glm::vec3(glm::radians(-90.f), glm::radians(40.f), 0));
+			m_battery_node = m_scene_graph->CreateNode<sg::MeshComponent>(battery_model_handle);
+			sg::helper::SetPosition(m_scene_graph, m_battery_node, glm::vec3(0.75, -0.65, 0));
+			sg::helper::SetScale(m_scene_graph, m_battery_node, glm::vec3(0.01, 0.01, 0.01));
+			sg::helper::SetRotation(m_scene_graph, m_battery_node, glm::vec3(glm::radians(-90.f), glm::radians(40.f), 0));
 		}
 
 		// light node
@@ -226,6 +228,7 @@ protected:
 		float t = diff.count();
 
 		sg::helper::SetRotation(m_scene_graph, m_node, glm::vec3(-90._deg, glm::radians(t * 0.0000001f), 0));
+		sg::helper::SetRotation(m_scene_graph, m_battery_node, glm::vec3(-90._deg, glm::radians(t * 0.00000001f), 0));
 
 		m_scene_graph->Update(m_renderer->GetFrameIdx());
 		m_renderer->Render(*m_scene_graph, *m_frame_graph);
@@ -264,6 +267,7 @@ protected:
 	sg::SceneGraph* m_scene_graph;
 
 	sg::NodeHandle m_node;
+	sg::NodeHandle m_battery_node;
 	sg::NodeHandle m_camera_node;
 
 	// ImGui

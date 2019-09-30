@@ -24,6 +24,7 @@
 #include "vk_deferred_main_task.hpp"
 #include "vk_generate_cubemap.hpp"
 #include "vk_generate_irradiance_map.hpp"
+#include "vk_generate_environment_map.hpp"
 #include "../graphics/gfx_enums.hpp"
 
 namespace tasks
@@ -36,6 +37,7 @@ namespace tasks
 		std::uint32_t m_gbuffer_set;
 		std::uint32_t m_skybox_set;
 		std::uint32_t m_irradiance_set;
+		std::uint32_t m_environment_set;
 		std::uint32_t m_uav_target_set;
 		gfx::DescriptorHeap* m_gbuffer_heap;
 
@@ -62,7 +64,7 @@ namespace tasks
 
 			gfx::SamplerDesc skybox_sampler_desc
 			{
-				.m_filter = gfx::enums::TextureFilter::FILTER_LINEAR,
+				.m_filter = gfx::enums::TextureFilter::FILTER_ANISOTROPIC,
 				.m_address_mode = gfx::enums::TextureAddressMode::TAM_WRAP,
 				.m_border_color = gfx::enums::BorderColor::BORDER_WHITE,
 			};
@@ -70,7 +72,7 @@ namespace tasks
 			// GPU Heap
 			gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
 			descriptor_heap_desc.m_versions = 1;
-			descriptor_heap_desc.m_num_descriptors = 4;
+			descriptor_heap_desc.m_num_descriptors = 5;
 			data.m_gbuffer_heap = new gfx::DescriptorHeap(rs.GetContext(), descriptor_heap_desc);
 			data.m_gbuffer_set = data.m_gbuffer_heap->CreateSRVSetFromRT(deferred_main_rt, data.m_root_sig, 1, 0,false, std::nullopt);
 			data.m_uav_target_set = data.m_gbuffer_heap->CreateUAVSetFromRT(render_target, 0, data.m_root_sig, 2, 0, gbuffer_sampler_desc);
@@ -87,6 +89,13 @@ namespace tasks
 			{
 				auto irradiance_rt = fg.GetPredecessorRenderTarget<GenerateIrradianceMapData>();
 				data.m_irradiance_set = data.m_gbuffer_heap->CreateSRVSetFromRT(irradiance_rt, data.m_root_sig, 5, 0, false, skybox_sampler_desc);
+			}
+
+			// Environment
+			if (fg.HasTask<GenerateEnvironmentMapData>())
+			{
+				auto environmnet_rt = fg.GetPredecessorRenderTarget<GenerateEnvironmentMapData>();
+				data.m_environment_set = data.m_gbuffer_heap->CreateSRVSetFromRT(environmnet_rt, data.m_root_sig, 6, 0, false, skybox_sampler_desc);
 			}
 
 			if (resize) return;
@@ -128,6 +137,7 @@ namespace tasks
 				{ light_pool->GetDescriptorHeap(), light_buffer_handle.m_cb_set_id },
 				{ data.m_gbuffer_heap, data.m_skybox_set },
 				{ data.m_gbuffer_heap, data.m_irradiance_set },
+				{ data.m_gbuffer_heap, data.m_environment_set },
 			};
 
 			cmd_list->BindComputePipelineState(pipeline);

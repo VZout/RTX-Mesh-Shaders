@@ -283,7 +283,7 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromRT(RenderTarget* render_targe
 	VkSampler new_sampler = VK_NULL_HANDLE;
 	if (sampler_desc.has_value())
 	{
-		new_sampler = CreateSampler(sampler_desc.value());
+		new_sampler = CreateSampler(sampler_desc.value(), render_target->GetMipLevels());
 		m_image_samplers.push_back(new_sampler);
 	}
 
@@ -298,7 +298,6 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromRT(RenderTarget* render_targe
 		view_info.viewType = render_target->m_desc.m_is_cube_map ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
 		view_info.format = render_target->m_desc.m_rtv_formats[i];
 		view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		view_info.subresourceRange.baseMipLevel = 0;
 		view_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
 		view_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
 		view_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -332,7 +331,6 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromRT(RenderTarget* render_targe
 		view_info.viewType = render_target->m_desc.m_is_cube_map ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
 		view_info.format = render_target->m_desc.m_depth_format;
 		view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-		view_info.subresourceRange.baseMipLevel = 0;
 		view_info.subresourceRange.baseMipLevel = 0;
 		view_info.subresourceRange.levelCount = render_target->m_desc.m_mip_levels;
 		view_info.subresourceRange.baseArrayLayer = 0;
@@ -370,7 +368,8 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromRT(RenderTarget* render_targe
 	return descriptor_set_id;
 }
 
-std::uint32_t gfx::DescriptorHeap::CreateUAVSetFromRT(RenderTarget* render_target, std::uint32_t rt_idx, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx, SamplerDesc sampler_desc)
+std::uint32_t gfx::DescriptorHeap::CreateUAVSetFromRT(RenderTarget* render_target, std::uint32_t rt_idx, RootSignature* root_signature,
+		std::uint32_t handle, std::uint32_t frame_idx, SamplerDesc sampler_desc, std::optional<float> mip_level)
 {
 	auto logical_device = m_context->m_logical_device;
 
@@ -400,9 +399,16 @@ std::uint32_t gfx::DescriptorHeap::CreateUAVSetFromRT(RenderTarget* render_targe
 	view_info.viewType = render_target->m_desc.m_is_cube_map ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
 	view_info.format = render_target->m_desc.m_rtv_formats[rt_idx];
 	view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	view_info.subresourceRange.baseMipLevel = 0;
-	view_info.subresourceRange.baseMipLevel = 0;
-	view_info.subresourceRange.levelCount = render_target->m_desc.m_mip_levels;
+	if (mip_level.has_value())
+	{
+		view_info.subresourceRange.baseMipLevel = mip_level.value();
+		view_info.subresourceRange.levelCount = 1;
+	}
+	else
+	{
+		view_info.subresourceRange.baseMipLevel = 0;
+		view_info.subresourceRange.levelCount = render_target->m_desc.m_mip_levels;
+	}
 	view_info.subresourceRange.baseArrayLayer = 0;
 	view_info.subresourceRange.layerCount = render_target->m_desc.m_is_cube_map ? 6 : 1;;
 

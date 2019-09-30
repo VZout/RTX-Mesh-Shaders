@@ -45,6 +45,7 @@ namespace gfx
 
 		std::uint32_t GetWidth();
 		std::uint32_t GetHeight();
+		std::uint32_t GetMipLevels();
 
 	protected:
 		void CreateImages();

@@ -18,13 +18,15 @@ struct root_signatures
 	static RegistryHandle basic;
 	static RegistryHandle composition;
 	static RegistryHandle post_processing;
-	static RegistryHandle generate_cubemap; // Also used by `generate_irradiance`
+	static RegistryHandle generate_cubemap; // Also used by `generate_irradiance`.
+	static RegistryHandle generate_environmentmap;
 
 }; /* root_signatures */
 
 struct RootSignatureDesc
 {
 	std::vector<VkDescriptorSetLayoutBinding> m_parameters;
+	std::vector<VkPushConstantRange> m_push_constants = {};
 };
 
 class RootSignatureRegistry : public internal::Registry<RootSignatureRegistry, gfx::RootSignature, RootSignatureDesc> {};

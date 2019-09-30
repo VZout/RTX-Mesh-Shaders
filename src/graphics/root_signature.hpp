@@ -23,6 +23,7 @@ namespace gfx
 		struct Desc
 		{
 			std::vector<VkDescriptorSetLayoutBinding> m_parameters;
+			std::vector<VkPushConstantRange> m_push_constants = {};
 		};
 
 		RootSignature(Context* context, Desc desc);
