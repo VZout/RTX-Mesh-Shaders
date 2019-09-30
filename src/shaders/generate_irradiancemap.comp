@@ -150,7 +150,7 @@ void main()
     vec3 right = normalize(cross(up, N));
     up = cross(N, right);
 
-    #define VULKAN_EX
+    //#define VULKAN_EX
 #ifdef VULKAN_EX
     const float deltaPhi = (2.0f * float(M_PI)) / 180.0f;
     const float deltaTheta = (0.5f * float(M_PI)) / 64.0f;
@@ -166,7 +166,7 @@ void main()
         {
             vec3 tempVec = cos(phi) * right + sin(phi) * up;
             vec3 sample_vec = cos(theta) * N + sin(theta) * tempVec;
-            ivec3 sample_coord = texCoordToCube(sample_vec, vec2(resolution));
+
             color += texture(t_input, sample_vec).rgb * cos(theta) * sin(theta);
             sampleCount++;
         }
@@ -174,7 +174,7 @@ void main()
 
     imageStore(t_output, ivec3(gl_GlobalInvocationID), vec4(color / float(sampleCount), 1.0));
 #else
-    float sample_delta = 0.025f;
+    float sample_delta = 0.0125f;
     float nr_samples = 0.0f;
     vec3 irradiance = vec3(0);
 
@@ -187,10 +187,8 @@ void main()
 
             vec3 tangent_sample = vec3(sin_theta * cos(phi), sin_theta * sin(phi), cos_theta);
             vec3 sample_vec = tangent_sample.x * right + tangent_sample.y * up + tangent_sample.z * N;
-            ivec3 sample_coord = texCoordToCube(sample_vec, vec2(resolution));
 
-            irradiance += texture(t_input, sample_vec).rgb * cos_theta * sin_theta;
-
+            irradiance += textureLod(t_input, sample_vec, 8).rgb * cos_theta * sin_theta;
             nr_samples++;
         }
     }

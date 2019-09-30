@@ -304,7 +304,7 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromRT(RenderTarget* render_targe
 		view_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
 		view_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
 		view_info.subresourceRange.baseMipLevel = 0;
-		view_info.subresourceRange.levelCount = 1;
+		view_info.subresourceRange.levelCount = render_target->m_desc.m_mip_levels;
 		view_info.subresourceRange.baseArrayLayer = 0;
 		view_info.subresourceRange.layerCount = render_target->m_desc.m_is_cube_map ? 6 : 1;;
 
@@ -334,7 +334,7 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromRT(RenderTarget* render_targe
 		view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 		view_info.subresourceRange.baseMipLevel = 0;
 		view_info.subresourceRange.baseMipLevel = 0;
-		view_info.subresourceRange.levelCount = 1;
+		view_info.subresourceRange.levelCount = render_target->m_desc.m_mip_levels;
 		view_info.subresourceRange.baseArrayLayer = 0;
 		view_info.subresourceRange.layerCount = render_target->m_desc.m_is_cube_map ? 6 : 1;;
 
@@ -402,7 +402,7 @@ std::uint32_t gfx::DescriptorHeap::CreateUAVSetFromRT(RenderTarget* render_targe
 	view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	view_info.subresourceRange.baseMipLevel = 0;
 	view_info.subresourceRange.baseMipLevel = 0;
-	view_info.subresourceRange.levelCount = 1;
+	view_info.subresourceRange.levelCount = render_target->m_desc.m_mip_levels;
 	view_info.subresourceRange.baseArrayLayer = 0;
 	view_info.subresourceRange.layerCount = render_target->m_desc.m_is_cube_map ? 6 : 1;;
 

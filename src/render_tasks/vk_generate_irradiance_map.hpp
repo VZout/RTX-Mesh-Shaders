@@ -52,7 +52,7 @@ namespace tasks
 
 			gfx::SamplerDesc input_sampler_desc
 			{
-				.m_filter = gfx::enums::TextureFilter::FILTER_POINT,
+				.m_filter = gfx::enums::TextureFilter::FILTER_LINEAR,
 				.m_address_mode = gfx::enums::TextureAddressMode::TAM_CLAMP,
 				.m_border_color = gfx::enums::BorderColor::BORDER_WHITE,
 			};
@@ -109,7 +109,7 @@ namespace tasks
 			.m_width = 128,
 			.m_height = 128,
 			.m_dsv_format = VK_FORMAT_UNDEFINED,
-			.m_rtv_formats = { VK_FORMAT_R32G32B32A32_SFLOAT },
+			.m_rtv_formats = { VK_FORMAT_R16G16B16A16_SFLOAT },
 			.m_state_execute = VK_IMAGE_LAYOUT_GENERAL,
 			.m_state_finished = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			.m_clear = false,

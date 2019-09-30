@@ -54,7 +54,7 @@ void main()
         vec4 target = inverse(camera.proj) * vec4(d.x, d.y, 1, 1) ;
         vec4 direction = inv_view * vec4(normalize(target.xyz), 0);
 
-        imageStore(t_output, ivec2(gl_GlobalInvocationID.xy), texture(t_irradiance, direction.xyz));
+        imageStore(t_output, ivec2(gl_GlobalInvocationID.xy), texture(t_skybox, direction.xyz));
         return;
     }
 

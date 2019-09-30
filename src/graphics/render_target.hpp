@@ -35,6 +35,7 @@ namespace gfx
 			bool m_clear_depth = false;
 			bool m_allow_direct_access = false;
 			bool m_is_cube_map = false;
+			std::uint32_t m_mip_levels = 1;
 		};
 
 		explicit RenderTarget(Context* context);

@@ -136,8 +136,6 @@ void Renderer::Upload()
 
 void Renderer::Render(sg::SceneGraph& sg, fg::FrameGraph& fg)
 {
-	LOGW("Begin Frame");
-
 	auto frame_idx = m_render_window->GetFrameIdx();
 
 	m_present_fences[frame_idx]->Wait();
@@ -149,11 +147,6 @@ void Renderer::Render(sg::SceneGraph& sg, fg::FrameGraph& fg)
 	m_direct_queue->Execute(fg_cmd_lists, m_present_fences[frame_idx], frame_idx);
 
 	m_render_window->Present(m_direct_queue, m_present_fences[frame_idx]);
-	m_direct_queue->Wait();
-
-	//Sleep(2000);
-
-	LOGW("End Frame");
 }
 
 void Renderer::WaitForAllPreviousWork()
@@ -361,6 +354,7 @@ gfx::RenderTarget* Renderer::CreateRenderTarget(RenderTargetProperties const & p
 		desc.m_is_cube_map = properties.m_is_cube_map;
 		desc.m_clear = properties.m_clear;
 		desc.m_clear_depth = properties.m_clear_depth;
+		desc.m_mip_levels = properties.m_mip_levels;
 		auto new_rt = new gfx::RenderTarget(m_context, desc);
 		return new_rt;
 	}

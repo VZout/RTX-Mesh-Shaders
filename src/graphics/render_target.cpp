@@ -41,7 +41,6 @@ gfx::RenderTarget::RenderTarget(Context* context, Desc desc)
 	if (!desc.m_allow_uav)
 	{
 		CreateRenderPass();
-
 		CreateFrameBuffers();
 	}
 }
@@ -130,9 +129,11 @@ void gfx::RenderTarget::Resize(std::uint32_t width, std::uint32_t height)
 		CreateDepthBufferView();
 	}
 
-	CreateRenderPass();
-
-	CreateFrameBuffers();
+	if (!m_desc.m_allow_uav)
+	{
+		CreateRenderPass();
+		CreateFrameBuffers();
+	}
 }
 
 std::uint32_t gfx::RenderTarget::GetWidth()
@@ -161,7 +162,7 @@ void gfx::RenderTarget::CreateImages()
 		image_info.extent.width = m_desc.m_width;
 		image_info.extent.height = m_desc.m_height;
 		image_info.extent.depth = 1;
-		image_info.mipLevels = 1;
+		image_info.mipLevels = m_desc.m_mip_levels;
 		image_info.arrayLayers = m_desc.m_is_cube_map ? 6 : 1;
 		image_info.format = m_desc.m_rtv_formats[i];
 		image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
@@ -169,6 +170,7 @@ void gfx::RenderTarget::CreateImages()
 		image_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT; // TODO: Optimize this
 		if (m_desc.m_allow_uav || m_desc.m_allow_direct_access) image_info.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
 		if (!m_desc.m_allow_uav) image_info.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		if (m_desc.m_mip_levels > 1) image_info.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		image_info.samples = VK_SAMPLE_COUNT_1_BIT;
 		image_info.flags = m_desc.m_is_cube_map ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
@@ -250,6 +252,7 @@ void gfx::RenderTarget::CreateFrameBuffers()
 	{
 		LOGC("failed to create framebuffer!");
 	}
+	int x = 0;
 }
 
 void gfx::RenderTarget::CreateRenderPass()
@@ -352,7 +355,7 @@ void gfx::RenderTarget::CreateDepthBuffer()
 	m_depth_buffer_create_info.extent.width = m_desc.m_width;
 	m_depth_buffer_create_info.extent.height = m_desc.m_height;
 	m_depth_buffer_create_info.extent.depth = 1;
-	m_depth_buffer_create_info.mipLevels = 1;
+	m_depth_buffer_create_info.mipLevels = m_desc.m_mip_levels;
 	m_depth_buffer_create_info.arrayLayers = 1;
 	m_depth_buffer_create_info.format = m_desc.m_depth_format;
 	m_depth_buffer_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;

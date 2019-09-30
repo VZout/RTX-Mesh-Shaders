@@ -254,8 +254,8 @@ protected:
 
 	void ResizeCallback(std::uint32_t width, std::uint32_t height) final
 	{
-		//m_renderer->Resize(width, height);
-		//m_frame_graph->Resize(width, height);
+		m_renderer->Resize(width, height);
+		m_frame_graph->Resize(width, height);
 	}
 
 	Editor editor;
