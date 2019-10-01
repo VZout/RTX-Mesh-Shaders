@@ -28,9 +28,7 @@
 #include "graphics/gpu_buffers.hpp"
 #include "graphics/fence.hpp"
 #include "graphics/descriptor_heap.hpp"
-#include "shader_registry.hpp"
-#include "root_signature_registry.hpp"
-#include "pipeline_registry.hpp"
+#include "engine_registry.hpp"
 
 Renderer::Renderer() : m_application(nullptr), m_context(nullptr), m_direct_queue(nullptr), m_render_window(nullptr), m_direct_cmd_list(nullptr)
 {
