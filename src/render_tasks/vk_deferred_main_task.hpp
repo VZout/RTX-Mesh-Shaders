@@ -21,8 +21,7 @@
 #include "../graphics/vk_model_pool.hpp"
 #include "../graphics/descriptor_heap.hpp"
 #include "../graphics/vk_material_pool.hpp"
-#include "../root_signature_registry.hpp"
-#include "../pipeline_registry.hpp"
+#include "../engine_registry.hpp"
 #include "../graphics/vk_constant_buffer_pool.hpp"
 
 namespace tasks

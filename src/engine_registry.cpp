@@ -4,7 +4,52 @@
  *  \copyright GNU General Public License v3.0
  */
 
-#include "root_signature_registry.hpp"
+#include "engine_registry.hpp"
+
+#include "vertex.hpp"
+
+/* ============================================================== */
+/* ===                    Shader Registry                     === */
+/* ============================================================== */
+
+REGISTER(shaders::basic_vs, ShaderRegistry)({
+	.m_path = "shaders/basic.vert.spv",
+	.m_type = gfx::enums::ShaderType::VERTEX,
+});
+
+REGISTER(shaders::basic_ps, ShaderRegistry)({
+	.m_path = "shaders/basic.frag.spv",
+	.m_type = gfx::enums::ShaderType::PIXEL,
+});
+
+REGISTER(shaders::composition_cs, ShaderRegistry)({
+    .m_path = "shaders/composition.comp.spv",
+    .m_type = gfx::enums::ShaderType::COMPUTE,
+});
+
+REGISTER(shaders::post_processing_cs, ShaderRegistry)({
+    .m_path = "shaders/post_processing.comp.spv",
+    .m_type = gfx::enums::ShaderType::COMPUTE,
+});
+
+REGISTER(shaders::generate_cubemap_cs, ShaderRegistry)({
+    .m_path = "shaders/generate_cubemap.comp.spv",
+    .m_type = gfx::enums::ShaderType::COMPUTE,
+});
+
+REGISTER(shaders::generate_irradiancemap_cs, ShaderRegistry)({
+   .m_path = "shaders/generate_irradiancemap.comp.spv",
+   .m_type = gfx::enums::ShaderType::COMPUTE,
+});
+
+REGISTER(shaders::generate_environmentmap_cs, ShaderRegistry)({
+   .m_path = "shaders/generate_environmentmap.comp.spv",
+   .m_type = gfx::enums::ShaderType::COMPUTE,
+});
+
+/* ============================================================== */
+/* ===                  RootSignature Registry                === */
+/* ============================================================== */
 
 REGISTER(root_signatures::basic, RootSignatureRegistry)({
 	.m_parameters = []() -> decltype(RootSignatureDesc::m_parameters)
@@ -132,4 +177,60 @@ REGISTER(root_signatures::generate_environmentmap, RootSignatureRegistry)({
 	    constants[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
   	    return constants;
 	}()
+});
+
+/* ============================================================== */
+/* ===                    Pipeline Registry                   === */
+/* ============================================================== */
+
+REGISTER(pipelines::basic, PipelineRegistry)({
+	.m_root_signature_handle = root_signatures::basic,
+	.m_shader_handles = { shaders::basic_vs, shaders::basic_ps },
+	.m_input_layout = Vertex::GetInputLayout(),
+
+	.m_type = gfx::enums::PipelineType::GRAPHICS_PIPE,
+	.m_rtv_formats = { VK_FORMAT_R16G16B16A16_SFLOAT, VK_FORMAT_R16G16B16A16_SFLOAT, VK_FORMAT_R16G16B16A16_SFLOAT },
+    .m_depth_format = VK_FORMAT_D32_SFLOAT,
+	.m_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+	.m_counter_clockwise = true
+});
+
+REGISTER(pipelines::composition, PipelineRegistry)({
+     .m_root_signature_handle = root_signatures::composition,
+     .m_shader_handles = { shaders::composition_cs },
+     .m_input_layout = std::nullopt,
+
+     .m_type = gfx::enums::PipelineType::COMPUTE_PIPE,
+ });
+
+REGISTER(pipelines::post_processing, PipelineRegistry)({
+   .m_root_signature_handle = root_signatures::post_processing,
+   .m_shader_handles = { shaders::post_processing_cs },
+   .m_input_layout = std::nullopt,
+
+   .m_type = gfx::enums::PipelineType::COMPUTE_PIPE,
+});
+
+REGISTER(pipelines::generate_cubemap, PipelineRegistry)({
+   .m_root_signature_handle = root_signatures::generate_cubemap,
+   .m_shader_handles = { shaders::generate_cubemap_cs },
+   .m_input_layout = std::nullopt,
+
+   .m_type = gfx::enums::PipelineType::COMPUTE_PIPE,
+});
+
+REGISTER(pipelines::generate_irradiancemap, PipelineRegistry)({
+    .m_root_signature_handle = root_signatures::generate_cubemap,
+    .m_shader_handles = { shaders::generate_irradiancemap_cs },
+    .m_input_layout = std::nullopt,
+
+    .m_type = gfx::enums::PipelineType::COMPUTE_PIPE,
+});
+
+REGISTER(pipelines::generate_environmentmap, PipelineRegistry)({
+    .m_root_signature_handle = root_signatures::generate_environmentmap,
+    .m_shader_handles = { shaders::generate_environmentmap_cs },
+    .m_input_layout = std::nullopt,
+
+    .m_type = gfx::enums::PipelineType::COMPUTE_PIPE,
 });
