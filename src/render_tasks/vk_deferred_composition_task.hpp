@@ -25,6 +25,7 @@
 #include "vk_generate_cubemap.hpp"
 #include "vk_generate_irradiance_map.hpp"
 #include "vk_generate_environment_map.hpp"
+#include "vk_generate_brdf_lut.hpp"
 #include "../graphics/gfx_enums.hpp"
 
 namespace tasks
@@ -38,6 +39,7 @@ namespace tasks
 		std::uint32_t m_skybox_set;
 		std::uint32_t m_irradiance_set;
 		std::uint32_t m_environment_set;
+		std::uint32_t m_brdf_set;
 		std::uint32_t m_uav_target_set;
 		gfx::DescriptorHeap* m_gbuffer_heap;
 
@@ -72,7 +74,7 @@ namespace tasks
 			// GPU Heap
 			gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
 			descriptor_heap_desc.m_versions = 1;
-			descriptor_heap_desc.m_num_descriptors = 5;
+			descriptor_heap_desc.m_num_descriptors = 6;
 			data.m_gbuffer_heap = new gfx::DescriptorHeap(rs.GetContext(), descriptor_heap_desc);
 			data.m_gbuffer_set = data.m_gbuffer_heap->CreateSRVSetFromRT(deferred_main_rt, data.m_root_sig, 1, 0,false, std::nullopt);
 			data.m_uav_target_set = data.m_gbuffer_heap->CreateUAVSetFromRT(render_target, 0, data.m_root_sig, 2, 0, gbuffer_sampler_desc);
@@ -98,6 +100,13 @@ namespace tasks
 				data.m_environment_set = data.m_gbuffer_heap->CreateSRVSetFromRT(environmnet_rt, data.m_root_sig, 6, 0, false, skybox_sampler_desc);
 			}
 
+			// BRDF Lut
+			if (fg.HasTask<GenerateBRDFLutData>())
+			{
+				auto brdf_rt = fg.GetPredecessorRenderTarget<GenerateBRDFLutData>();
+				data.m_brdf_set = data.m_gbuffer_heap->CreateSRVSetFromRT(brdf_rt, data.m_root_sig, 7, 0, false, skybox_sampler_desc);
+			}
+
 			if (resize) return;
 
 			// Descriptors uniform camera
@@ -117,9 +126,7 @@ namespace tasks
 		{
 			auto& data = fg.GetData<DeferredCompositionData>(handle);
 			auto cmd_list = fg.GetCommandList(handle);
-			auto frame_idx = rs.GetFrameIdx();
 			auto pipeline = PipelineRegistry::SFind(pipelines::composition);
-			auto desc_heap = rs.GetDescHeap();
 			auto render_target = fg.GetRenderTarget(handle);
 			auto light_pool = static_cast<gfx::VkConstantBufferPool*>(sg.GetLightConstantBufferPool());
 			auto camera_pool = static_cast<gfx::VkConstantBufferPool*>(sg.GetCameraConstantBufferPool());
@@ -138,6 +145,7 @@ namespace tasks
 				{ data.m_gbuffer_heap, data.m_skybox_set },
 				{ data.m_gbuffer_heap, data.m_irradiance_set },
 				{ data.m_gbuffer_heap, data.m_environment_set },
+				{ data.m_gbuffer_heap, data.m_brdf_set },
 			};
 
 			cmd_list->BindComputePipelineState(pipeline);

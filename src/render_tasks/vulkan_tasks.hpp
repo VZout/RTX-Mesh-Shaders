@@ -14,3 +14,4 @@
 #include "vk_generate_cubemap.hpp"
 #include "vk_generate_irradiance_map.hpp"
 #include "vk_generate_environment_map.hpp"
+#include "vk_generate_brdf_lut.hpp"

@@ -47,6 +47,11 @@ REGISTER(shaders::generate_environmentmap_cs, ShaderRegistry)({
    .m_type = gfx::enums::ShaderType::COMPUTE,
 });
 
+REGISTER(shaders::generate_brdf_lut_cs, ShaderRegistry)({
+   .m_path = "shaders/generate_brdf_lut.comp.spv",
+   .m_type = gfx::enums::ShaderType::COMPUTE,
+});
+
 /* ============================================================== */
 /* ===                  RootSignature Registry                === */
 /* ============================================================== */
@@ -77,7 +82,7 @@ REGISTER(root_signatures::basic, RootSignatureRegistry)({
 REGISTER(root_signatures::composition, RootSignatureRegistry)({
     .m_parameters = []() -> decltype(RootSignatureDesc::m_parameters)
     {
-        decltype(RootSignatureDesc::m_parameters) params(7);
+        decltype(RootSignatureDesc::m_parameters) params(8);
 	    params[0].binding = 0; // camera
 	    params[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	    params[0].descriptorCount = 1;
@@ -113,6 +118,11 @@ REGISTER(root_signatures::composition, RootSignatureRegistry)({
 	    params[6].descriptorCount = 1;
 	    params[6].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 	    params[6].pImmutableSamplers = nullptr;
+	    params[7].binding = 7; // envionment map
+	    params[7].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	    params[7].descriptorCount = 1;
+	    params[7].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+	    params[7].pImmutableSamplers = nullptr;
         return params;
     }(),
 });
@@ -179,6 +189,19 @@ REGISTER(root_signatures::generate_environmentmap, RootSignatureRegistry)({
 	}()
 });
 
+REGISTER(root_signatures::generate_brdf_lut, RootSignatureRegistry)({
+  .m_parameters = []() -> decltype(RootSignatureDesc::m_parameters)
+  {
+      decltype(RootSignatureDesc::m_parameters) params(1);
+      params[0].binding = 0; // root parameter 1
+      params[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+      params[0].descriptorCount = 1;
+      params[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+      params[0].pImmutableSamplers = nullptr;
+      return params;
+  }(),
+});
+
 /* ============================================================== */
 /* ===                    Pipeline Registry                   === */
 /* ============================================================== */
@@ -230,6 +253,14 @@ REGISTER(pipelines::generate_irradiancemap, PipelineRegistry)({
 REGISTER(pipelines::generate_environmentmap, PipelineRegistry)({
     .m_root_signature_handle = root_signatures::generate_environmentmap,
     .m_shader_handles = { shaders::generate_environmentmap_cs },
+    .m_input_layout = std::nullopt,
+
+    .m_type = gfx::enums::PipelineType::COMPUTE_PIPE,
+});
+
+REGISTER(pipelines::generate_brdf_lut, PipelineRegistry)({
+    .m_root_signature_handle = root_signatures::generate_brdf_lut,
+    .m_shader_handles = { shaders::generate_brdf_lut_cs },
     .m_input_layout = std::nullopt,
 
     .m_type = gfx::enums::PipelineType::COMPUTE_PIPE,

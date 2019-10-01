@@ -164,6 +164,7 @@ protected:
 		tasks::AddGenerateCubemapTask(*m_frame_graph);
 		tasks::AddGenerateIrradianceMapTask(*m_frame_graph);
 		tasks::AddGenerateEnvironmentMapTask(*m_frame_graph);
+		tasks::AddGenerateBRDFLutTask(*m_frame_graph);
 		tasks::AddDeferredMainTask(*m_frame_graph);
 		tasks::AddDeferredCompositionTask(*m_frame_graph);
 		tasks::AddPostProcessingTask<tasks::DeferredCompositionData>(*m_frame_graph);
