@@ -1,6 +1,6 @@
 #version 450
 
-#include "pbr_util.glsl"
+#include "pbr+_util.glsl"
 
 layout (local_size_x = 32, local_size_y = 32) in;
 
@@ -117,7 +117,11 @@ void main()
             float VdotH = clamp(dot(H, V), 0.0, 1.0);
 
             // Probability Distribution Function
+            #ifdef PBR_PLUS
+            float pdf = D_GGX(NdotH, roughness, N, H) * NdotH / (4.0 * VdotH) + 0.0001;
+            #else
             float pdf = D_GGX(NdotH, roughness) * NdotH / (4.0 * VdotH) + 0.0001;
+            #endif
             // Slid angle of current smple
             float omega_s = 1.0 / (float(SAMPLE_COUNT) * pdf +  + 0.0001f);
             // Solid angle of 1 pixel across all cube faces
