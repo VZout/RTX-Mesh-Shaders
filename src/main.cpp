@@ -207,17 +207,17 @@ protected:
 		// light node
 		{
 			auto node = m_scene_graph->CreateNode<sg::LightComponent>();
-			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(0.f, 0.f, -4));
+			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(0.f, 0.f, 4));
 		}
 		// light node
 		{
 			auto node = m_scene_graph->CreateNode<sg::LightComponent>(glm::vec3{ 1, 0, 0 });
-			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(1.f, 0.f, -0.5));
+			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(1.f, 0.f, 0.5));
 		}
 		// light node
 		{
 			auto node = m_scene_graph->CreateNode<sg::LightComponent>(glm::vec3{ 0, 0, 1 });
-			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(-1.f, 0.f, -0.5));
+			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(-1.f, 0.f, 0.5));
 		}
 
 		m_start = std::chrono::high_resolution_clock::now();
