@@ -210,6 +210,7 @@ vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float perceptual_roughness, ve
 
     vec3 spec = (D * G) * F;
     vec3 diff = diffuse_color * Fd_Lambert();
+    //vec3 diff = diffuse_color * Fd_Burley(roughness, dotNV, dotNL, dotLH);
 
     color = diff + spec * energy_compensation;
 

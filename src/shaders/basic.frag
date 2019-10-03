@@ -28,6 +28,7 @@ void main()
     vec3 compressed_mra = texture(ts_textures[2], g_uv).rgb;
 
     vec3 normal = normalize(g_normal);
+    //normal *= -1;
     normal.y = -normal.y;
     mat3 TBN = mat3( normalize(g_tangent), normalize(g_bitangent), normal );
     vec3 normal_t = normalize(texture(ts_textures[1], g_uv).xyz * 2.0f - 1.0f);

@@ -264,7 +264,7 @@ protected:
 		auto diff = std::chrono::high_resolution_clock::now() - m_start;
 		float t = diff.count();
 
-		sg::helper::SetRotation(m_scene_graph, m_node, glm::vec3(-90._deg, glm::radians(t * 0.0000001f), 0));
+		sg::helper::SetRotation(m_scene_graph, m_node, glm::vec3(-90._deg, glm::radians(t * 0.00000005f), 0));
 		sg::helper::SetRotation(m_scene_graph, m_battery_node, glm::vec3(-90._deg, glm::radians(t * 0.00000001f), 0));
 
 		m_scene_graph->Update(m_renderer->GetFrameIdx());

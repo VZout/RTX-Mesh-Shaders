@@ -30,6 +30,7 @@ void main()
     const float gamma = 2.2;
     const float exposure = 1;
 
+
     vec3 color = ExposureCorrect(rgb, exposure);
 
     #ifdef SHOW_TONEMAPPING_ALGOS
@@ -50,10 +51,10 @@ void main()
 
     if (i != 2 && i != 10) color = GammaCorrect(color, gamma);
     #else
-    color = HaarmPeterDuiker_Gamma(color);
+    color = RomBinDaHouse(color);
     #endif
 
-    //rgb = Vignette(rgb, uv, 1.5, 0.5, 0.5);
+    color = GammaCorrect(color, gamma);
 
     imageStore(t_output, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1));
 }
