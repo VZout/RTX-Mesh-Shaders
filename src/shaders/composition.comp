@@ -4,7 +4,7 @@
 
 layout (local_size_x = 16, local_size_y = 16) in;
 
-layout(set = 1, binding = 1, rgba8) uniform readonly image2D ts_gbuffers[3];
+layout(set = 1, binding = 1, rgba8) uniform readonly image2D ts_gbuffers[4];
 layout(set = 2, binding = 2, rgba8) uniform writeonly image2D t_output;
 layout(set = 4, binding = 4) uniform samplerCube t_skybox;
 layout(set = 5, binding = 5) uniform samplerCube t_irradiance;
@@ -46,10 +46,12 @@ void main()
     const vec4 albedo_roughness = imageLoad(ts_gbuffers[0], s_uv);
     const vec4 normal_metallic = imageLoad(ts_gbuffers[1], s_uv);
     const vec4 world_pos_ao = imageLoad(ts_gbuffers[2], s_uv);
+    const vec4 reflectivity_unused = imageLoad(ts_gbuffers[3], s_uv);
 
     const vec3 world_pos = world_pos_ao.xyz;
     const vec3 albedo = albedo_roughness.rgb;
     const vec3 N = normal_metallic.xyz;
+    const float reflectivity = reflectivity_unused.r;
     #ifdef PBR_PLUS
     float roughness = clamp(albedo_roughness.a, MIN_PERCEPTUAL_ROUGHNESS, 1.f);
     #else
@@ -74,9 +76,16 @@ void main()
     #ifdef PBR_PLUS
     vec3 diffuse_color = ComputeDiffuseColor(albedo, metallic);
 
-    float reflectance = ComputeDielectricF0(0.7); // TODO: proper material reflectance
-    vec3 F0 = ComputeF0(albedo, metallic, reflectance);
-    //vec3 F0 = mix(vec3(0.04), albedo, 1 - metallic);
+    vec3 F0;
+    if (reflectivity > -1)
+    {
+        float reflectance = ComputeDielectricF0(reflectivity); // TODO: proper material reflectance
+        F0 = ComputeF0(albedo, metallic, reflectance);
+    }
+    else
+    {
+        F0 = mix(vec3(0.04), albedo, 1 - metallic);
+    }
 
     vec3 energy_compensation = 1.0 + F0 * (1.0 / dfg.y - 1.0);
     //energy_compensation = vec3(1);

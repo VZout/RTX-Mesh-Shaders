@@ -12,28 +12,37 @@ layout(location = 4) in vec3 g_bitangent;
 layout(location = 0) out vec4 out_color;
 layout(location = 1) out vec4 out_normal;
 layout(location = 2) out vec4 out_pos;
+layout(location = 3) out vec4 out_material;
+
+layout(set = 3, binding = 3) uniform UniformBufferObject {
+    vec3 color;
+    float reflectivity;
+    float roughness;
+    float metallic;
+    float normal_strength;
+    float unused_2;
+} material;
 
 void main()
 {
+    vec3 compressed_mra = texture(ts_textures[2], g_uv).rgb;
+
     vec3 normal = normalize(g_normal);
     normal.y = -normal.y;
     mat3 TBN = mat3( normalize(g_tangent), normalize(g_bitangent), normal );
     vec3 normal_t = normalize(texture(ts_textures[1], g_uv).xyz * 2.0f - 1.0f);
-    vec3 obj_normal = TBN * normal_t;
-    vec3 albedo = texture(ts_textures[0], g_uv).xyz;
 
-    float ao = 0;
-    float metallic = 0;
-    float roughness = 0;
-    if (true)
-    {
-        vec3 compressed_mra = texture(ts_textures[2], g_uv).rgb;
-        roughness = compressed_mra.g;
-        metallic = compressed_mra.b;
-        ao = compressed_mra.r;
-    }
+    vec3 albedo = material.color.x > -1 ? material.color : texture(ts_textures[0], g_uv).xyz;
+    vec3 obj_normal = normalize(TBN * (normal_t * material.normal_strength));
+    float roughness = material.roughness > -1 ? material.roughness : compressed_mra.g;
+    float metallic = material.metallic > -1 ? material.metallic : compressed_mra.b;
+    float ao = compressed_mra.r;
+
+    // disable normal mapping
+    obj_normal = material.normal_strength > -1 ? obj_normal : normal;
 
     out_color = vec4(albedo, roughness);
     out_normal = vec4(obj_normal, metallic);
     out_pos = vec4(g_frag_pos, ao);
+    out_material = vec4(material.reflectivity, 0, 0, 0);
 }

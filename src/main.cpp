@@ -89,8 +89,44 @@ protected:
 						m_selected_node = handle;
 					}
 				}
-				}
-				ImGui::ListBoxFooter();
+			}
+			ImGui::ListBoxFooter();
+		});
+
+		editor.RegisterWindow("Temporary Material Settings", "Scene Graph", [&]()
+		{
+			ImGui::ToggleButton("Override Color", &m_imgui_override_color);
+			ImGui::ColorPicker3("Color", m_temp_debug_mat_data.m_base_color, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoAlpha);
+
+			ImGui::Separator();
+
+			ImGui::Checkbox("Disable Normal Mapping", &m_imgui_disable_normal_mapping);
+			ImGui::DragFloat("Normal Strength", &m_temp_debug_mat_data.m_base_normal_strength, 0.01, 0, 10);
+
+			ImGui::Separator();
+
+			ImGui::Checkbox("##0", &m_imgui_override_roughness); ImGui::SameLine();
+			ImGui::DragFloat("Roughness", &m_temp_debug_mat_data.m_base_roughness, 0.01, 0, 1);
+			ImGui::Checkbox("##1", &m_imgui_override_metallic); ImGui::SameLine();
+			ImGui::DragFloat("Metallic", &m_temp_debug_mat_data.m_base_metallic, 0.01, -0, 1);
+			ImGui::Checkbox("##2", &m_imgui_override_reflectivity); ImGui::SameLine();
+			ImGui::DragFloat("Reflectivity", &m_temp_debug_mat_data.m_base_reflectivity, 0.01, -0, 1);
+
+			m_temp_debug_mat_data.m_base_normal_strength = m_imgui_disable_normal_mapping ? -1 : m_temp_debug_mat_data.m_base_normal_strength;
+			m_temp_debug_mat_data.m_base_color[0] = m_imgui_override_color ? m_temp_debug_mat_data.m_base_color[0] : -1;
+			m_temp_debug_mat_data.m_base_roughness = m_imgui_override_roughness ? m_temp_debug_mat_data.m_base_roughness : -1;
+			m_temp_debug_mat_data.m_base_metallic = m_imgui_override_metallic ? m_temp_debug_mat_data.m_base_metallic : -1;
+			m_temp_debug_mat_data.m_base_reflectivity = m_imgui_override_reflectivity ? m_temp_debug_mat_data.m_base_reflectivity : -1;
+
+			for (auto mesh_handle : m_battery_model_handle.m_mesh_handles)
+			{
+				m_material_pool->Update(mesh_handle.m_material_handle.value(), m_temp_debug_mat_data);
+			}
+			for (auto mesh_handle : m_robot_model_handle.m_mesh_handles)
+			{
+				m_material_pool->Update(mesh_handle.m_material_handle.value(), m_temp_debug_mat_data);
+			}
+
 		});
 
 		editor.RegisterWindow("Inspector", "Scene Graph", [&]()
@@ -176,9 +212,9 @@ protected:
 
 		auto model_pool = m_renderer->GetModelPool();
 		auto texture_pool = m_renderer->GetTexturePool();
-		auto material_pool = m_renderer->GetMaterialPool();
-		auto robot_model_handle = model_pool->LoadWithMaterials<Vertex>("robot/scene.gltf", material_pool, texture_pool, true);
-		auto battery_model_handle = model_pool->LoadWithMaterials<Vertex>("scene.gltf", material_pool, texture_pool, true);
+		m_material_pool = m_renderer->GetMaterialPool();
+		m_robot_model_handle = model_pool->LoadWithMaterials<Vertex>("robot/scene.gltf", m_material_pool, texture_pool, true);
+		m_battery_model_handle = model_pool->LoadWithMaterials<Vertex>("scene.gltf", m_material_pool, texture_pool, true);
 
 		m_frame_graph->Setup(m_renderer);
 
@@ -192,13 +228,13 @@ protected:
 		m_camera_node = m_scene_graph->CreateNode<sg::CameraComponent>();
 		sg::helper::SetPosition(m_scene_graph, m_camera_node, glm::vec3(0, 0, -2.5));
 
-		m_node = m_scene_graph->CreateNode<sg::MeshComponent>(robot_model_handle);
+		m_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_robot_model_handle);
 		sg::helper::SetPosition(m_scene_graph, m_node, glm::vec3(-0.75, -1, 0));
 		sg::helper::SetScale(m_scene_graph, m_node, glm::vec3(0.01, 0.01, 0.01));
 
 		// second node
 		{
-			m_battery_node = m_scene_graph->CreateNode<sg::MeshComponent>(battery_model_handle);
+			m_battery_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_battery_model_handle);
 			sg::helper::SetPosition(m_scene_graph, m_battery_node, glm::vec3(0.75, -0.65, 0));
 			sg::helper::SetScale(m_scene_graph, m_battery_node, glm::vec3(0.01, 0.01, 0.01));
 			sg::helper::SetRotation(m_scene_graph, m_battery_node, glm::vec3(glm::radians(-90.f), glm::radians(40.f), 0));
@@ -270,6 +306,16 @@ protected:
 	sg::NodeHandle m_node;
 	sg::NodeHandle m_battery_node;
 	sg::NodeHandle m_camera_node;
+
+	MaterialPool* m_material_pool;
+	ModelHandle m_battery_model_handle;
+	ModelHandle m_robot_model_handle;
+	MaterialData m_temp_debug_mat_data;
+	bool m_imgui_override_color = false;
+	bool m_imgui_override_roughness = false;
+	bool m_imgui_override_metallic = false;
+	bool m_imgui_override_reflectivity = false;
+	bool m_imgui_disable_normal_mapping = false;
 
 	// ImGui
 	std::chrono::time_point<std::chrono::high_resolution_clock> m_start;
