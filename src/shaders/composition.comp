@@ -31,9 +31,9 @@ layout(set = 3, binding = 3) uniform UniformBufferLightObject {
 
 vec3 GetEnvReflection(vec3 R, float roughness)
 {
-    const float MAX_REFLECTION_LOD = 5.0;
+    const float MAX_REFLECTION_LOD = 8.0;
     float lod = roughness * MAX_REFLECTION_LOD;
-    return textureLod(t_environment, R, roughness).rgb;
+    return textureLod(t_environment, R, lod).rgb;
 }
 
 void main()

@@ -7,7 +7,6 @@
 #include "material_pool.hpp"
 
 #include "texture_pool.hpp"
-#include "graphics/descriptor_heap.hpp"
 
 MaterialPool::MaterialPool()
 	: m_next_id(0)
