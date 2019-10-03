@@ -26,7 +26,7 @@ vec3 hemisphereImportanceSampleDggx(vec2 u, float a) { // pdf = D(a) * cosTheta
     return vec3( sinTheta * cos(phi), sinTheta * sin(phi), cosTheta );
 }
 
-vec2 IntegrateBRDF(float NdotV, float roughness)
+vec2 DVF(float NdotV, float roughness)
 {
     // Normal always points along z-axis for the 2D lookup
     const vec3 N = vec3(0.0, 0.0, 1.0);
@@ -57,7 +57,7 @@ vec2 IntegrateBRDF(float NdotV, float roughness)
         }
     }
 
-    return 4.f * lut / float(NUM_SAMPLES);
+    return lut * (4.f / float(NUM_SAMPLES));
 }
 
 void main()
@@ -67,5 +67,5 @@ void main()
     float linear_roughness = roughness * roughness;
     const float NoV = clamp((gl_GlobalInvocationID.x + 0.5f) / resolution.x, 0.f, 1.f);
 
-    imageStore(t_output, ivec2(gl_GlobalInvocationID), vec4(IntegrateBRDF(NoV, linear_roughness), 0, 1.f));
+    imageStore(t_output, ivec2(gl_GlobalInvocationID), vec4(DVF(NoV, linear_roughness), 0, 1.f));
 }
