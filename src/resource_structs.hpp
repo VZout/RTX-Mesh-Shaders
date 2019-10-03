@@ -30,11 +30,13 @@ struct MaterialData
 	TextureData m_normal_map_texture;
 	TextureData m_emissive_texture;
 
-	float m_base_color[3];
-	float m_base_metallic;
-	float m_base_roughness;
-	float m_base_transparency;
-	float m_base_emissive;
+	float m_base_color[3] = { -1, -1, -1 };
+	float m_base_metallic = -1;
+	float m_base_roughness = -1;
+	float m_base_reflectivity = -1;
+	float m_base_transparency = -1;
+	float m_base_emissive = -1;
+	float m_base_normal_strength = 1;
 };
 
 struct MeshData

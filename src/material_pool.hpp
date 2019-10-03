@@ -20,6 +20,7 @@ struct MaterialHandle
 	std::uint32_t m_normal_texture_handle;
 	std::uint32_t m_roughness_texture_handle;
 	std::uint32_t m_material_set_id;
+	std::uint32_t m_material_cb_set_id;
 
 
 	bool operator==(MaterialHandle const & other) const
@@ -35,6 +36,7 @@ public:
 	virtual ~MaterialPool() = default;
 
 	MaterialHandle Load(MaterialData const & data, TexturePool* texture_pool);
+	virtual void Update(MaterialHandle handle, MaterialData const & material_data) = 0;
 
 private:
 	virtual void Load_Impl(MaterialHandle& handle, MaterialData const & data, TexturePool* texture_pool) = 0;

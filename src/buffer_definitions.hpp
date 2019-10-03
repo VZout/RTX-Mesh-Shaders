@@ -16,6 +16,16 @@ namespace cb
 		alignas(16) glm::mat4 m_model;
 	};
 
+	struct BasicMaterial
+	{
+		glm::vec3 color = glm::vec3(-1, -1, -1);
+		float reflectivity = -1;
+		float roughness = -1;
+		float metallic = -1;
+		float normal_strength = 1;
+		float unused_2 = -1;
+	};
+
 	struct Camera
 	{
 		alignas(16) glm::mat4 m_view;
