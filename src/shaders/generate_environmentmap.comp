@@ -49,6 +49,13 @@ mat4 look_at(vec3 eye, vec3 center, vec3 up)
     return result;
 }
 
+float DistributionGGX(float NoH, float linearRoughness) {
+    // NOTE: (aa-1) == (a-1)(a+1) produces better fp accuracy
+    float a = linearRoughness;
+    float f = (a - 1) * ((a + 1) * (NoH * NoH)) + 1;
+    return (a * a) / (M_PI * f * f);
+}
+
 #define SAMPLE_COUNT 1024u
 
 void main()
@@ -95,7 +102,11 @@ void main()
     vec4 direction = inverse(view) * vec4(normalize(target.xyz), 0);
 
     // For readability.
+    #ifdef PBR_PLUS
+    float roughness = settings.roughness * settings.roughness;
+    #else
     float roughness = settings.roughness;
+    #endif
     vec3 R = normalize(direction.xyz);
     vec3 N = R;
     vec3 V = R;
@@ -118,7 +129,7 @@ void main()
 
             // Probability Distribution Function
             #ifdef PBR_PLUS
-            float pdf = D_GGX(NdotH, roughness, N, H) * NdotH / (4.0 * VdotH) + 0.0001;
+            float pdf = DistributionGGX(NdotH, roughness)  / 4.f;
             #else
             float pdf = D_GGX(NdotH, roughness) * NdotH / (4.0 * VdotH) + 0.0001;
             #endif
