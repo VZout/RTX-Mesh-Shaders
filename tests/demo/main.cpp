@@ -71,15 +71,15 @@ protected:
 					std::string name_prefix = "Unknown Node";
 					if (node.m_mesh_component > -1)
 					{
-						name_prefix = fmt::format("{} Mesh Node", ICON_FA_CUBE);
+						name_prefix = fmt::format("{} Mesh Node", reinterpret_cast<const char*>(ICON_FA_CUBE));
 					}
 					else if (node.m_camera_component > -1)
 					{
-						name_prefix = fmt::format("{} Camera Node", ICON_FA_VIDEO);
+						name_prefix = fmt::format("{} Camera Node", reinterpret_cast<const char*>(ICON_FA_VIDEO));
 					}
 					else if (node.m_light_component > -1)
 					{
-						name_prefix = fmt::format("{} Light Node", ICON_FA_LIGHTBULB);
+						name_prefix = fmt::format("{} Light Node", reinterpret_cast<const char*>(ICON_FA_LIGHTBULB));
 					}
 
 					auto node_name = name_prefix + " (" + std::to_string(i) + ")";
