@@ -9,11 +9,11 @@
 #include <imgui.h>
 
 #include "../imgui/imgui_style.hpp"
-#include "../imgui/imgui_impl_glfw.hpp"
 #include "../imgui/imgui_impl_vulkan.hpp"
 #include "../application.hpp"
 #include "../frame_graph/frame_graph.hpp"
 #include "../renderer.hpp"
+#include "../imgui/imgui_impl_glfw.hpp"
 #include "../imgui/imgui_impl_vulkan.hpp"
 
 #define IMGUI
@@ -46,16 +46,6 @@ namespace tasks
 			auto app = rs.GetApp();
 
 			data.m_render_func = std::move(render_func);
-
-			IMGUI_CHECKVERSION();
-			ImGui::CreateContext();
-			ImGuiIO& io = ImGui::GetIO(); (void)io;
-			io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
-			io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
-			io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
-			io.ConfigDockingWithShift = true;
-
-			ImGui_ImplGlfw_InitForVulkan(app->GetWindow(), true);
 
 			// Setup Dear ImGui style
 			ImGui::StyleColorsCherry();
@@ -98,8 +88,6 @@ namespace tasks
 			else
 			{
 				delete data.m_imgui_impl;
-
-				ImGui_ImplGlfw_Shutdown();
 			}
 		}
 

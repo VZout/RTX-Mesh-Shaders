@@ -6,9 +6,15 @@
 
 #pragma once
 
+#include <optional>
+#include <string>
+
 namespace settings
 {
 
+	static const bool use_imgui = true;
+	static const std::optional<std::string> m_imgui_font = "fonts/DroidSans.ttf";
+	static const std::optional<float> m_imgui_font_size = 13;
 	static const bool use_multithreading = false;
 	static const std::uint32_t num_frame_graph_threads = 4;
 
