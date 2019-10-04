@@ -6,12 +6,12 @@
 
 #include <chrono>
 
-#include "frame_graph/frame_graph.hpp"
-#include "application.hpp"
-#include "editor.hpp"
-#include "util/version.hpp"
-#include "util/user_literals.hpp"
-#include "render_tasks/vulkan_tasks.hpp"
+#include <frame_graph/frame_graph.hpp>
+#include <application.hpp>
+#include "../common/editor.hpp"
+#include <util/version.hpp>
+#include <util/user_literals.hpp>
+#include <render_tasks/vulkan_tasks.hpp>
 
 #ifdef _WIN32
 #include <shellapi.h>
