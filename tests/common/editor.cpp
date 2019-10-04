@@ -15,14 +15,15 @@ Editor::Editor()
 
 }
 
-void Editor::RegisterCategory(std::string const& name)
+void Editor::RegisterCategory(std::string const& name, std::optional<icon_t> icon)
 {
 	m_category_descs.emplace_back(CategoryDesc{
-		.m_name = name
+		.m_name = name,
+		.m_icon = icon,
 	});
 }
 
-void Editor::RegisterAction(const std::string& name, std::string const & category, action_func_t action_func)
+void Editor::RegisterAction(const std::string& name, std::string const & category, action_func_t action_func, std::optional<icon_t> icon)
 {
 	for (auto& cat_desc : m_category_descs)
 	{
@@ -30,6 +31,7 @@ void Editor::RegisterAction(const std::string& name, std::string const & categor
 		{
 			cat_desc.m_action_descs.emplace_back(ActionDesc{
 				.m_name = name,
+				.m_icon = icon,
 				.m_function = action_func,
 			});
 
@@ -40,7 +42,7 @@ void Editor::RegisterAction(const std::string& name, std::string const & categor
 	LOGW("Failed to register action {}. No suitable category found.", name);
 }
 
-void Editor::RegisterWindow(const std::string& name, std::string const & category, window_func_t window_func, bool default_visibility)
+void Editor::RegisterWindow(const std::string& name, std::string const & category, window_func_t window_func, bool default_visibility, std::optional<icon_t> icon)
 {
 	for (auto& cat_desc : m_category_descs)
 	{
@@ -48,6 +50,7 @@ void Editor::RegisterWindow(const std::string& name, std::string const & categor
 		{
 			cat_desc.m_window_descs.emplace_back(WindowDesc{
 				.m_name = name,
+				.m_icon = icon,
 				.m_function = window_func,
 				.m_open = default_visibility
 			});
@@ -66,11 +69,13 @@ void Editor::Render()
 	{
 		for (auto& cat_desc : m_category_descs)
 		{
-			if (ImGui::BeginMenu(cat_desc.m_name.c_str()))
+			std::string cat_name = fmt::format(cat_desc.m_icon.has_value() ? "{0}  {1}" : "{1}", cat_desc.m_icon.value_or("[erroricon]"), cat_desc.m_name);
+			if (ImGui::BeginMenu(cat_name.c_str()))
 			{
 				for (auto& action_desc : cat_desc.m_action_descs)
 				{
-					if (ImGui::MenuItem(action_desc.m_name.c_str(), nullptr))
+					std::string action_name = fmt::format(action_desc.m_icon.has_value() ? "{0}  {1}" : "{1}", action_desc.m_icon.value_or("[erroricon]"), action_desc.m_name);
+					if (ImGui::MenuItem(action_name.c_str(), nullptr))
 					{
 						action_desc.m_function();
 					}
@@ -83,7 +88,8 @@ void Editor::Render()
 
 				for (auto& window_desc : cat_desc.m_window_descs)
 				{
-					ImGui::MenuItem(window_desc.m_name.c_str(), nullptr, &window_desc.m_open);
+					std::string window_name = fmt::format(window_desc.m_icon.has_value() ? "{0}  {1}" : "{1}", window_desc.m_icon.value_or("[erroricon]"), window_desc.m_name);
+					ImGui::MenuItem(window_name.c_str(), nullptr, &window_desc.m_open);
 				}
 
 				ImGui::EndMenu();
