@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-#include "util/delegate.hpp"
+#include <util/delegate.hpp>
 
 enum class EditorWindowCategory
 {

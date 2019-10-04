@@ -7,8 +7,7 @@
 #include "editor.hpp"
 
 #include <imgui.h>
-
-#include "util/log.hpp"
+#include <util/log.hpp>
 
 Editor::Editor()
 	: m_show_main_menu(true)
