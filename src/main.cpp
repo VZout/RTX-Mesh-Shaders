@@ -12,6 +12,7 @@
 #include "util/version.hpp"
 #include "util/user_literals.hpp"
 #include "render_tasks/vulkan_tasks.hpp"
+#include "imgui/IconsFontAwesome5.h"
 
 #ifdef _WIN32
 #include <shellapi.h>
@@ -44,15 +45,15 @@ protected:
 	void SetupEditor()
 	{
 		// Categories
-		editor.RegisterCategory("File");
-		editor.RegisterCategory("Scene Graph");
-		editor.RegisterCategory("Stats");
-		editor.RegisterCategory("Help");
+		editor.RegisterCategory("File", reinterpret_cast<const char*>(ICON_FA_FILE));
+		editor.RegisterCategory("Scene Graph", reinterpret_cast<const char*>(ICON_FA_PROJECT_DIAGRAM));
+		editor.RegisterCategory("Stats", reinterpret_cast<const char*>(ICON_FA_CHART_BAR));
+		editor.RegisterCategory("Help", reinterpret_cast<const char*>(ICON_FA_INFO_CIRCLE));
 
 		// Actions
-		editor.RegisterAction("Quit", "File", [&](){ Close(); });
+		editor.RegisterAction("Quit", "File", [&](){ Close(); }, reinterpret_cast<const char*>(ICON_FA_POWER_OFF));
 		editor.RegisterAction("Contribute", "Help", [&](){ OpenURL("https://github.com/VZout/RTX-Mesh-Shaders"); });
-		editor.RegisterAction("Report Issue", "Help", [&](){ OpenURL("https://github.com/VZout/RTX-Mesh-Shaders/issues"); });
+		editor.RegisterAction("Report Issue", "Help", [&](){ OpenURL("https://github.com/VZout/RTX-Mesh-Shaders/issues"); }, reinterpret_cast<const char*>(ICON_FA_BUG));
 
 		// Windows
 		editor.RegisterWindow("World Outliner", "Scene Graph", [&]()
@@ -70,15 +71,15 @@ protected:
 					std::string name_prefix = "Unknown Node";
 					if (node.m_mesh_component > -1)
 					{
-						name_prefix = "Mesh Node";
+						name_prefix = fmt::format("{} Mesh Node", ICON_FA_CUBE);
 					}
 					else if (node.m_camera_component > -1)
 					{
-						name_prefix = "Camera Node";
+						name_prefix = fmt::format("{} Camera Node", ICON_FA_VIDEO);
 					}
 					else if (node.m_light_component > -1)
 					{
-						name_prefix = "Light Node";
+						name_prefix = fmt::format("{} Light Node", ICON_FA_LIGHTBULB);
 					}
 
 					auto node_name = name_prefix + " (" + std::to_string(i) + ")";
@@ -91,7 +92,7 @@ protected:
 				}
 			}
 			ImGui::ListBoxFooter();
-		});
+		}, false, reinterpret_cast<const char*>(ICON_FA_GLOBE_EUROPE));
 
 		editor.RegisterWindow("Temporary Material Settings", "Scene Graph", [&]()
 		{
@@ -139,10 +140,9 @@ protected:
 			{
 				ImGui::DragFloat3("Position", &m_scene_graph->m_positions[node.m_transform_component].m_value[0], 0.1f);
 
-				auto quaternion = m_scene_graph->m_rotations[node.m_transform_component].m_value;
-				auto euler = glm::degrees(glm::eulerAngles(quaternion));
+				auto euler = glm::degrees(m_scene_graph->m_rotations[node.m_transform_component].m_value);
 				ImGui::DragFloat3("Rotation", &euler[0], 0.1f);
-				m_scene_graph->m_rotations[node.m_transform_component].m_value = glm::quat(glm::radians(euler));
+				m_scene_graph->m_rotations[node.m_transform_component].m_value = glm::radians(euler);
 
 				if (node.m_camera_component == -1 && node.m_light_component == -1)
 				{
@@ -157,7 +157,7 @@ protected:
 			}
 
 			m_scene_graph->m_requires_update[node.m_transform_component] = true;
-		});
+		}, false, reinterpret_cast<const char*>(ICON_FA_EYE));
 
 		editor.RegisterWindow("Performance", "Stats", [&]()
 		{
@@ -226,7 +226,8 @@ protected:
 		m_scene_graph->SetLightConstantBufferPool(m_renderer->CreateConstantBufferPool(3, VK_SHADER_STAGE_COMPUTE_BIT));
 
 		m_camera_node = m_scene_graph->CreateNode<sg::CameraComponent>();
-		sg::helper::SetPosition(m_scene_graph, m_camera_node, glm::vec3(0, 0, -2.5));
+		sg::helper::SetPosition(m_scene_graph, m_camera_node, glm::vec3(0, 0, 2.5));
+		sg::helper::SetRotation(m_scene_graph, m_camera_node, glm::vec3(0, -90._deg, 0));
 
 		m_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_robot_model_handle);
 		sg::helper::SetPosition(m_scene_graph, m_node, glm::vec3(-0.75, -1, 0));
@@ -290,12 +291,91 @@ protected:
 
 		append_graph_list(m_frame_rates, ImGui::GetIO().Framerate, m_max_frame_rates, m_min_frame_rate,
 		                  m_max_frame_rate);
+
+		auto forward_right = sg::helper::GetForwardRight(m_scene_graph, m_camera_node);
+		sg::helper::Translate(m_scene_graph, m_camera_node, (m_z_axis.z * m_move_speed) * forward_right.first);
+		sg::helper::Translate(m_scene_graph, m_camera_node, (m_z_axis.y * m_move_speed) * glm::vec3(0, 1, 0));
+		sg::helper::Translate(m_scene_graph, m_camera_node, (m_z_axis.x * m_move_speed) * forward_right.second);
 	}
 
 	void ResizeCallback(std::uint32_t width, std::uint32_t height) final
 	{
 		m_renderer->Resize(width, height);
 		m_frame_graph->Resize(width, height);
+	}
+
+	void MousePosCallback(float x, float y) final
+	{
+		if (!m_rmb) return;
+
+		glm::vec2 center = glm::vec2(GetWidth() / 2.f, GetHeight() / 2.f);
+
+		float x_movement = x - center.x;
+		float y_movement = center.y - y;
+
+		sg::helper::Rotate(m_scene_graph, m_camera_node, glm::vec3(y_movement * m_mouse_sensitivity, x_movement * m_mouse_sensitivity, 0));
+
+		SetMousePos(GetWidth() / 2.f, GetHeight() / 2.f);
+	}
+
+	void MouseButtonCallback(int key, int action) final
+	{
+		if (key == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+		{
+			m_rmb = true;
+			glm::vec2 center = glm::vec2(GetWidth() / 2.f, GetHeight() / 2.f);
+
+			SetMousePos(center.x, center.y);
+			SetMouseVisibility(false);
+		}
+		else if (key == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE)
+		{
+			m_rmb = false;
+			SetMouseVisibility(true);
+		}
+
+	}
+
+	void KeyCallback(int key, int action) final
+	{
+		if (!m_rmb) return;
+
+		float axis_mod = 0;
+		if (action == GLFW_PRESS)
+		{
+			axis_mod = 1;
+		}
+		else if (action == GLFW_RELEASE)
+		{
+			axis_mod = -1;
+		}
+
+		if (key == GLFW_KEY_W)
+		{
+			m_z_axis.z += axis_mod;
+		}
+		else if (key == GLFW_KEY_S)
+		{
+			m_z_axis.z -= axis_mod;
+		}
+		else if (key == GLFW_KEY_A)
+		{
+			m_z_axis.x -= axis_mod;
+		}
+		else if (key == GLFW_KEY_D)
+		{
+			m_z_axis.x += axis_mod;
+		}
+		else if (key == GLFW_KEY_SPACE)
+		{
+			m_z_axis.y += axis_mod;
+		}
+		else if (key == GLFW_KEY_LEFT_CONTROL)
+		{
+			m_z_axis.y -= axis_mod;
+		}
+
+		m_z_axis = glm::clamp(m_z_axis, glm::vec3(-1), glm::vec3(1));
 	}
 
 	Editor editor;
@@ -316,6 +396,12 @@ protected:
 	bool m_imgui_override_metallic = false;
 	bool m_imgui_override_reflectivity = false;
 	bool m_imgui_disable_normal_mapping = false;
+
+	// Camera Movement
+	float m_move_speed = 0.01;
+	float m_mouse_sensitivity = 0.005;
+	glm::vec3 m_z_axis = glm::vec3(0);
+	bool m_rmb = false;
 
 	// ImGui
 	std::chrono::time_point<std::chrono::high_resolution_clock> m_start;
