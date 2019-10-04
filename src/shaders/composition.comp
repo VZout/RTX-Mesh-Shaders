@@ -1,10 +1,10 @@
 #version 450
 
-#include "pbr_util.glsl"
+#include "pbr+_util.glsl"
 
 layout (local_size_x = 16, local_size_y = 16) in;
 
-layout(set = 1, binding = 1, rgba8) uniform readonly image2D ts_gbuffers[3];
+layout(set = 1, binding = 1, rgba8) uniform readonly image2D ts_gbuffers[4];
 layout(set = 2, binding = 2, rgba8) uniform writeonly image2D t_output;
 layout(set = 4, binding = 4) uniform samplerCube t_skybox;
 layout(set = 5, binding = 5) uniform samplerCube t_irradiance;
@@ -31,9 +31,9 @@ layout(set = 3, binding = 3) uniform UniformBufferLightObject {
 
 vec3 GetEnvReflection(vec3 R, float roughness)
 {
-    const float MAX_REFLECTION_LOD = 5.0;
+    const float MAX_REFLECTION_LOD = 8.0;
     float lod = roughness * MAX_REFLECTION_LOD;
-    return textureLod(t_environment, R, roughness).rgb;
+    return textureLod(t_environment, R, lod).rgb;
 }
 
 void main()
@@ -46,11 +46,17 @@ void main()
     const vec4 albedo_roughness = imageLoad(ts_gbuffers[0], s_uv);
     const vec4 normal_metallic = imageLoad(ts_gbuffers[1], s_uv);
     const vec4 world_pos_ao = imageLoad(ts_gbuffers[2], s_uv);
+    const vec4 reflectivity_unused = imageLoad(ts_gbuffers[3], s_uv);
 
     const vec3 world_pos = world_pos_ao.xyz;
     const vec3 albedo = albedo_roughness.rgb;
     const vec3 N = normal_metallic.xyz;
+    const float reflectivity = reflectivity_unused.r;
+    #ifdef PBR_PLUS
+    float roughness = clamp(albedo_roughness.a, MIN_PERCEPTUAL_ROUGHNESS, 1.f);
+    #else
     float roughness = albedo_roughness.a;
+    #endif
     float metallic = normal_metallic.a;
     const float ao = world_pos_ao.a;
 
@@ -65,6 +71,47 @@ void main()
 
     uint num_lights = 3; //Light count is stored in 30 upper-bits of first light
 
+    vec2 dfg = texture(t_brdf_lut, vec2(clamp(dot(N, V), 0, 1), roughness)).rg; // lut
+
+    #ifdef PBR_PLUS
+    vec3 diffuse_color = ComputeDiffuseColor(albedo, metallic);
+
+    vec3 F0;
+    if (reflectivity > -1)
+    {
+        float reflectance = ComputeDielectricF0(reflectivity); // TODO: proper material reflectance
+        F0 = ComputeF0(albedo, metallic, reflectance);
+    }
+    else
+    {
+        F0 = mix(vec3(0.04), albedo, 1 - metallic);
+    }
+
+    vec3 energy_compensation = 1.0 + F0 * (1.0 / dfg.y - 1.0);
+    //energy_compensation = vec3(1);
+
+    float diff_ao = ao;
+    float spec_ao = 1.f; // TODO: Specular ao
+
+    // specular layer
+    vec3 E = SpecularDFG(F0, dfg);
+    vec3 spec = E * GetEnvReflection(R, roughness);
+    spec *= SingleBounceAO(spec_ao) * energy_compensation;
+
+    // diffuse layer
+    float diff_brdf = SingleBounceAO(diff_ao); // Fd_Lambert() is baked in the SH below
+    vec3 diff_irradiance = irradiance;
+    vec3 diff = diffuse_color * diff_irradiance * (1.0 - E) * diff_brdf;
+
+    // extra ambient occlusion term
+    MultiBounceAO(diff_ao, diffuse_color, diff);
+    MultiBounceSpecularAO(spec_ao, F0, spec);
+
+    float ibl_luminance = 1; // TODO figure this IBLluminance out.
+
+    vec3 ibl_color = (diff + spec) * ibl_luminance;
+    #endif
+
     vec3 lighting = vec3(0);
     for (uint i = 0; i < num_lights; i++)
     {
@@ -72,20 +119,33 @@ void main()
         const vec3 light_pos = lights.lights[i].m_pos;
 
         vec3 L = normalize(light_pos - world_pos);
+        #ifdef PBR_PLUS
+
+        float NdotL = clamp(dot(N, L), 0.0, 1.0); // TODO: Duplicate ndiotl
+        if (NdotL > 0.0)
+        {
+            lighting += BRDF(L, V, N, metallic, roughness, diffuse_color, light_color, F0, energy_compensation, 1.0f);
+        }
+        #else
         lighting += BRDF(L, V, N, metallic, roughness, albedo, light_color);
+        #endif
+
     }
 
+    #ifdef PBR_PLUS
+    vec3 color = ibl_color + lighting;
+    #else
     vec3 diffuse = irradiance * albedo;
     vec3 F = F_SchlickRoughness(max(dot(N, V), 0.0), metallic, albedo, roughness);
     vec3 reflection = GetEnvReflection(R, roughness);
-    vec2 brdf = texture(t_brdf_lut, vec2(dot(N, V), roughness)).rg;
-    vec3 specular = reflection * (F * brdf.x + brdf.y);
+    vec3 specular = reflection * (F * dfg.x + dfg.y);
 
     vec3 kD = 1.0 - F;
     kD *= 1.0 - metallic;
     vec3 color = (kD * diffuse + specular) + lighting;
 
     color *= ao;
+    #endif
 
     // Skybox
     if (world_pos.z == 0)
@@ -98,7 +158,11 @@ void main()
         color = textureLod(t_skybox, direction.xyz, 0).rgb;
     }
 
-    // color = texture(t_brdf_lut, uv).rgb;
+    /*const vec2 buv = (vec2(gl_GlobalInvocationID.xy) / resolution.y);
+    color = vec3(texture(t_brdf_lut, buv).rgb);
+    if (uv.x > 0.5) {
+        color = vec3(0.0, 0.0, 0.0);
+    }*/
 
     imageStore(t_output, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1));
 }

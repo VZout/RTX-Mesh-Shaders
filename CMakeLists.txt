@@ -23,7 +23,7 @@ if(MSVC)
 	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/bin)
 	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/bin)
 else()
-	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -Wpedantic")
+	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fuse-ld=bfd -Wall -Wextra -Wpedantic")
 endif()
 
 # Set a default build type if none was specified
@@ -119,9 +119,9 @@ file(GLOB_RECURSE GLSL_SOURCE_FILES CONFIGURE_DEPENDS
 file(GLOB IMGUI CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/external/imgui/*.cpp")
 
 # Application
-add_executable(Test ${HEADERS} ${SOURCES} ${GLSL_SOURCE_FILES} ${IMGUI})
-target_link_libraries(Test ${VULKAN_LIBRARY} glfw fmt)
-target_include_directories(Test PUBLIC
+add_library(WispVK ${HEADERS} ${SOURCES} ${GLSL_SOURCE_FILES} ${IMGUI})
+target_link_libraries(WispVK ${VULKAN_LIBRARY} glfw fmt)
+target_include_directories(WispVK PUBLIC
 	external/glfw/include
 	external/vulkan/include external/glm/glm
 	external/imgui
@@ -129,8 +129,8 @@ target_include_directories(Test PUBLIC
 	external/tinygltf)
 
 if(MSVC)
-	set_target_properties(Test PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin/")
-	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Test)
+	set_target_properties(WispVK PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin/")
+	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT WispVK)
 endif()
 
 # Compile GLSL Shaders Into SPRIV
@@ -157,9 +157,12 @@ add_custom_target(
     DEPENDS ${SPIRV_BINARY_FILES}
     )
 
-add_dependencies(Test Shaders)
+add_dependencies(WispVK Shaders)
 
 # Copy external resources
-add_custom_command(TARGET Test PRE_BUILD
+add_custom_command(TARGET WispVK PRE_BUILD
 		COMMAND ${CMAKE_COMMAND} -E copy_directory
-		${CMAKE_SOURCE_DIR}/resources/ $<TARGET_FILE_DIR:Test>)
+		${CMAKE_SOURCE_DIR}/resources/ $<TARGET_FILE_DIR:WispVK>)
+
+# Build Tests
+add_subdirectory(tests)

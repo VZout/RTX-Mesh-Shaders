@@ -59,7 +59,7 @@ REGISTER(shaders::generate_brdf_lut_cs, ShaderRegistry)({
 REGISTER(root_signatures::basic, RootSignatureRegistry)({
 	.m_parameters = []() -> decltype(RootSignatureDesc::m_parameters)
 	{
-		decltype(RootSignatureDesc::m_parameters) params(3);
+		decltype(RootSignatureDesc::m_parameters) params(4);
 		params[0].binding = 0; // camera
 		params[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		params[0].descriptorCount = 1;
@@ -75,6 +75,11 @@ REGISTER(root_signatures::basic, RootSignatureRegistry)({
 		params[2].descriptorCount = 3;
 		params[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 		params[2].pImmutableSamplers = nullptr;
+		params[3].binding = 3; // root parameter 0
+		params[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		params[3].descriptorCount = 1;
+		params[3].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		params[3].pImmutableSamplers = nullptr;
 		return params;
 	}(),
 });
@@ -90,7 +95,7 @@ REGISTER(root_signatures::composition, RootSignatureRegistry)({
 	    params[0].pImmutableSamplers = nullptr;
 	    params[1].binding = 1; // root parameter 1
 	    params[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-	    params[1].descriptorCount = 3; // color, normal, whatever, depth
+	    params[1].descriptorCount = 4; // color, normal, pos, material
 	    params[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 	    params[1].pImmutableSamplers = nullptr;
 	    params[2].binding = 2; // root parameter 2
@@ -212,7 +217,7 @@ REGISTER(pipelines::basic, PipelineRegistry)({
 	.m_input_layout = Vertex::GetInputLayout(),
 
 	.m_type = gfx::enums::PipelineType::GRAPHICS_PIPE,
-	.m_rtv_formats = { VK_FORMAT_R16G16B16A16_SFLOAT, VK_FORMAT_R16G16B16A16_SFLOAT, VK_FORMAT_R16G16B16A16_SFLOAT },
+	.m_rtv_formats = { VK_FORMAT_R16G16B16A16_SFLOAT, VK_FORMAT_R16G16B16A16_SFLOAT, VK_FORMAT_R16G16B16A16_SFLOAT, VK_FORMAT_R8G8B8A8_UNORM },
     .m_depth_format = VK_FORMAT_D32_SFLOAT,
 	.m_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	.m_counter_clockwise = true

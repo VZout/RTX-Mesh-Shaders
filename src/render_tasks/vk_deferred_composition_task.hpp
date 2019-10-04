@@ -74,7 +74,7 @@ namespace tasks
 			// GPU Heap
 			gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
 			descriptor_heap_desc.m_versions = 1;
-			descriptor_heap_desc.m_num_descriptors = 6;
+			descriptor_heap_desc.m_num_descriptors = 7;
 			data.m_gbuffer_heap = new gfx::DescriptorHeap(rs.GetContext(), descriptor_heap_desc);
 			data.m_gbuffer_set = data.m_gbuffer_heap->CreateSRVSetFromRT(deferred_main_rt, data.m_root_sig, 1, 0,false, std::nullopt);
 			data.m_uav_target_set = data.m_gbuffer_heap->CreateUAVSetFromRT(render_target, 0, data.m_root_sig, 2, 0, gbuffer_sampler_desc);
@@ -176,7 +176,7 @@ namespace tasks
 			.m_width = std::nullopt,
 			.m_height = std::nullopt,
 			.m_dsv_format = VK_FORMAT_UNDEFINED,
-			.m_rtv_formats = { VK_FORMAT_R16G16B16A16_SFLOAT },
+			.m_rtv_formats = { VK_FORMAT_R32G32B32A32_SFLOAT },
 			.m_state_execute = VK_IMAGE_LAYOUT_GENERAL,
 			.m_state_finished = std::nullopt,
 			.m_clear = false,
