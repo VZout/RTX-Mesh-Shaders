@@ -43,7 +43,7 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 
 		model = glm::mat4(1);
 		model = glm::scale(glm::mat4(1), m_scales[i].m_value) * model;
-		model = glm::mat4_cast(m_rotations[i].m_value) * model;
+		model = glm::mat4_cast(glm::quat(m_rotations[i].m_value)) * model;
 		model = glm::translate(glm::mat4(1), m_positions[i].m_value) * model;
 
 		m_requires_update[i] = false;
@@ -89,13 +89,18 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 		auto node = m_nodes[requires_update.m_node_handle];
 
 		glm::vec3 cam_pos = m_positions[node.m_transform_component].m_value;
-		glm::quat cam_rot = m_rotations[node.m_transform_component].m_value;
+		glm::vec3 cam_rot = m_rotations[node.m_transform_component].m_value;
 
-		glm::mat4 rotate = glm::mat4_cast(cam_rot);
-		glm::mat4 translate = glm::translate(glm::mat4(1), cam_pos);
+		glm::vec3 forward;
+		forward.x = cos(cam_rot.y) * cos(cam_rot.x);
+		forward.y = sin(cam_rot.x);
+		forward.z = sin(cam_rot.y) * cos(cam_rot.x);
+		forward = glm::normalize(forward);
+		glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3(0, 1, 0)));
+		glm::vec3 up = glm::normalize(glm::cross(right, forward));
 
 		cb::Camera data;
-		data.m_view = rotate * translate;
+		data.m_view = glm::lookAt(cam_pos, cam_pos + forward, up);
 		data.m_proj = glm::perspective(glm::radians(45.0f), (float) 1280 / (float) 720, 0.01f, 1000.0f);
 		data.m_proj[1][1] *= -1;
 

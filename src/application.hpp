@@ -25,6 +25,8 @@ public:
 	bool IsFullscreen() const;
 	void SetFullscreen(bool value);
 	void SetVisibility(bool value);
+	void SetMouseVisibility(bool value);
+	void SetMousePos(float x, float y);
 	HWND GetNativeHandle();
 	GLFWwindow* GetWindow();
 
@@ -34,9 +36,15 @@ protected:
 
 	virtual void ResizeCallback([[maybe_unused]] std::uint32_t width, [[maybe_unused]] std::uint32_t height) { /* Do nothing if its not overriden */ };
 	virtual void KeyCallback([[maybe_unused]] int key, [[maybe_unused]] int action) { /* Do nothing if its not overridden */ };
+	virtual void MouseButtonCallback([[maybe_unused]] int key, [[maybe_unused]] int action) { /* Do nothing if its not overriden */ }
+	virtual void MousePosCallback([[maybe_unused]] float x, [[maybe_unused]] float y) { /* Do nothing if its not overriden */ }
 
 	static void KeyCallback_Internal(GLFWwindow* window, int key, int scan_code, int action, int mods);
 	static void ResizeCallback_Internal(GLFWwindow* window, int width, int height);
+	static void MouseButtonCallback_Internal(GLFWwindow* window, int key, int action, int mods);
+	static void MousePosCallback_Internal(GLFWwindow* window, double x, double y);
+	static void CharCallback_Internal(GLFWwindow* window, unsigned int c);
+	static void ScrollCallback_Internal(GLFWwindow* window, double xoffset, double yoffset);
 
 	void Destroy();
 

@@ -139,7 +139,7 @@ namespace sg
 			auto& node = m_nodes[handle];
 			node.m_transform_component = m_positions.size();
 			m_positions.emplace_back(glm::vec3(0, 0, 0), handle);
-			m_rotations.emplace_back(glm::quat(0, 0, 0, 0), handle);
+			m_rotations.emplace_back(glm::vec3(0, 0, 0), handle);
 			m_scales.emplace_back(glm::vec3(1, 1, 1), handle);
 			m_models.emplace_back(glm::mat4(1), handle);
 			m_requires_update.emplace_back(false, handle);
@@ -206,7 +206,7 @@ namespace sg
 
 		// Transformation Component
 		std::vector<ComponentData<glm::vec3>> m_positions;
-		std::vector<ComponentData<glm::quat>> m_rotations;
+		std::vector<ComponentData<glm::vec3>> m_rotations;
 		std::vector<ComponentData<glm::vec3>> m_scales;
 		std::vector<ComponentData<glm::mat4>> m_models;
 		std::vector<ComponentData<bool>> m_requires_update;
@@ -240,26 +240,57 @@ namespace sg
 
 	namespace helper
 	{
+		inline std::pair<glm::vec3, glm::vec3> GetForwardRight(SceneGraph* sg, NodeHandle handle)
+		{
+			auto transform_handle = sg->GetNode(handle).m_transform_component;
+			auto rot = sg->m_rotations[transform_handle].m_value;
+
+			glm::vec3 forward;
+			forward.x = cos(rot.y) * cos(rot.x);
+			forward.y = sin(rot.x);
+			forward.z = sin(rot.y) * cos(rot.x);
+			forward = glm::normalize(forward);
+
+			glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3(0, 1, 0)));
+
+			return { forward, right };
+		}
+
+		inline void Translate(SceneGraph* sg, NodeHandle handle, glm::vec3 value)
+		{
+			auto transform_handle = sg->GetNode(handle).m_transform_component;
+			sg->m_positions[transform_handle].m_value += value;
+			sg->m_requires_update[transform_handle] = true;
+		}
+
 		inline void SetPosition(SceneGraph* sg, NodeHandle handle, glm::vec3 value)
 		{
 			auto transform_handle = sg->GetNode(handle).m_transform_component;
-			sg->m_positions[transform_handle] = value;
+			sg->m_positions[transform_handle].m_value = value;
 			sg->m_requires_update[transform_handle] = true;
 		}
 
 		inline void SetScale(SceneGraph* sg, NodeHandle handle, glm::vec3 value)
 		{
 			auto transform_handle = sg->GetNode(handle).m_transform_component;
-			sg->m_scales[transform_handle] = value;
+			sg->m_scales[transform_handle].m_value = value;
 			sg->m_requires_update[transform_handle] = true;
 		}
 
 		inline void SetRotation(SceneGraph* sg, NodeHandle handle, glm::vec3 euler)
 		{
 			auto transform_handle = sg->GetNode(handle).m_transform_component;
-			sg->m_rotations[transform_handle].m_value = glm::quat(euler);
+			sg->m_rotations[transform_handle].m_value = euler;
 			sg->m_requires_update[transform_handle] = true;
 		}
+
+		inline void Rotate(SceneGraph* sg, NodeHandle handle, glm::vec3 euler)
+		{
+			auto transform_handle = sg->GetNode(handle).m_transform_component;
+			sg->m_rotations[transform_handle].m_value += euler;
+			sg->m_requires_update[transform_handle] = true;
+		}
+
 
 	} /* helper */
 
