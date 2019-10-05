@@ -8,7 +8,6 @@
 
 #include <frame_graph/frame_graph.hpp>
 #include <application.hpp>
-#include "../common/editor.hpp"
 #include <util/version.hpp>
 #include <util/user_literals.hpp>
 #include <render_tasks/vulkan_tasks.hpp>
@@ -113,7 +112,6 @@ protected:
 		m_frame_graph->Resize(width, height);
 	}
 
-	Editor editor;
 	Renderer* m_renderer;
 	fg::FrameGraph* m_frame_graph;
 	sg::SceneGraph* m_scene_graph;

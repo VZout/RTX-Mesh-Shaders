@@ -26,6 +26,13 @@ namespace internal
 	public:
 		virtual ~Registry() = default;
 
+		void Clean()
+		{
+			m_descriptions.clear();
+			m_objects.clear();
+			m_requested_reload.clear();
+		}
+
 		// Static find.
 		static inline TO* SFind(RegistryHandle handle)
 		{

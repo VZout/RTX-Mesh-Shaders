@@ -18,6 +18,7 @@ public:
 	explicit Application(std::string const & name);
 	virtual ~Application();
 
+	void Create(std::uint32_t width, std::uint32_t height);
 	void Start(std::uint32_t width, std::uint32_t height);
 	void Close();
 	[[nodiscard]] std::uint32_t GetWidth() const;
@@ -52,6 +53,7 @@ protected:
 	const std::string m_name;
 
 private:
+	bool m_created;
 	int prev_x, prev_y, prev_width, prev_height;
 
 };
