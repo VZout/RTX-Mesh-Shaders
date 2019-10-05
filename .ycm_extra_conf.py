@@ -12,7 +12,9 @@ BASE_FLAGS = [
         '-IC:/Users/Viktor/Documents/Workspaces/RTX-Mesh-Shaders/external/glfw/include',
         '-IC:/Users/Viktor/Documents/Workspaces/RTX-Mesh-Shaders/external/imgui',
         '-IC:/Users/Viktor/Documents/Workspaces/RTX-Mesh-Shaders/external/tinygltf',
-        '-IC:/Users/Viktor/Documents/Workspaces/RTX-Mesh-Shaders/external/vulkan/include'
+        '-IC:/Users/Viktor/Documents/Workspaces/RTX-Mesh-Shaders/external/benchmark/include',
+        '-IC:/Users/Viktor/Documents/Workspaces/RTX-Mesh-Shaders/external/vulkan/include',
+        '-IC:/Users/Viktor/Documents/Workspaces/RTX-Mesh-Shaders/src/'
         ]
 
 SOURCE_EXTENSIONS = [
