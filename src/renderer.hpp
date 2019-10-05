@@ -128,4 +128,6 @@ void Renderer::DestroyRegistry()
 	{
 		delete obj;
 	}
+
+	registry.Clean();
 }

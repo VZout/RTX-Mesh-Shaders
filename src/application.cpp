@@ -14,7 +14,7 @@
 #include "imgui/imgui_impl_glfw.hpp"
 
 Application::Application(std::string const & name)
-	: m_window(nullptr), m_name(name)
+	: m_window(nullptr), m_name(name), m_created(false)
 {
 	if (!glfwInit())
 	{
@@ -60,15 +60,16 @@ void Application::ScrollCallback_Internal(GLFWwindow* window, double xoffset, do
 	ImGui_ImplGlfw_ScrollCallback(window, xoffset, yoffset);
 }
 
-void Application::Start(std::uint32_t width, std::uint32_t height)
+
+void Application::Create(std::uint32_t width, std::uint32_t height)
 {
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
 	m_window = glfwCreateWindow(width, height, m_name.c_str(), nullptr, nullptr);
 	if (!m_window)
 	{
-		LOGC("Failed to create GLFW window.");
 		glfwTerminate();
+		LOGC("Failed to create GLFW window.");
 	}
 
 	if (!glfwVulkanSupported())
@@ -100,16 +101,23 @@ void Application::Start(std::uint32_t width, std::uint32_t height)
 			io.Fonts->AddFontFromFileTTF(settings::m_imgui_font.value().c_str(), settings::m_imgui_font_size.value_or(13.f));
 		}
 
-		// Enable TTF Icons
-		{
-			static const ImWchar icons_ranges[] = {ICON_MIN_FA, ICON_MAX_FA, 0};
-			ImFontConfig icons_config;
-			icons_config.MergeMode = true;
-			icons_config.PixelSnapH = true;
-			io.Fonts->AddFontFromFileTTF((std::string("fonts/") + std::string(FONT_ICON_FILE_NAME_FAS)).c_str(), settings::m_imgui_font_size.value_or(13.f), &icons_config, icons_ranges);
-		}
+		static const ImWchar icons_ranges[] = {ICON_MIN_FA, ICON_MAX_FA, 0};
+		ImFontConfig icons_config;
+		icons_config.MergeMode = true;
+		icons_config.PixelSnapH = true;
+		io.Fonts->AddFontFromFileTTF((std::string("fonts/") + std::string(FONT_ICON_FILE_NAME_FAS)).c_str(), settings::m_imgui_font_size.value_or(13.f), &icons_config, icons_ranges);
 
 		ImGui_ImplGlfw_InitForVulkan(m_window, false);
+	}
+
+	m_created = true;
+}
+
+void Application::Start(std::uint32_t width, std::uint32_t height)
+{
+	if (!m_created)
+	{
+		Create(width, height);
 	}
 
 	Init();
