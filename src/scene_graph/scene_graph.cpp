@@ -41,10 +41,25 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 
 		auto& model = m_models[i].m_value;
 
-		model = glm::mat4(1);
-		model = glm::scale(glm::mat4(1), m_scales[i].m_value) * model;
+		auto const & scale = m_scales[i].m_value;
+
+		model = glm::mat4(scale.x, 0, 0, 0,
+		                  0, scale.y, 0, 0,
+		                  0, 0, scale.z, 0,
+		                  0, 0, 0, 1);
+
 		model = glm::mat4_cast(glm::quat(m_rotations[i].m_value)) * model;
-		model = glm::translate(glm::mat4(1), m_positions[i].m_value) * model;
+
+		auto const & pos = m_positions[i].m_value;
+
+		model = glm::mat4(1, 0, 0, 0,
+		                  0, 1, 0, 0,
+		                  0, 0, 1, 0,
+		                  pos.x, pos.y, pos.z, 1) * model;
+
+		//model = glm::translate(glm::mat4(1), pos) * model;
+
+		//model[3] = model[0] * pos[0] + model[1] * pos[1] + model[2] * pos[2] + model[3]; // Translate
 
 		m_requires_update[i] = false;
 
