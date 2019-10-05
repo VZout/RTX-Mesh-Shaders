@@ -160,9 +160,10 @@ add_custom_target(
 add_dependencies(WispVK Shaders)
 
 # Copy external resources
-add_custom_command(TARGET WispVK PRE_BUILD
+add_custom_command(TARGET WispVK PRE_LINK
 		COMMAND ${CMAKE_COMMAND} -E copy_directory
-		${CMAKE_SOURCE_DIR}/resources/ $<TARGET_FILE_DIR:WispVK>)
+		${CMAKE_SOURCE_DIR}/resources/ ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+		COMMENT "Copying Resources")
 
 # Build Tests
 add_subdirectory(tests)
