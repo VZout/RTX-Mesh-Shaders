@@ -56,11 +56,6 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 		                  0, 1, 0, 0,
 		                  0, 0, 1, 0,
 		                  pos.x, pos.y, pos.z, 1) * model;
-
-		//model = glm::translate(glm::mat4(1), pos) * model;
-
-		//model[3] = model[0] * pos[0] + model[1] * pos[1] + model[2] * pos[2] + model[3]; // Translate
-
 		m_requires_update[i] = false;
 
 		// If this transform has a mesh component make sure it updates the constant buffers
