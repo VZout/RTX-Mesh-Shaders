@@ -28,26 +28,24 @@ static void BM_SceneGraphMeshNode(benchmark::State& state) {
 	auto renderer = new Renderer();
 	renderer->Init(app);
 
-	auto model_pool = renderer->GetModelPool();
-	auto texture_pool = renderer->GetTexturePool();
-	auto material_pool = renderer->GetMaterialPool();
-	auto robot_model_handle = model_pool->LoadWithMaterials<Vertex>("robot/scene.gltf", material_pool, texture_pool, true);
-
 	auto sg = new sg::SceneGraph();
 	sg->SetPOConstantBufferPool(renderer->CreateConstantBufferPool(1));
 	sg->SetCameraConstantBufferPool(renderer->CreateConstantBufferPool(0, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT));
 	sg->SetLightConstantBufferPool(renderer->CreateConstantBufferPool(3, VK_SHADER_STAGE_COMPUTE_BIT));
 
-	for (std::uint32_t i = 0; i < num_mesh_nodes; i++)
+	std::vector<sg::NodeHandle> nodes(num_mesh_nodes);
+	for (auto& node : nodes)
 	{
-		sg->CreateNode<sg::MeshComponent>(robot_model_handle);
+		node = sg->CreateNode<sg::TransformComponent>();
 	}
 
 	for (auto _ : state)
 	{
+		for (auto& node : nodes)
+		{
+			sg::helper::SetPosition(sg, node, { 0, 0, 0 });
+		}
 		sg->Update(0);
-		sg->Update(1);
-		sg->Update(2);
 	}
 
 	app->Close();
