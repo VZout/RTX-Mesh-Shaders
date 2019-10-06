@@ -12,8 +12,8 @@
 #include "util/version.hpp"
 #include "util/user_literals.hpp"
 #include "render_tasks/vulkan_tasks.hpp"
-#include "imgui/IconsFontAwesome5.h"
-#include "imgui/imgui_plot.h"
+#include "imgui/icons_font_awesome5.hpp"
+#include "imgui/imgui_plot.hpp"
 
 #ifdef _WIN32
 #include <shellapi.h>
