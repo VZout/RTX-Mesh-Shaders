@@ -33,6 +33,8 @@ cmake -G "[configuration]" ..
 
 ## Screenshots
 
+![](http://upload.vzout.com/wispvk/img0.png)
+
 ## [License (GNU Affero General Public License 3)](https://opensource.org/licenses/AGPL-3.0)
 
 <a href="https://opensource.org/licenses/AGPL-3.0" target="_blank">
