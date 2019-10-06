@@ -11,7 +11,7 @@ This is a demo repository for a few techniques made possible by NVIDIA's Turing 
 
 ## Building
 
-To build this project you require CMake 3.15 or higher. To make use of mesh shading you need a [RTX capable machine](https://en.wikipedia.org/wiki/Nvidia_RTX). You need a C++20 capable compiler. To following compilers are tested:
+To build this project you require **CMake 3.15** or higher and a **C++20 capable compiler**. To run the application you need a GPU and driver that **supports Vulkan 1.1**. To run the application and make use of mesh shaders you need a **[RTX capable gpu](https://en.wikipedia.org/wiki/Nvidia_RTX)**.
 
 * [Visual Studio 2019 (16.2.3)](https://visualstudio.microsoft.com/)
 * [GCC 9.2](https://gcc.gnu.org/)
@@ -19,11 +19,11 @@ To build this project you require CMake 3.15 or higher. To make use of mesh shad
 
 and the following operating systems are tested:
 
-* Windows 10 (version 1809)
-* Ubuntu 18.04 LTS
+* Windows 10 (version 1903)
+* Ubuntu (18.04 LTS)
 * Arch Linux (Antergos 19.4)
 
-All you need to do to build the project is run these commands in your terminal.
+To generate the project files run the following command in your terminal:
 
 ```sh
 mkdir build
