@@ -11,7 +11,7 @@ This is a demo repository for a few techniques made possible by NVIDIA's Turing 
 
 ## Building
 
-To build this project you require cmake 3.12 or higher. To make use of mesh shading you need a [RTX capable machine](example.com). You need a C++17 capable compiler. To following compilers are tested:
+To build this project you require cmake 3.12 or higher. To make use of mesh shading you need a [RTX capable machine](https://en.wikipedia.org/wiki/Nvidia_RTX). You need a C++20 capable compiler. To following compilers are tested:
 
 * [Visual Studio 2019 (16.2.3)](https://visualstudio.microsoft.com/)
 * [GCC 9.2](https://gcc.gnu.org/)
