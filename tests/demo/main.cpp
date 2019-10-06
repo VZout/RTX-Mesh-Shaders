@@ -13,6 +13,7 @@
 #include "util/user_literals.hpp"
 #include "render_tasks/vulkan_tasks.hpp"
 #include "imgui/IconsFontAwesome5.h"
+#include "imgui/imgui_plot.h"
 
 #ifdef _WIN32
 #include <shellapi.h>
@@ -169,13 +170,29 @@ protected:
 			ImGui::SameLine();
 			if (ImGui::Button("Reset Scale"))
 			{
-			  m_max_frame_rate = std::numeric_limits<float>::min();
-			  m_min_frame_rate = std::numeric_limits<float>::max();
+			  m_max_frame_rate = 1;
+			  m_min_frame_rate = 0;
 			}
 			ImGui::Columns(1);
 
-			ImGui::PlotLines("Framerate", m_frame_rates.data(), m_frame_rates.size(), 0, nullptr, m_min_frame_rate,
-			               m_max_frame_rate, ImVec2(ImGui::GetContentRegionAvail()));
+			ImGui::PlotConfig conf;
+			//conf.values.xs = x_data; // this line is optional
+			conf.values.ys = m_frame_rates.data();
+			conf.values.count = m_frame_rates.size();
+			conf.scale.min = m_min_frame_rate;
+			conf.values.color = ImColor(0, 255, 0);
+			conf.scale.max = m_max_frame_rate;
+			conf.tooltip.show = true;
+			conf.tooltip.format = "fps=%.2f";
+			conf.grid_x.show = false;
+			conf.grid_y.show = false;
+			conf.frame_size = ImGui::GetContentRegionAvail();
+			conf.line_thickness = 3.f;
+
+			ImGui::Plot("plot", conf);
+
+			//ImGui::PlotLines("Framerate", m_frame_rates.data(), m_frame_rates.size(), 0, nullptr, m_min_frame_rate,
+			  //             m_max_frame_rate, ImVec2(ImGui::GetContentRegionAvail()));
 		});
 		editor.RegisterWindow("About", "Help", [&]()
 		{
@@ -407,8 +424,8 @@ protected:
 	std::chrono::time_point<std::chrono::high_resolution_clock> m_start;
 	std::vector<float> m_frame_rates;
 	int m_max_frame_rates = 1000;
-	float m_min_frame_rate;
-	float m_max_frame_rate;
+	float m_min_frame_rate = 0;
+	float m_max_frame_rate = 1;
 	std::optional<sg::NodeHandle> m_selected_node;
 };
 
