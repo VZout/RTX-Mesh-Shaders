@@ -10,7 +10,7 @@
 
 #include "util/log.hpp"
 #include "settings.hpp"
-#include "imgui/IconsFontAwesome5.h"
+#include "imgui/icons_font_awesome5.hpp"
 #include "imgui/imgui_impl_glfw.hpp"
 
 Application::Application(std::string const & name)
