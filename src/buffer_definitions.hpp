@@ -42,8 +42,14 @@ namespace cb
 		glm::vec3 m_pos = { 0, 0, 0 };
 		float m_radius = 0.0f;
 
+		glm::vec3 m_direction = { 0, 0, 0 };
+		float m_inner_angle = 0.698132;
+
 		glm::vec3 m_color = { 1, 1, 1 };
 		std::uint32_t m_type = (std::uint32_t)LightType::FREE;
+
+		float m_outer_angle = 0.698132;
+		glm::vec3 m_padding;
 	};
 
 	struct PrefilterInfo

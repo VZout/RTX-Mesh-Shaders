@@ -79,17 +79,17 @@ protected:
 
 		// light node
 		{
-			auto node = m_scene_graph->CreateNode<sg::LightComponent>();
+			auto node = m_scene_graph->CreateNode<sg::LightComponent>(cb::LightType::POINT);
 			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(0.f, 0.f, -4));
 		}
 		// light node
 		{
-			auto node = m_scene_graph->CreateNode<sg::LightComponent>(glm::vec3{ 1, 0, 0 });
+			auto node = m_scene_graph->CreateNode<sg::LightComponent>(cb::LightType::POINT, glm::vec3{ 1, 0, 0 });
 			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(1.f, 0.f, -0.5));
 		}
 		// light node
 		{
-			auto node = m_scene_graph->CreateNode<sg::LightComponent>(glm::vec3{ 0, 0, 1 });
+			auto node = m_scene_graph->CreateNode<sg::LightComponent>(cb::LightType::POINT, glm::vec3{ 0, 0, 1 });
 			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(-1.f, 0.f, -0.5));
 		}
 	}

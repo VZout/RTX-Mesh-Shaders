@@ -13,7 +13,7 @@
 #include "resource_structs.hpp"
 
 STBImageLoader::STBImageLoader()
-	: ResourceLoader(std::vector<std::string>{"png", "jpg" })
+	: ResourceLoader(std::vector<std::string>{"png", "jpg", "jpeg" })
 {
 
 }

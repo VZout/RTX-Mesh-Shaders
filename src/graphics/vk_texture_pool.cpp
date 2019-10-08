@@ -38,6 +38,7 @@ void gfx::VkTexturePool::Load_Impl(TextureData const & data, std::uint32_t id, b
 	desc.m_height = data.m_height;
 	desc.m_channels = data.m_channels;
 	desc.m_mip_levels = mipmap ? static_cast<std::uint32_t>(std::floor(std::log2(std::max(desc.m_width, desc.m_height)))) + 1 : 1;
+	desc.m_mip_levels = std::clamp(desc.m_mip_levels, 1u, 16u);
 
 	if (data.m_is_hdr && srgb)
 	{

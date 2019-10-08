@@ -173,7 +173,7 @@ namespace sg
 		}
 
 		template<typename T>
-		typename Void_IsComponent<T, LightComponent>::type PromoteNode(NodeHandle handle, glm::vec3 color = { 1, 1, 1 })
+		typename Void_IsComponent<T, LightComponent>::type PromoteNode(NodeHandle handle, cb::LightType type, glm::vec3 color = { 1, 1, 1 })
 		{
 			auto& node = m_nodes[handle];
 			node.m_light_component = m_light_node_handles.size();
@@ -190,6 +190,10 @@ namespace sg
 			));
 
 			m_colors.emplace_back(ComponentData<glm::vec3>{color, handle});
+			m_light_types.emplace_back(ComponentData<cb::LightType>{type, handle});
+			m_radius.emplace_back(ComponentData<float>{0, handle});
+			m_colors.emplace_back(ComponentData<glm::vec3>{color, handle});
+			m_light_angles.emplace_back(ComponentData<std::pair<float, float>>{ {glm::radians(40.f), glm::radians(50.f)}, handle});
 
 			m_light_node_handles.push_back(handle);
 		}
@@ -223,6 +227,9 @@ namespace sg
 		// Light Component
 		std::vector<ComponentData<std::vector<bool>>> m_requires_light_buffer_update;
 		std::vector<ComponentData<glm::vec3>> m_colors;
+		std::vector<ComponentData<cb::LightType>> m_light_types;
+		std::vector<ComponentData<float>> m_radius;
+		std::vector<ComponentData<std::pair<float, float>>> m_light_angles;
 		std::vector<std::size_t> m_num_lights;
 
 	private:
