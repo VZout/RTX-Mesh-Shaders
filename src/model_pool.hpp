@@ -73,17 +73,17 @@ public:
 	ModelPool();
 	virtual ~ModelPool() = default;
 
-	template<typename V_T, typename I_T = std::uint32_t>
+	template<typename V_T>
 	ModelHandle Load(std::string const & path,
 		bool store_data = false);
-	template<typename V_T, typename I_T = std::uint32_t>
+	template<typename V_T>
 	ModelHandle LoadWithMaterials(std::string const & path,
 		MaterialPool* material_pool,
 		TexturePool* texture_pool,
 		bool store_data = false);
-	template<typename V_T, typename I_T = std::uint32_t>
+	template<typename V_T>
 	ModelHandle Load(ModelData* data);
-	template<typename V_T, typename I_T = std::uint32_t>
+	template<typename V_T>
 	ModelHandle LoadWithMaterials(ModelData* data,
 		MaterialPool* material_pool,
 		TexturePool* texture_pool);
@@ -125,14 +125,14 @@ DEFINE_HAS_STRUCT(Normal, m_normal)
 DEFINE_HAS_STRUCT(Tangent, m_tangent)
 DEFINE_HAS_STRUCT(Bitangent, m_bitangent)
 
-template<typename V_T, typename I_T>
+template<typename V_T>
 ModelHandle ModelPool::Load(std::string const & path,
 	bool store_data)
 {
-	return LoadWithMaterials<V_T, I_T>(path, nullptr, nullptr, store_data);
+	return LoadWithMaterials<V_T>(path, nullptr, nullptr, store_data);
 }
 
-template<typename V_T, typename I_T>
+template<typename V_T>
 ModelHandle ModelPool::LoadWithMaterials(std::string const & path,
 	MaterialPool* material_pool,
 	TexturePool* texture_pool,
@@ -145,7 +145,7 @@ ModelHandle ModelPool::LoadWithMaterials(std::string const & path,
 		loader->IsSupportedExtension(extension);
 		auto model_data = loader->Load(path);
 
-		auto handle = LoadWithMaterials<V_T, I_T>(model_data, material_pool, texture_pool);
+		auto handle = LoadWithMaterials<V_T>(model_data, material_pool, texture_pool);
 
 		if (store_data)
 		{
@@ -164,13 +164,13 @@ ModelHandle ModelPool::LoadWithMaterials(std::string const & path,
 	return ModelHandle{};
 }
 
-template<typename V_T, typename I_T>
+template<typename V_T>
 ModelHandle ModelPool::Load(ModelData* data)
 {
-	return LoadWithMaterials<V_T, I_T>(data, nullptr, nullptr);
+	return LoadWithMaterials<V_T>(data, nullptr, nullptr);
 }
 
-template<typename V_T, typename I_T>
+template<typename V_T>
 ModelHandle ModelPool::LoadWithMaterials(ModelData* data,
 	MaterialPool* material_pool,
 	TexturePool* texture_pool)
@@ -200,10 +200,11 @@ ModelHandle ModelPool::LoadWithMaterials(ModelData* data,
 		}
 
 		auto num_vertices = mesh.m_positions.size();
-		auto num_indices = mesh.m_indices.size();
+		auto num_indices = mesh.m_num_indices;
+		auto index_stide = mesh.m_indices_stride;
 
 		std::vector<V_T> vertices(num_vertices);
-		std::vector<I_T> indices = mesh.m_indices;
+		auto indices = mesh.m_indices;
 
 		for (std::size_t i = 0; i < num_vertices; i++)
 		{
@@ -215,7 +216,7 @@ ModelHandle ModelPool::LoadWithMaterials(ModelData* data,
 			if constexpr (HasBitangent<V_T>::value) { vertices[i].m_bitangent = mesh.m_bitangents[i]; }
 		}
 
-		AllocateMesh(vertices.data(), num_vertices, sizeof(V_T), indices.data(), num_indices, sizeof(I_T));
+		AllocateMesh(vertices.data(), num_vertices, sizeof(V_T), indices.data(), num_indices, index_stide);
 		model_handle.m_mesh_handles.emplace_back(ModelHandle::MeshHandle{
 			.m_id = m_next_id,
 			.m_num_indices = static_cast<std::uint32_t>(num_indices),

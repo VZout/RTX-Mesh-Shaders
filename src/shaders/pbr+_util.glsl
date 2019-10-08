@@ -9,6 +9,7 @@
 #define PBR_PLUS
 #define MIN_PERCEPTUAL_ROUGHNESS 0.045
 #define MIN_ROUGHNESS 0.002025 // Only used for anisotropyic lobes
+#define MIN_N_DOT_V 1e-4
 
 float pow5(float x)
 {
@@ -193,10 +194,9 @@ vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float perceptual_roughness, ve
 
     // Precalculate vectors and dot products
     vec3 H = normalize(V + L);
-    float dotNV = clamp(dot(N, V), 0.0, 1.0);
+    float dotNV = max(dot(N, V), MIN_N_DOT_V);
     float dotNL = clamp(dot(N, L), 0.0, 1.0);
     float dotNH = clamp(dot(N, H), 0.0, 1.0);
-    float dotVH = clamp(dot(N, H), 0.0, 1.0);
     float dotLH = clamp(dot(L, H), 0.0, 1.0);
 
     float F90 = clamp(dot(F0, vec3(50.0 * 0.33)), 0.f, 1.f);
@@ -206,7 +206,7 @@ vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float perceptual_roughness, ve
     // G = Geometric shadowing term (Microfacets shadowing)
     float G = G_SchlicksmithGGX(dotNL, dotNV, roughness);
     // F = Fresnel factor (Reflectance depending on angle of incidence)
-    vec3 F = F_Schlick(F0, F90, dotVH);
+    vec3 F = F_Schlick(F0, F90, dotLH);
 
     vec3 spec = (D * G) * F;
     vec3 diff = diffuse_color * Fd_Lambert();

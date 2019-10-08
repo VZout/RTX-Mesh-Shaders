@@ -132,6 +132,7 @@ gfx::StagingBuffer::StagingBuffer(Context* context, void* data, std::uint64_t si
 	: GPUBuffer(context, size * stride), m_staging_buffer(VK_NULL_HANDLE), m_staging_buffer_memory(VK_NULL_HANDLE)
 {
 	m_size = size * stride;
+	m_stride = stride;
 
 	// Create staging buffer
 	CreateBufferAndMemory(m_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,

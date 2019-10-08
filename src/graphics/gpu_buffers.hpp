@@ -60,6 +60,7 @@ namespace gfx
 		void FreeStagingResources();
 
 	private:
+		std::uint64_t m_stride;
 		VkBuffer m_staging_buffer;
 		VkDeviceMemory m_staging_buffer_memory;
 	};

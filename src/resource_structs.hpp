@@ -14,11 +14,11 @@
 
 struct TextureData
 {
-	std::uint32_t m_width;
-	std::uint32_t m_height;
-	std::uint32_t m_channels;
-	bool m_is_hdr;
-	void* m_pixels;
+	std::uint32_t m_width = -1;
+	std::uint32_t m_height = -1;
+	std::uint32_t m_channels = -1;
+	bool m_is_hdr = false;
+	void* m_pixels = nullptr;
 };
 
 struct MaterialData
@@ -51,7 +51,9 @@ struct MeshData
 	std::vector<glm::vec4> m_bone_weights;
 	std::vector<glm::vec4> m_bone_ids;
 
-	std::vector<std::uint32_t> m_indices;
+	std::vector<unsigned char> m_indices;
+	std::size_t m_num_indices;
+	std::size_t m_indices_stride;
 
 	std::uint32_t m_material_id;
 };
