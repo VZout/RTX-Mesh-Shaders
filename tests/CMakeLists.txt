@@ -15,6 +15,11 @@ function(add_test TEST_DIR TEST_NAME)
 	set_target_properties(${TEST_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 	set_target_properties(${TEST_NAME} PROPERTIES CMAKE_CXX_STANDARD_REQUIRED ON)
 	set_target_properties(${TEST_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/../")
+	
+	if(MSVC)
+		set_target_properties(${TEST_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin/")
+		set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${TEST_NAME})
+	endif()
 endfunction(add_test)
 
 function(add_benchmark TEST_DIR TEST_NAME)
@@ -31,6 +36,11 @@ function(add_benchmark TEST_DIR TEST_NAME)
 	set_target_properties(${TEST_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 	set_target_properties(${TEST_NAME} PROPERTIES CMAKE_CXX_STANDARD_REQUIRED ON)
 	set_target_properties(${TEST_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/../")
+
+	if(MSVC)
+		set_target_properties(${TEST_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin/")
+		set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${TEST_NAME})
+	endif()
 endfunction(add_benchmark)
 
 add_test(demo Demo)

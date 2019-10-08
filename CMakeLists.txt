@@ -223,11 +223,6 @@ target_include_directories(WispVK PUBLIC
 	${fmt_SOURCE_DIR}/include
 	${tinygltf_SOURCE_DIR})
 
-if(MSVC)
-	set_target_properties(WispVK PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin/")
-	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT WispVK)
-endif()
-
 # Compile GLSL Shaders Into SPRIV
 if (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "AMD64")
   set(GLSL_VALIDATOR "$ENV{VULKAN_SDK}/Bin/glslc.exe")
@@ -255,7 +250,7 @@ add_custom_target(
 add_dependencies(WispVK Shaders)
 
 # Copy external resources
-add_custom_command(TARGET WispVK PRE_LINK
+add_custom_command(TARGET WispVK PRE_BUILD
 		COMMAND ${CMAKE_COMMAND} -E copy_directory
 		${CMAKE_SOURCE_DIR}/resources/ ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 		COMMENT "Copying Resources")

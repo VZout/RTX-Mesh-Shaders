@@ -158,7 +158,7 @@ void gfx::CommandList::BindVertexBuffer(StagingBuffer* staging_buffer)
 void gfx::CommandList::BindIndexBuffer(StagingBuffer* staging_buffer)
 {
 	VkDeviceSize offset = { 0 };
-	vkCmdBindIndexBuffer(m_cmd_buffers[m_frame_idx], staging_buffer->m_buffer, offset, VkIndexType::VK_INDEX_TYPE_UINT32);
+	vkCmdBindIndexBuffer(m_cmd_buffers[m_frame_idx], staging_buffer->m_buffer, offset, staging_buffer->m_stride == 4 ? VkIndexType::VK_INDEX_TYPE_UINT32 : VkIndexType::VK_INDEX_TYPE_UINT16);
 }
 
 void gfx::CommandList::BindDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets)

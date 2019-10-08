@@ -67,7 +67,7 @@ void main()
     const vec3 view_pos = vec3(inv_view[3][0], inv_view[3][1], inv_view[3][2]);
 
     vec3 V = normalize(view_pos - world_pos);
-    vec3 R = reflect(-V, N);
+	vec3 R = reflect(-vec3(V.x, V.y * -1, V.z), N);
 
     uint num_lights = 3; //Light count is stored in 30 upper-bits of first light
 

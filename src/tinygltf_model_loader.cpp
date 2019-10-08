@@ -39,11 +39,21 @@ inline std::pair<std::vector<glm::vec3>, std::vector<glm::vec3>> ComputeTangents
 		return { tanA, tanB };
 	}
 
+	std::vector<std::uint32_t>indices;
+	for (auto i = 0; i < mesh_data.m_indices.size(); i += mesh_data.m_indices_stride)
+	{
+		std::uint32_t val = 0;
+
+		memcpy(&val, &mesh_data.m_indices[i], mesh_data.m_indices_stride);
+
+		indices.push_back(val);
+	}
+
 	// (1)
-	for (size_t i = 0; i < mesh_data.m_indices.size(); i += 3) {
-		size_t i0 = mesh_data.m_indices[i];
-		size_t i1 = mesh_data.m_indices[i + 1];
-		size_t i2 = mesh_data.m_indices[i + 2];
+	for (size_t i = 0; i < indices.size(); i += 3) {
+		size_t i0 = indices[i];
+		size_t i1 = indices[i + 1];
+		size_t i2 = indices[i + 2];
 
 		glm::vec3 pos0 = mesh_data.m_positions[i0];
 		glm::vec3 pos1 = mesh_data.m_positions[i1];
@@ -185,6 +195,7 @@ inline void LoadMesh(ModelData* model, tinygltf::Model const & tg_model, tinyglt
 		std::size_t position_buffer_offset = 0;
 		std::size_t normal_buffer_offset = 0;
 		MeshData mesh_data{};
+		mesh_data.m_num_indices = 0;
 
 		{ // GET INDICES
 			auto idx_accessor = tg_model.accessors[primitive.indices];
@@ -194,10 +205,13 @@ inline void LoadMesh(ModelData* model, tinygltf::Model const & tg_model, tinyglt
 			const auto data_address = buffer.data.data() + buffer_view.byteOffset + idx_accessor.byteOffset;
 			const auto byte_stride = idx_accessor.ByteStride(buffer_view);
 
-			mesh_data.m_indices.resize(idx_buffer_offset + idx_accessor.count);
-
+			mesh_data.m_indices.resize(idx_buffer_offset + (idx_accessor.count * byte_stride));
 			memcpy(mesh_data.m_indices.data() + idx_buffer_offset, data_address, idx_accessor.count * byte_stride);
+
 			idx_buffer_offset += idx_accessor.count * byte_stride;
+
+			mesh_data.m_num_indices += idx_accessor.count;
+			mesh_data.m_indices_stride = byte_stride; // TODO: What if the byte size changed?
 		}
 
 		// Get other attributes
