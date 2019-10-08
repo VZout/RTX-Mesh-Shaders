@@ -43,7 +43,7 @@ void main()
     obj_normal = material.normal_strength > -1 ? obj_normal : normal;
 
     out_color = vec4(albedo, roughness);
-    out_normal = vec4(normal, metallic);
+    out_normal = vec4(obj_normal, metallic);
     out_pos = vec4(g_frag_pos, ao);
     out_material = vec4(material.reflectivity, 0, 0, 0);
 }

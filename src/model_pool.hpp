@@ -142,21 +142,23 @@ ModelHandle ModelPool::LoadWithMaterials(std::string const & path,
 
 	for (auto& loader : m_registered_loaders)
 	{
-		loader->IsSupportedExtension(extension);
-		auto model_data = loader->Load(path);
-
-		auto handle = LoadWithMaterials<V_T>(model_data, material_pool, texture_pool);
-
-		if (store_data)
+		if (loader->IsSupportedExtension(extension))
 		{
-			m_loaded_data.insert({ handle, model_data });
-		}
-		else
-		{
-			delete model_data;
-		}
+			auto model_data = loader->Load(path);
 
-		return handle;
+			auto handle = LoadWithMaterials<V_T>(model_data, material_pool, texture_pool);
+
+			if (store_data)
+			{
+				m_loaded_data.insert({ handle, model_data });
+			}
+			else
+			{
+				delete model_data;
+			}
+
+			return handle;
+		}
 	}
 
 	LOGE("Could not find a appropriate model loader.");

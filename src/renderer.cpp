@@ -11,6 +11,7 @@
 #include "texture_pool.hpp"
 #include "stb_image_loader.hpp"
 #include "tinygltf_model_loader.hpp"
+#include "assimp_model_loader.hpp"
 #include "vertex.hpp"
 #include "frame_graph/frame_graph.hpp"
 #include "graphics/vk_constant_buffer_pool.hpp"
@@ -35,6 +36,7 @@ Renderer::Renderer() : m_application(nullptr), m_context(nullptr), m_direct_queu
 	TexturePool::RegisterLoader<STBImageLoader>();
 	TexturePool::RegisterLoader<STBHDRImageLoader>();
 	ModelPool::RegisterLoader<TinyGLTFModelLoader>();
+	ModelPool::RegisterLoader<AssimpModelLoader>();
 }
 
 Renderer::~Renderer()
