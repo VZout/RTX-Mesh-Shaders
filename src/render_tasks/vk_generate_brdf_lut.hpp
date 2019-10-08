@@ -89,8 +89,8 @@ namespace tasks
 		RenderTargetProperties rt_properties
 		{
 			.m_is_render_window = false,
-			.m_width = 512,
-			.m_height = 512,
+			.m_width = 128,
+			.m_height = 128,
 			.m_dsv_format = VK_FORMAT_UNDEFINED,
 			.m_rtv_formats = { VK_FORMAT_R16G16B16A16_SFLOAT },
 			.m_state_execute = VK_IMAGE_LAYOUT_GENERAL,

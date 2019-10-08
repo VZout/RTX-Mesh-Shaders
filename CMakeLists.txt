@@ -11,6 +11,62 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+set(ASSIMP_BUILD_SHARED_LIBS OFF)
+
+set(ASSIMP_NO_EXPORT ON CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF)
+set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF)
+#IMPORTERS
+set( ASSIMP_BUILD_AMF_IMPORTER      OFF )
+set( ASSIMP_BUILD_3DS_IMPORTER      OFF )
+set( ASSIMP_BUILD_AC_IMPORTER       OFF )
+set( ASSIMP_BUILD_ASE_IMPORTER      OFF )
+set( ASSIMP_BUILD_ASSBIN_IMPORTER   OFF )
+set( ASSIMP_BUILD_ASSXML_IMPORTER   OFF )
+set( ASSIMP_BUILD_B3D_IMPORTER      OFF )
+set( ASSIMP_BUILD_BVH_IMPORTER      OFF )
+set( ASSIMP_BUILD_COLLADA_IMPORTER  OFF )
+set( ASSIMP_BUILD_DXF_IMPORTER      OFF )
+set( ASSIMP_BUILD_CSM_IMPORTER      OFF )
+set( ASSIMP_BUILD_HMP_IMPORTER      OFF )
+set( ASSIMP_BUILD_IRRMESH_IMPORTER  OFF )
+set( ASSIMP_BUILD_IRR_IMPORTER      OFF )
+set( ASSIMP_BUILD_LWO_IMPORTER      OFF )
+set( ASSIMP_BUILD_LWS_IMPORTER      OFF )
+set( ASSIMP_BUILD_MD2_IMPORTER      OFF )
+set( ASSIMP_BUILD_MD3_IMPORTER      OFF )
+set( ASSIMP_BUILD_MD5_IMPORTER      OFF )
+set( ASSIMP_BUILD_MDC_IMPORTER      OFF )
+set( ASSIMP_BUILD_MDL_IMPORTER      OFF )
+set( ASSIMP_BUILD_NFF_IMPORTER      OFF )
+set( ASSIMP_BUILD_NDO_IMPORTER      OFF )
+set( ASSIMP_BUILD_OFF_IMPORTER      OFF )
+set( ASSIMMP_BUILD_OBJ_IMPORTER     ON  ) #ON
+set( ASSIMP_BUILD_OGRE_IMPORTER     OFF )
+set( ASSIMP_BUILD_OPENGEX_IMPORTER  OFF )
+set( ASSIMP_BUILD_PLY_IMPORTER      OFF )
+set( ASSIMP_BUILD_MS3D_IMPORTER     OFF )
+set( ASSIMP_BUILD_COB_IMPORTER      OFF )
+set( ASSIMP_BUILD_BLEND_IMPORTER    OFF )
+set( ASSIMP_BUILD_IFC_IMPORTER      OFF )
+set( ASSIMP_BUILD_XGL_IMPORTER      OFF )
+set( ASSIMMP_BUILD_FBX_IMPORTER     ON  ) #ON
+set( ASSIMP_BUILD_Q3D_IMPORTER      OFF )
+set( ASSIMP_BUILD_Q3BSP_IMPORTER    OFF )
+set( ASSIMP_BUILD_RAW_IMPORTER      ON  ) #ON
+set( ASSIMP_BUILD_SIB_IMPORTER      ON  ) #ON
+set( ASSIMP_BUILD_SMD_IMPORTER      ON  ) #ON
+set( ASSIMP_BUILD_STL_IMPORTER      OFF )
+set( ASSIMP_BUILD_TERRAGEN_IMPORTER OFF )
+set( ASSIMP_BUILD_3D_IMPORTER       OFF )
+set( ASSIMP_BUILD_X_IMPORTER        OFF )
+set( ASSIMP_BUILD_X3D_IMPORTER      OFF )
+set( ASSIMP_BUILD_GLTF_IMPORTER     ON  ) #ON
+set( ASSIMP_BUILD_3MF_IMPORTER      OFF )
+set( ASSIMP_BUILD_MMD_IMPORTER      OFF )
+# END IMPORTERS
+
 # Externals
 FetchContent_Declare(
   googletest
@@ -52,6 +108,11 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/VZout/vk_headers_lib.git
   GIT_TAG        e166a6948b0b4cd9a2b6a5e924d79f12d8aed99c
 )
+FetchContent_Declare(
+  assimp
+  GIT_REPOSITORY https://github.com/assimp/assimp.git
+  GIT_TAG        v5.0.0
+)
 
 FetchContent_GetProperties(googletest)
 FetchContent_GetProperties(benchmark)
@@ -60,6 +121,7 @@ FetchContent_GetProperties(glfw)
 FetchContent_GetProperties(imgui)
 FetchContent_GetProperties(glm)
 FetchContent_GetProperties(tinygltf)
+FetchContent_GetProperties(assimp)
 # Set external options
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -83,6 +145,11 @@ if(NOT glfw_POPULATED)
 	message(STATUS "Setting up dependency: GLFW")
 	FetchContent_Populate(glfw)
 	add_subdirectory(${glfw_SOURCE_DIR} ${glfw_BINARY_DIR})
+endif()
+if(NOT assimp_POPULATED)
+	message(STATUS "Setting up dependency: ASSIMP")
+	FetchContent_Populate(assimp)
+	add_subdirectory(${assimp_SOURCE_DIR} ${assimp_BINARY_DIR})
 endif()
 if(NOT glm_POPULATED)
 	message(STATUS "Setting up dependency: GLM")
@@ -214,13 +281,14 @@ file(GLOB IMGUI CONFIGURE_DEPENDS "${imgui_SOURCE_DIR}/*.cpp")
 
 # Application
 add_library(WispVK ${HEADERS} ${SOURCES} ${GLSL_SOURCE_FILES} ${IMGUI})
-target_link_libraries(WispVK ${VULKAN_LIBRARY} glfw fmt)
+target_link_libraries(WispVK ${VULKAN_LIBRARY} glfw fmt assimp)
 target_include_directories(WispVK PUBLIC
 	${glfw_SOURCE_DIR}/include
 	${vulkan_SOURCE_DIR}/include
 	${glm_SOURCE_DIR}/glm
 	${imgui_SOURCE_DIR}
 	${fmt_SOURCE_DIR}/include
+	${assimp_SOURCE_DIR}/include
 	${tinygltf_SOURCE_DIR})
 
 # Compile GLSL Shaders Into SPRIV

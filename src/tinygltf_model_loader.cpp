@@ -23,7 +23,7 @@
 #include "resource_structs.hpp"
 
 TinyGLTFModelLoader::TinyGLTFModelLoader()
-	: ResourceLoader(std::vector<std::string>{ ".gltf" })
+	: ResourceLoader(std::vector<std::string>{ "gltf" })
 {
 
 }

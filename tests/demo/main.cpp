@@ -267,7 +267,7 @@ protected:
 		auto texture_pool = m_renderer->GetTexturePool();
 		m_material_pool = m_renderer->GetMaterialPool();
 		m_robot_model_handle = model_pool->LoadWithMaterials<Vertex>("robot/scene.gltf", m_material_pool, texture_pool, true);
-		m_battery_model_handle = model_pool->LoadWithMaterials<Vertex>("scene.gltf", m_material_pool, texture_pool, true);
+		m_battery_model_handle = model_pool->LoadWithMaterials<Vertex>("sponza/sponza.obj", m_material_pool, texture_pool, true);
 
 		m_frame_graph->Setup(m_renderer);
 
@@ -290,8 +290,8 @@ protected:
 		{
 			m_battery_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_battery_model_handle);
 			sg::helper::SetPosition(m_scene_graph, m_battery_node, glm::vec3(0.75, -0.65, 0));
-			sg::helper::SetScale(m_scene_graph, m_battery_node, glm::vec3(1));
-			sg::helper::SetRotation(m_scene_graph, m_battery_node, glm::vec3(glm::radians(-90.f), glm::radians(40.f), 0));
+			sg::helper::SetScale(m_scene_graph, m_battery_node, glm::vec3(0.01));
+			//sg::helper::SetRotation(m_scene_graph, m_battery_node, glm::vec3(glm::radians(-90.f), glm::radians(40.f), 0));
 		}
 
 		// light node
@@ -308,8 +308,8 @@ protected:
 		auto diff = std::chrono::high_resolution_clock::now() - m_start;
 		float t = diff.count();
 
-		sg::helper::SetRotation(m_scene_graph, m_node, glm::vec3(-90._deg, 0, 0));
-		sg::helper::SetRotation(m_scene_graph, m_battery_node, glm::vec3(-90._deg, 0, 0));
+		//sg::helper::SetRotation(m_scene_graph, m_node, glm::vec3(-90._deg, 0, 0));
+		//sg::helper::SetRotation(m_scene_graph, m_battery_node, glm::vec3(-90._deg, 0, 0));
 
 		m_scene_graph->Update(m_renderer->GetFrameIdx());
 		m_renderer->Render(*m_scene_graph, *m_frame_graph);
