@@ -48,8 +48,8 @@ struct MeshData
 	std::vector<glm::vec3> m_tangents;
 	std::vector<glm::vec3> m_bitangents;
 
-	std::vector<glm::vec4> m_bone_weights;
-	std::vector<glm::vec4> m_bone_ids;
+	//std::vector<glm::vec4> m_bone_weights;
+	//std::vector<glm::vec4> m_bone_ids;
 
 	std::vector<unsigned char> m_indices;
 	std::size_t m_num_indices;

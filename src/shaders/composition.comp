@@ -79,7 +79,7 @@ void main()
     vec3 V = normalize(view_pos - world_pos);
 	vec3 R = reflect(-vec3(V.x, V.y * -1, V.z), N);
 
-    vec2 dfg = texture(t_brdf_lut, vec2(clamp(dot(N, V), 0, 1), roughness)).rg; // lut
+    vec2 dfg = texture(t_brdf_lut, vec2(max(dot(N, V), MIN_N_DOT_V), roughness)).gr; // lut
 
     #ifdef PBR_PLUS
     vec3 diffuse_color = ComputeDiffuseColor(albedo, metallic);
@@ -96,7 +96,7 @@ void main()
     }
 
     vec3 energy_compensation = 1.0 + F0 * (1.0 / dfg.y - 1.0);
-    //energy_compensation = vec3(1);
+    energy_compensation = vec3(1);
 
     float diff_ao = ao;
     float spec_ao = 1.f; // TODO: Specular ao
@@ -186,11 +186,10 @@ void main()
         color = textureLod(t_skybox, direction.xyz, 0).rgb;
     }
 
-    /*const vec2 buv = (vec2(gl_GlobalInvocationID.xy) / resolution.y);
-    color = vec3(texture(t_brdf_lut, buv).rgb);
-    if (uv.x > 0.5) {
-        color = vec3(0.0, 0.0, 0.0);
-    }*/
+	const vec2 buv = (vec2(gl_GlobalInvocationID.xy) / resolution.y);
+    if (uv.x < 0.5) {
+		color = vec3(texture(t_brdf_lut, buv).rg, 0);
+    }
 
     imageStore(t_output, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1));
 }

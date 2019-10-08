@@ -169,6 +169,26 @@ float G_SchlicksmithGGXFast(float NdotL, float NdotV, float roughness)
     return saturateMediump(v);
 }
 
+float GeometrySchlickGGX_IBL(float NdotV, float roughness_squared)
+{
+	// Different k for IBL
+	float k = roughness_squared / 2.0;
+
+	float nom = NdotV;
+	float denom = NdotV * (1.0 - k) + k;
+
+	return nom / denom;
+}
+float GeometrySmith_IBL(float NdotV, float NdotL, float roughness)
+{
+	float roughness_squared = roughness * roughness;
+
+	float ggx2 = GeometrySchlickGGX_IBL(NdotV, roughness_squared);
+	float ggx1 = GeometrySchlickGGX_IBL(NdotL, roughness_squared);
+
+	return ggx1 * ggx2;
+}
+
 // Geometric Shadowing function Kelemen 2001, "A Microfacet Based Coupled Specular-Matte BRDF Model with Importance Sampling"
 float G_Kelemen(float LdotH) {
     return saturateMediump(0.25 / (LdotH * LdotH));
