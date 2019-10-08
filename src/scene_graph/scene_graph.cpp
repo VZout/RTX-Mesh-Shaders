@@ -56,6 +56,7 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 		                  0, 1, 0, 0,
 		                  0, 0, 1, 0,
 		                  pos.x, pos.y, pos.z, 1) * model;
+
 		m_requires_update[i] = false;
 
 		// If this transform has a mesh component make sure it updates the constant buffers
@@ -127,12 +128,20 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 
 		auto node = m_nodes[requires_update.m_node_handle];
 
-		glm::vec3 pos = m_positions[node.m_transform_component].m_value;
-		glm::vec3 color = m_colors[node.m_light_component].m_value;
+		auto pos = m_positions[node.m_transform_component].m_value;
+		auto rot = m_rotations[node.m_transform_component].m_value;
+		auto color = m_colors[node.m_light_component].m_value;
+		auto type = m_light_types[node.m_light_component].m_value;
+		auto radius = m_radius[node.m_light_component].m_value;
+		auto angles = m_light_angles[node.m_light_component].m_value;
 
 		cb::Light light;
 		light.m_pos = pos;
-		light.m_type = (std::uint32_t)cb::LightType::POINT;
+		light.m_radius = radius;
+		light.m_direction = rot;
+		light.m_type =(uint32_t)type;
+		light.m_inner_angle = angles.first;
+		light.m_outer_angle = angles.second;
 		if (node.m_light_component == 0)
 		{
 			light.m_type &= 0x3; // Keep id
@@ -155,8 +164,21 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 		if (!m_light_node_handles.empty())
 		{
 			auto node = m_nodes[m_light_node_handles[0]];
-			light.m_pos = m_positions[node.m_transform_component].m_value;
-			light.m_color = m_colors[node.m_light_component].m_value;
+
+			auto pos = m_positions[node.m_transform_component].m_value;
+			auto rot = m_rotations[node.m_transform_component].m_value;
+			auto color = m_colors[node.m_light_component].m_value;
+			auto type = m_light_types[node.m_light_component].m_value;
+			auto radius = m_radius[node.m_light_component].m_value;
+			auto angles = m_light_angles[node.m_light_component].m_value;
+
+			light.m_pos = pos;
+			light.m_radius = radius;
+			light.m_direction = rot;
+			light.m_type = (uint32_t)type;
+			light.m_inner_angle = angles.first;
+			light.m_outer_angle = angles.second;
+
 			light.m_type = (std::uint32_t)cb::LightType::POINT;
 		}
 		light.m_type &= 0x3; // Keep id

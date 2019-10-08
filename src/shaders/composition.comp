@@ -2,6 +2,10 @@
 
 #include "pbr+_util.glsl"
 
+#define POINT_LIGHT 0
+#define DIRECTIONAL_LIGHT 1
+#define SPOT_LIGHT 2
+
 layout (local_size_x = 16, local_size_y = 16) in;
 
 layout(set = 1, binding = 1, rgba8) uniform readonly image2D ts_gbuffers[4];
@@ -21,8 +25,14 @@ struct Light
     vec3 m_pos;
     float m_radius;
 
+	vec3 m_dir;
+	float m_inner_angle;
+
     vec3 m_color;
     uint m_type;
+
+	float m_outer_angle;
+	vec3 m_padding;
 };
 
 layout(set = 3, binding = 3) uniform UniformBufferLightObject {
@@ -69,8 +79,6 @@ void main()
     vec3 V = normalize(view_pos - world_pos);
 	vec3 R = reflect(-vec3(V.x, V.y * -1, V.z), N);
 
-    uint num_lights = 3; //Light count is stored in 30 upper-bits of first light
-
     vec2 dfg = texture(t_brdf_lut, vec2(clamp(dot(N, V), 0, 1), roughness)).rg; // lut
 
     #ifdef PBR_PLUS
@@ -112,19 +120,39 @@ void main()
     vec3 ibl_color = (diff + spec) * ibl_luminance;
     #endif
 
+    uint num_lights = lights.lights[0].m_type >> 2; //Light count is stored in 30 upper-bits of first light
     vec3 lighting = vec3(0);
     for (uint i = 0; i < num_lights; i++)
     {
         const vec3 light_color = lights.lights[i].m_color;
         const vec3 light_pos = lights.lights[i].m_pos;
+		const vec3 light_dir = lights.lights[i].m_dir;
+		const uint type = lights.lights[i].m_type & 3;
+		const float inner_angle = lights.lights[i].m_inner_angle;
+		const float outer_angle = lights.lights[i].m_outer_angle;
 
-        vec3 L = normalize(light_pos - world_pos);
+		const vec3 pos_to_light = light_pos - world_pos;
+        vec3 L = normalize(pos_to_light);
         #ifdef PBR_PLUS
 
-        float NdotL = clamp(dot(N, L), 0.0, 1.0); // TODO: Duplicate ndiotl
+		float sqr_falloff = lights.lights[i].m_radius * lights.lights[i].m_radius;
+		float sqr_inv_radius = sqr_falloff > 0.0f ? (1 / sqr_falloff) : 0;
+
+		float attenuation = GetDistanceAttenuation(pos_to_light, sqr_inv_radius);
+		if (type == DIRECTIONAL_LIGHT)
+		{
+			attenuation = 1;
+			L = -light_dir;
+		}
+		else if (type == SPOT_LIGHT)
+		{
+			attenuation *= GetAngleAttenuation(light_dir, L, inner_angle, outer_angle);
+		}
+
+        float NdotL = clamp(dot(N, L), 0.0, 1.0); // TODO: Duplicate ndotl
         if (NdotL > 0.0)
         {
-            lighting += BRDF(L, V, N, metallic, roughness, diffuse_color, light_color, F0, energy_compensation, 1.0f);
+            lighting += BRDF(L, V, N, metallic, roughness, diffuse_color, light_color, F0, energy_compensation, 1.0f) * attenuation;
         }
         #else
         lighting += BRDF(L, V, N, metallic, roughness, albedo, light_color);

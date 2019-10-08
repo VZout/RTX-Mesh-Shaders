@@ -80,7 +80,14 @@ protected:
 					}
 					else if (node.m_light_component > -1)
 					{
-						name_prefix = fmt::format("{} Light Node", reinterpret_cast<const char*>(ICON_FA_LIGHTBULB));
+						name_prefix = fmt::format("{} ", reinterpret_cast<const char*>(ICON_FA_LIGHTBULB));
+						switch (m_scene_graph->m_light_types[node.m_light_component])
+						{
+						case cb::LightType::POINT: name_prefix += "Point Light Node"; break;
+						case cb::LightType::DIRECTIONAL: name_prefix += "Directional Light Node"; break;
+						case cb::LightType::SPOT: name_prefix += "Spotlight Node"; break;
+						default: name_prefix += "Unknown Light Node"; break;
+						}
 					}
 
 					auto node_name = name_prefix + " (" + std::to_string(i) + ")";
@@ -139,11 +146,17 @@ protected:
 
 			if (node.m_transform_component > -1)
 			{
-				ImGui::DragFloat3("Position", &m_scene_graph->m_positions[node.m_transform_component].m_value[0], 0.1f);
+				if (node.m_light_component == -1 || m_scene_graph->m_light_types[node.m_light_component] != cb::LightType::DIRECTIONAL)
+				{
+					ImGui::DragFloat3("Position", &m_scene_graph->m_positions[node.m_transform_component].m_value[0], 0.1f);
+				}
 
-				auto euler = glm::degrees(m_scene_graph->m_rotations[node.m_transform_component].m_value);
-				ImGui::DragFloat3("Rotation", &euler[0], 0.1f);
-				m_scene_graph->m_rotations[node.m_transform_component].m_value = glm::radians(euler);
+				if (node.m_light_component == -1 || m_scene_graph->m_light_types[node.m_light_component] != cb::LightType::POINT)
+				{
+					auto euler = glm::degrees(m_scene_graph->m_rotations[node.m_transform_component].m_value);
+					ImGui::DragFloat3("Rotation", &euler[0], 0.1f);
+					m_scene_graph->m_rotations[node.m_transform_component].m_value = glm::radians(euler);
+				}
 
 				if (node.m_camera_component == -1 && node.m_light_component == -1)
 				{
@@ -153,8 +166,35 @@ protected:
 
 			if (node.m_light_component > -1)
 			{
+				const char* types[] = {
+					"Point Light",
+					"Directional Light",
+					"Spotlight"
+				};
+
 				ImGui::Separator();
+				int selected_type = (int)m_scene_graph->m_light_types[node.m_light_component].m_value;
+				ImGui::Combo("Type", &selected_type, types, _countof(types));
+				m_scene_graph->m_light_types[node.m_light_component].m_value = (cb::LightType)selected_type;
+
 				ImGui::DragFloat3("Color", &m_scene_graph->m_colors[node.m_light_component].m_value[0], 0.1f);
+
+				if (m_scene_graph->m_light_types[node.m_light_component] == cb::LightType::POINT)
+				{
+					ImGui::DragFloat("Radius", &m_scene_graph->m_radius[node.m_light_component].m_value, 0.05f);
+				}
+
+				if (m_scene_graph->m_light_types[node.m_light_component] == cb::LightType::SPOT)
+				{
+					auto inner = glm::degrees(m_scene_graph->m_light_angles[node.m_light_component].m_value.first);
+					auto outer = glm::degrees(m_scene_graph->m_light_angles[node.m_light_component].m_value.second);
+
+					ImGui::DragFloat("Inner Angle", &inner);
+					ImGui::DragFloat("Outer Angle", &outer);
+
+					m_scene_graph->m_light_angles[node.m_light_component].m_value.first = glm::radians(inner);
+					m_scene_graph->m_light_angles[node.m_light_component].m_value.second = glm::radians(outer);
+				}
 			}
 
 			m_scene_graph->m_requires_update[node.m_transform_component] = true;
@@ -176,7 +216,6 @@ protected:
 			ImGui::Columns(1);
 
 			ImGui::PlotConfig conf;
-			//conf.values.xs = x_data; // this line is optional
 			conf.values.ys = m_frame_rates.data();
 			conf.values.count = m_frame_rates.size();
 			conf.scale.min = m_min_frame_rate;
@@ -190,9 +229,6 @@ protected:
 			conf.line_thickness = 3.f;
 
 			ImGui::Plot("plot", conf);
-
-			//ImGui::PlotLines("Framerate", m_frame_rates.data(), m_frame_rates.size(), 0, nullptr, m_min_frame_rate,
-			  //             m_max_frame_rate, ImVec2(ImGui::GetContentRegionAvail()));
 		});
 		editor.RegisterWindow("About", "Help", [&]()
 		{
@@ -254,24 +290,14 @@ protected:
 		{
 			m_battery_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_battery_model_handle);
 			sg::helper::SetPosition(m_scene_graph, m_battery_node, glm::vec3(0.75, -0.65, 0));
-			sg::helper::SetScale(m_scene_graph, m_battery_node, glm::vec3(0.01, 0.01, 0.01));
+			sg::helper::SetScale(m_scene_graph, m_battery_node, glm::vec3(1));
 			sg::helper::SetRotation(m_scene_graph, m_battery_node, glm::vec3(glm::radians(-90.f), glm::radians(40.f), 0));
 		}
 
 		// light node
 		{
-			auto node = m_scene_graph->CreateNode<sg::LightComponent>();
-			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(0.f, 0.f, 4));
-		}
-		// light node
-		{
-			auto node = m_scene_graph->CreateNode<sg::LightComponent>(glm::vec3{ 1, 0, 0 });
-			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(1.f, 0.f, 0.5));
-		}
-		// light node
-		{
-			auto node = m_scene_graph->CreateNode<sg::LightComponent>(glm::vec3{ 0, 0, 1 });
-			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(-1.f, 0.f, 0.5));
+			auto node = m_scene_graph->CreateNode<sg::LightComponent>(cb::LightType::POINT);
+			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(4.805, -2.800, -1.200));
 		}
 
 		m_start = std::chrono::high_resolution_clock::now();
@@ -282,8 +308,8 @@ protected:
 		auto diff = std::chrono::high_resolution_clock::now() - m_start;
 		float t = diff.count();
 
-		sg::helper::SetRotation(m_scene_graph, m_node, glm::vec3(-90._deg, glm::radians(t * 0.00000005f), 0));
-		sg::helper::SetRotation(m_scene_graph, m_battery_node, glm::vec3(-90._deg, glm::radians(t * 0.00000001f), 0));
+		sg::helper::SetRotation(m_scene_graph, m_node, glm::vec3(-90._deg, 0, 0));
+		sg::helper::SetRotation(m_scene_graph, m_battery_node, glm::vec3(-90._deg, 0, 0));
 
 		m_scene_graph->Update(m_renderer->GetFrameIdx());
 		m_renderer->Render(*m_scene_graph, *m_frame_graph);
@@ -349,6 +375,8 @@ protected:
 		{
 			m_rmb = false;
 			SetMouseVisibility(true);
+
+			m_z_axis = glm::vec3(0);
 		}
 
 	}

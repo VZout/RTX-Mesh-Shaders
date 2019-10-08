@@ -68,6 +68,31 @@ void MultiBounceSpecularAO(float visibility, const vec3 albedo, inout vec3 color
     #endif
 }
 
+float GetSquareFalloffAttenuation(float distanceSquare, float falloff) {
+    float factor = distanceSquare * falloff;
+    float smoothFactor = clamp(1.0 - factor * factor, 0, 1);
+    // We would normally divide by the square distance here
+    // but we do it at the call site
+    return smoothFactor * smoothFactor;
+}
+
+float GetDistanceAttenuation(const highp vec3 posToLight, float falloff) {
+    float distanceSquare = dot(posToLight, posToLight);
+    float attenuation = GetSquareFalloffAttenuation(distanceSquare, falloff);
+    // Assume a punctual light occupies a volume of 1cm to avoid a division by 0
+    return attenuation * 1.0 / max(distanceSquare, 1e-4);
+}
+
+float GetAngleAttenuation(const vec3 lightDir, const vec3 l, const float inner, const float outer) {
+    float cosOuter = cos(outer);
+    float spotScale = 1.0 / max(cos(inner) - cosOuter, 1e-4);
+    float spotOffset = -cosOuter * spotScale;
+
+    float cd = dot(lightDir, l);
+    float attenuation = clamp(cd * spotScale + spotOffset, 0, 1);
+    return attenuation * attenuation;
+}
+
 // Based omn http://byteblacksmith.com/improvements-to-the-canonical-one-liner-glsl-rand-for-opengl-es-2-0/
 float Random(vec2 co)
 {
