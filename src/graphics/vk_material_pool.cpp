@@ -22,7 +22,7 @@ gfx::VkMaterialPool::VkMaterialPool(gfx::Context* context)
 
 	gfx::DescriptorHeap::Desc desc;
 	desc.m_versions = 1;
-	desc.m_num_descriptors = 100;
+	desc.m_num_descriptors = 500;
 	m_desc_heap = new gfx::DescriptorHeap(m_context, desc);
 
 	// TODO: make this entire layout static and use it when creating root signatures.
@@ -113,6 +113,8 @@ void gfx::VkMaterialPool::Update(MaterialHandle handle, MaterialData const & dat
 	material_cb_data.roughness = data.m_base_roughness;
 	material_cb_data.metallic = data.m_base_metallic;
 	material_cb_data.reflectivity = data.m_base_reflectivity;
+	material_cb_data.anisotropy = data.m_base_anisotropy;
+	material_cb_data.anisotropy_dir = data.m_base_anisotropy_dir;
 	material_cb_data.normal_strength = data.m_base_normal_strength;
 
 	auto buffer = GetCBBuffer(handle);
@@ -139,6 +141,8 @@ void gfx::VkMaterialPool::Load_Impl(MaterialHandle& handle, MaterialData const &
 	material_cb_data.roughness = data.m_base_roughness;
 	material_cb_data.metallic = data.m_base_metallic;
 	material_cb_data.reflectivity = data.m_base_reflectivity;
+	material_cb_data.anisotropy = data.m_base_anisotropy;
+	material_cb_data.anisotropy_dir = data.m_base_anisotropy_dir;
 	material_cb_data.normal_strength = data.m_base_normal_strength;
 
 	buffer->Map();

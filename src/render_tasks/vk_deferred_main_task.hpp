@@ -69,6 +69,7 @@ namespace tasks
 				auto node = sg.GetNode(handle);
 				auto model_handle = sg.m_model_handles[node.m_mesh_component].m_value;
 				auto cb_handle = sg.m_transform_cb_handles[node.m_mesh_component].m_value;
+				auto mat_vec = sg.m_model_material_handles[node.m_mesh_component].m_value;
 
 				for (std::size_t i = 0; i < model_handle.m_mesh_handles.size(); i++)
 				{
@@ -78,8 +79,8 @@ namespace tasks
 					{
 						{ camera_pool->GetDescriptorHeap(), camera_handle.m_cb_set_id }, // TODO: Shitty naming of set_id. just use a vector in the handle instead probably.
 						{ per_obj_pool->GetDescriptorHeap(), cb_handle.m_cb_set_id }, // TODO: Shitty naming of set_id. just use a vector in the handle instead probably.
-						{ material_pool->GetDescriptorHeap(), material_pool->GetDescriptorSetID(mesh_handle.m_material_handle.value()) },
-						{ material_pool->GetDescriptorHeap(), material_pool->GetCBDescriptorSetID(mesh_handle.m_material_handle.value()) }
+						{ material_pool->GetDescriptorHeap(), material_pool->GetDescriptorSetID(mat_vec[i]) },
+						{ material_pool->GetDescriptorHeap(), material_pool->GetCBDescriptorSetID(mat_vec[i]) }
 					};
 
 					cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
@@ -105,7 +106,7 @@ namespace tasks
 			.m_width = std::nullopt,
 			.m_height = std::nullopt,
 			.m_dsv_format = VK_FORMAT_D32_SFLOAT,
-			.m_rtv_formats = { VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R8G8B8A8_UNORM },
+			.m_rtv_formats = { VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT },
 			.m_state_execute = std::nullopt,
 			.m_state_finished = VK_IMAGE_LAYOUT_GENERAL,
 			.m_clear = true,

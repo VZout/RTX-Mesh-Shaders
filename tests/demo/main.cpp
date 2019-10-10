@@ -104,6 +104,12 @@ protected:
 
 		editor.RegisterWindow("Temporary Material Settings", "Scene Graph", [&]()
 		{
+			ImGui::DragFloat("Ball Reflectivity", &m_ball_reflectivity, 0.01, -0, 1);
+			ImGui::DragFloat("Ball Anisotropy", &m_ball_anisotropy, 0.01, -1, 1);
+			ImGui::DragFloat3("Ball Anisotropy Dir", reinterpret_cast<float*>(&m_ball_anisotropy_dir), 0.01, -1, 1);
+
+			ImGui::Separator();
+
 			ImGui::ToggleButton("Override Color", &m_imgui_override_color);
 			ImGui::ColorPicker3("Color", m_temp_debug_mat_data.m_base_color, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoAlpha);
 
@@ -127,10 +133,16 @@ protected:
 			m_temp_debug_mat_data.m_base_metallic = m_imgui_override_metallic ? m_temp_debug_mat_data.m_base_metallic : -1;
 			m_temp_debug_mat_data.m_base_reflectivity = m_imgui_override_reflectivity ? m_temp_debug_mat_data.m_base_reflectivity : -1;
 
-			for (auto mesh_handle : m_battery_model_handle.m_mesh_handles)
+			int i = 0;
+			for (auto mesh_handle : m_sphere_material_handles)
 			{
-				m_material_pool->Update(mesh_handle.m_material_handle.value(), m_temp_debug_mat_data);
+				m_sphere_materials[i].m_base_reflectivity = m_ball_reflectivity;
+				m_sphere_materials[i].m_base_anisotropy = m_ball_anisotropy;
+				m_material_pool->Update(mesh_handle, m_sphere_materials[i]);
+				m_sphere_materials[i].m_base_anisotropy_dir = m_ball_anisotropy_dir;
+				i++;
 			}
+
 			for (auto mesh_handle : m_robot_model_handle.m_mesh_handles)
 			{
 				m_material_pool->Update(mesh_handle.m_material_handle.value(), m_temp_debug_mat_data);
@@ -267,7 +279,31 @@ protected:
 		auto texture_pool = m_renderer->GetTexturePool();
 		m_material_pool = m_renderer->GetMaterialPool();
 		m_robot_model_handle = model_pool->LoadWithMaterials<Vertex>("robot/scene.gltf", m_material_pool, texture_pool, true);
-		m_battery_model_handle = model_pool->LoadWithMaterials<Vertex>("sponza/sponza.obj", m_material_pool, texture_pool, true);
+		auto sphere_model_handle = model_pool->LoadWithMaterials<Vertex>("sphere.fbx", m_material_pool, texture_pool, true);
+
+		float num_spheres_x = 11;
+		float num_spheres_y = 11;
+		m_sphere_materials.resize(num_spheres_x * num_spheres_y);
+		m_sphere_material_handles.resize(num_spheres_x * num_spheres_y);
+
+		int i = 0;
+		for (auto x = 0; x < num_spheres_x; x++)
+		{
+			for (auto y = 0; y < num_spheres_y; y++)
+			{
+				MaterialData mat{};
+
+				mat.m_base_color[0] = mat.m_base_color[1] = mat.m_base_color[2] = 1;
+				mat.m_base_roughness = x / num_spheres_x;
+				mat.m_base_metallic = y / num_spheres_y;
+				mat.m_base_reflectivity = 0.5f;
+
+				m_sphere_material_handles[i] = m_material_pool->Load(mat, texture_pool);
+				m_sphere_materials[i] = mat;
+
+				i++;
+			}
+		}
 
 		m_frame_graph->Setup(m_renderer);
 
@@ -288,10 +324,23 @@ protected:
 
 		// second node
 		{
-			m_battery_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_battery_model_handle);
-			sg::helper::SetPosition(m_scene_graph, m_battery_node, glm::vec3(0.75, -0.65, 0));
-			sg::helper::SetScale(m_scene_graph, m_battery_node, glm::vec3(0.01));
-			//sg::helper::SetRotation(m_scene_graph, m_battery_node, glm::vec3(glm::radians(-90.f), glm::radians(40.f), 0));
+			float spacing = 2.f * 0.4f;
+			int i = 0;
+			for (auto x = 0; x < num_spheres_x; x++)
+			{
+				for (auto y = 0; y < num_spheres_y; y++)
+				{
+					float start_x = -spacing * (num_spheres_x / 2);
+					float start_y = -spacing * (num_spheres_y / 2);
+
+					auto sphere_node = m_scene_graph->CreateNode<sg::MeshComponent>(sphere_model_handle);
+					sg::helper::SetPosition(m_scene_graph, sphere_node, { start_x + (spacing * x), start_y + (spacing * y), 0 });
+					sg::helper::SetScale(m_scene_graph, sphere_node, glm::vec3(0.4, 0.4, 0.4));
+					sg::helper::SetMaterial(m_scene_graph, sphere_node, { m_sphere_material_handles[i] });
+
+					i++;
+				}
+			}
 		}
 
 		// light node
@@ -308,8 +357,7 @@ protected:
 		auto diff = std::chrono::high_resolution_clock::now() - m_start;
 		float t = diff.count();
 
-		//sg::helper::SetRotation(m_scene_graph, m_node, glm::vec3(-90._deg, 0, 0));
-		//sg::helper::SetRotation(m_scene_graph, m_battery_node, glm::vec3(-90._deg, 0, 0));
+		sg::helper::SetRotation(m_scene_graph, m_node, glm::vec3(-90._deg, 0, 0));
 
 		m_scene_graph->Update(m_renderer->GetFrameIdx());
 		m_renderer->Render(*m_scene_graph, *m_frame_graph);
@@ -397,7 +445,7 @@ protected:
 
 		if (key == GLFW_KEY_W)
 		{
-			m_z_axis.z += axis_mod;
+			m_z_axis.z += axis_mod;	
 		}
 		else if (key == GLFW_KEY_S)
 		{
@@ -429,11 +477,9 @@ protected:
 	sg::SceneGraph* m_scene_graph;
 
 	sg::NodeHandle m_node;
-	sg::NodeHandle m_battery_node;
 	sg::NodeHandle m_camera_node;
 
 	MaterialPool* m_material_pool;
-	ModelHandle m_battery_model_handle;
 	ModelHandle m_robot_model_handle;
 	MaterialData m_temp_debug_mat_data;
 	bool m_imgui_override_color = false;
@@ -441,6 +487,13 @@ protected:
 	bool m_imgui_override_metallic = false;
 	bool m_imgui_override_reflectivity = false;
 	bool m_imgui_disable_normal_mapping = false;
+	float m_ball_reflectivity = 0.5;
+	float m_ball_anisotropy = 0;
+	glm::vec3 m_ball_anisotropy_dir = { 1, 0, 0 };
+
+	std::vector<sg::NodeHandle> m_sphere_nodes;
+	std::vector<MaterialHandle> m_sphere_material_handles;
+	std::vector<MaterialData> m_sphere_materials;
 
 	// Camera Movement
 	float m_move_speed = 0.01;

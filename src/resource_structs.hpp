@@ -37,6 +37,8 @@ struct MaterialData
 	float m_base_transparency = -1;
 	float m_base_emissive = -1;
 	float m_base_normal_strength = 1;
+	float m_base_anisotropy = 0;
+	glm::vec3 m_base_anisotropy_dir = { 1, 0, 0 };
 };
 
 struct MeshData
