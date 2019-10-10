@@ -13,7 +13,6 @@ MaterialPool::MaterialPool()
 {
 }
 
-
 MaterialHandle MaterialPool::Load(MaterialData const & data, TexturePool* texture_pool)
 {
 	auto new_id = m_next_id;

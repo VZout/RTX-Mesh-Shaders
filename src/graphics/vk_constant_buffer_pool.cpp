@@ -19,7 +19,7 @@ gfx::VkConstantBufferPool::VkConstantBufferPool(Context* context, std::uint32_t 
 
 	gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
 	descriptor_heap_desc.m_versions = gfx::settings::num_back_buffers;
-	descriptor_heap_desc.m_num_descriptors = 100;
+	descriptor_heap_desc.m_num_descriptors = 300;
 	m_desc_heap = new gfx::DescriptorHeap(m_context, descriptor_heap_desc);
 
 	m_buffers.resize(gfx::settings::num_back_buffers);

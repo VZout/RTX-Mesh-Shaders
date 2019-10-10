@@ -10,6 +10,7 @@
 #define MIN_PERCEPTUAL_ROUGHNESS 0.045
 #define MIN_ROUGHNESS 0.002025 // Only used for anisotropyic lobes
 #define MIN_N_DOT_V 1e-4
+#define ANISO
 
 float pow5(float x)
 {
@@ -147,6 +148,19 @@ float D_GGX(float NdotH, float roughness)
     return saturateMediump(d);
 }
 
+// Normal distribution. Burley 2012, "Physically-Based Shading at Disney"
+float D_GGX_Anisotropic(float at, float ab, float ToH, float BoH, float NoH) {
+
+    // The values at and ab are perceptualRoughness^2, a2 is therefore perceptualRoughness^4
+    // The dot product below computes perceptualRoughness^8. We cannot fit in fp16 without clamping
+    // the roughness to too high values so we perform the dot product and the division in fp32
+    float a2 = at * ab;
+    highp vec3 d = vec3(ab * ToH, at * BoH, a2 * NoH);
+    highp float d2 = dot(d, d);
+    float b2 = a2 / d2;
+    return a2 * b2 * b2 * (1.0 / M_PI);
+}
+
 // Geometric Shadowing function
 float G_SchlicksmithGGX(float NdotL, float NdotV, float roughness)
 {
@@ -166,6 +180,16 @@ float G_SchlicksmithGGX(float NdotL, float NdotV, float roughness)
 float G_SchlicksmithGGXFast(float NdotL, float NdotV, float roughness)
 {
     float v = 0.5 / mix(2.0 * NdotL * NdotV, NdotL + NdotV, roughness);
+    return saturateMediump(v);
+}
+
+// Heitz 2014, "Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs"
+float G_SmithGGXCorrelated_Anisotropic(float at, float ab, float TdotV, float BdotV,
+        float TdotL, float BdotL, float NdotV, float NdotL) {
+    // TODO: lambdaV can be pre-computed for all the lights, it should be moved out of this function
+    float lambdaV = NdotL * length(vec3(at * TdotV, ab * BdotV, NdotV));
+    float lambdaL = NdotV * length(vec3(at * TdotL, ab * BdotL, NdotL));
+    float v = 0.5 / (lambdaV + lambdaL);
     return saturateMediump(v);
 }
 
@@ -190,15 +214,6 @@ float F_Schlick(float f0, float f90, float VdotH)
     return f0 + (f90 - f0) * pow5(1.0 - VdotH);
 }
 
-
-// Fresnel function Roughness based
-vec3 F_SchlickRoughness(float cos_theta, float metallic, vec3 material_color, float roughness)
-{
-    vec3 F0 = mix(vec3(0.04f), material_color, metallic); // * material.specular
-    vec3 F = F0 + (max(vec3(1.0f - roughness, 1.0f - roughness, 1.0f - roughness), F0) - F0) * pow(1.0f - cos_theta, 5.0f);
-    return F;
-}
-
 float Fd_Lambert() {
     return 1.0 / M_PI;
 }
@@ -211,7 +226,7 @@ float Fd_Burley(float roughness, float NdotV, float NdotL, float LdotH) {
     return lightScatter * viewScatter * (1.0 / M_PI);
 }
 
-vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float perceptual_roughness, vec3 diffuse_color, vec3 radiance, vec3 F0, vec3 energy_compensation, float occlusion)
+vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float perceptual_roughness, vec3 diffuse_color, vec3 radiance, vec3 F0, vec3 energy_compensation, float attenuation, float occlusion, float anisotropy, vec3 anisotropic_t, vec3 anisotropic_b)
 {
     vec3 color = vec3(0);
 
@@ -219,25 +234,41 @@ vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float perceptual_roughness, ve
 
     // Precalculate vectors and dot products
     vec3 H = normalize(V + L);
-    float dotNV = max(dot(N, V), MIN_N_DOT_V);
-    float dotNL = clamp(dot(N, L), 0.0, 1.0);
-    float dotNH = clamp(dot(N, H), 0.0, 1.0);
-    float dotLH = clamp(dot(L, H), 0.0, 1.0);
+    float NdotV = max(dot(N, V), MIN_N_DOT_V);
+    float NdotL = clamp(dot(N, L), 0.0, 1.0);
+    float NdotH = clamp(dot(N, H), 0.0, 1.0);
+    float LdotH = clamp(dot(L, H), 0.0, 1.0);
 
     float F90 = clamp(dot(F0, vec3(50.0 * 0.33)), 0.f, 1.f);
 
-    // D = Normal distribution (Distribution of the microfacets)
-    float D = D_GGX(dotNH, roughness);
-    // G = Geometric shadowing term (Microfacets shadowing)
-    float G = G_SchlicksmithGGX(dotNL, dotNV, roughness);
-    // F = Fresnel factor (Reflectance depending on angle of incidence)
-    vec3 F = F_Schlick(F0, F90, dotLH);
+#ifdef ANISO
+    vec3 t = anisotropic_t;
+    vec3 b = anisotropic_b;
 
-    vec3 spec = (D * G) * F;
-    vec3 diff = diffuse_color * Fd_Lambert();
-    //vec3 diff = diffuse_color * Fd_Burley(roughness, dotNV, dotNL, dotLH);
+    float TdotV = dot(t, V);
+    float BdotV = dot(b, V);
+    float TdotL = dot(t, L);
+    float BdotL = dot(b, L);
+    float TdotH = dot(t, H);
+    float BdotH = dot(b, H);
+
+	float at = max(roughness * (1.0 + anisotropy), MIN_ROUGHNESS);
+    float ab = max(roughness * (1.0 - anisotropy), MIN_ROUGHNESS);
+
+    float D = D_GGX_Anisotropic(at, ab, TdotH, BdotH, NdotH);
+    float G = G_SmithGGXCorrelated_Anisotropic(at, ab, TdotV, BdotV, TdotL, BdotL, NdotV, NdotL);
+    vec3 F = F_Schlick(F0, F90, LdotH);
+	vec3 spec = (D * G) * F;
+#else
+    float D = D_GGX(NdotH, roughness);
+    float G = G_SchlicksmithGGX(NdotL, NdotV, roughness);
+    vec3 F = F_Schlick(F0, F90, LdotH);
+	vec3 spec = (D * G) * F;
+#endif
+    //vec3 diff = diffuse_color * Fd_Lambert();
+    vec3 diff = diffuse_color * Fd_Burley(roughness, NdotV, NdotL, LdotH);
 
     color = diff + spec * energy_compensation;
 
-    return (color * radiance) * dotNL * occlusion;
+    return (color * radiance) * (NdotL * occlusion * attenuation);
 }

@@ -17,6 +17,7 @@ REGISTER(shaders::basic_vs, ShaderRegistry)({
 	.m_type = gfx::enums::ShaderType::VERTEX,
 });
 
+
 REGISTER(shaders::basic_ps, ShaderRegistry)({
 	.m_path = "shaders/basic.frag.spv",
 	.m_type = gfx::enums::ShaderType::PIXEL,
@@ -95,7 +96,7 @@ REGISTER(root_signatures::composition, RootSignatureRegistry)({
 	    params[0].pImmutableSamplers = nullptr;
 	    params[1].binding = 1; // root parameter 1
 	    params[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-	    params[1].descriptorCount = 4; // color, normal, pos, material
+	    params[1].descriptorCount = 5; // color, normal, pos, material, anisotropy
 	    params[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 	    params[1].pImmutableSamplers = nullptr;
 	    params[2].binding = 2; // root parameter 2
@@ -217,7 +218,7 @@ REGISTER(pipelines::basic, PipelineRegistry)({
 	.m_input_layout = Vertex::GetInputLayout(),
 
 	.m_type = gfx::enums::PipelineType::GRAPHICS_PIPE,
-	.m_rtv_formats = { VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R8G8B8A8_UNORM },
+	.m_rtv_formats = { VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT },
     .m_depth_format = VK_FORMAT_D32_SFLOAT,
 	.m_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	.m_counter_clockwise = true

@@ -13,6 +13,7 @@ layout(location = 0) out vec4 out_color;
 layout(location = 1) out vec4 out_normal;
 layout(location = 2) out vec4 out_pos;
 layout(location = 3) out vec4 out_material;
+layout(location = 4) out vec4 out_anisotropy;
 
 layout(set = 3, binding = 3) uniform UniformBufferObject {
     vec3 color;
@@ -20,7 +21,9 @@ layout(set = 3, binding = 3) uniform UniformBufferObject {
     float roughness;
     float metallic;
     float normal_strength;
-    float unused_2;
+    float anisotropy;
+	vec3 anisotropy_dir;
+	float unused;
 } material;
 
 void main()
@@ -28,8 +31,6 @@ void main()
     vec3 compressed_mra = texture(ts_textures[2], g_uv).rgb;
 
     vec3 normal = normalize(g_normal);
-    //normal *= -1;
-    normal.y = -normal.y;
     mat3 TBN = mat3( normalize(g_tangent), normalize(g_bitangent), normal );
     vec3 normal_t = normalize(texture(ts_textures[1], g_uv).xyz * 2.0f - 1.0f);
 
@@ -48,5 +49,10 @@ void main()
     out_color = vec4(albedo.rgb, roughness);
     out_normal = vec4(obj_normal, metallic);
     out_pos = vec4(g_frag_pos, ao);
-    out_material = vec4(material.reflectivity, 0, 0, 0);
+
+	vec3 anisotropic_t = normalize(normalize(g_tangent) * material.anisotropy_dir);
+	vec3 anisotropic_b = normalize(cross(normal, anisotropic_t));
+
+    out_material = vec4(material.reflectivity, material.anisotropy, anisotropic_t.rg);
+	out_anisotropy = vec4(anisotropic_t.b, anisotropic_b);
 }

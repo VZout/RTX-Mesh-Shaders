@@ -23,7 +23,9 @@ namespace cb
 		float roughness = -1;
 		float metallic = -1;
 		float normal_strength = 1;
-		float unused_2 = -1;
+		float anisotropy = 0;
+		glm::vec3 anisotropy_dir = { 1, 0, 0 };
+		float unused;
 	};
 
 	struct Camera
