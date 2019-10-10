@@ -8,7 +8,7 @@
 
 layout (local_size_x = 16, local_size_y = 16) in;
 
-layout(set = 1, binding = 1, rgba8) uniform readonly image2D ts_gbuffers[4];
+layout(set = 1, binding = 1, rgba8) uniform readonly image2D ts_gbuffers[5];
 layout(set = 2, binding = 2, rgba8) uniform writeonly image2D t_output;
 layout(set = 4, binding = 4) uniform samplerCube t_skybox;
 layout(set = 5, binding = 5) uniform samplerCube t_irradiance;
@@ -39,8 +39,21 @@ layout(set = 3, binding = 3) uniform UniformBufferLightObject {
     Light lights[50];
 } lights;
 
-vec3 GetEnvReflection(vec3 R, float roughness)
+vec3 GetEnvReflection(vec3 N, vec3 V, float roughness, float anisotropy, vec3 anisotropic_t, vec3 anisotropic_b)
 {
+#ifdef ANISO
+	vec3 anisotropy_dir = anisotropy >= 0.0 ? anisotropic_b : anisotropic_t;
+    vec3 anisotropicT = cross(anisotropy_dir, V);
+    vec3 anisotropic_N = cross(anisotropicT, anisotropy_dir);
+    float bend_factor = abs(anisotropy) * clamp(5.0 * sqrt(roughness), 0, 1);
+    vec3 bend_normal = normalize(mix(N, anisotropic_N, bend_factor));
+    vec3 R = reflect(-V, bend_normal);
+	R.y = R.y * -1;
+#else
+	vec3 R = reflect(-V, N);
+	R.y = R.y * -1;
+#endif
+
     const float MAX_REFLECTION_LOD = 8.0;
     float lod = roughness * MAX_REFLECTION_LOD;
     return textureLod(t_environment, R, lod).rgb;
@@ -56,12 +69,17 @@ void main()
     const vec4 albedo_roughness = imageLoad(ts_gbuffers[0], s_uv);
     const vec4 normal_metallic = imageLoad(ts_gbuffers[1], s_uv);
     const vec4 world_pos_ao = imageLoad(ts_gbuffers[2], s_uv);
-    const vec4 reflectivity_unused = imageLoad(ts_gbuffers[3], s_uv);
+    const vec4 reflectivity_anisotropy = imageLoad(ts_gbuffers[3], s_uv);
+	const vec4 anisotropytb = imageLoad(ts_gbuffers[4], s_uv);
 
     const vec3 world_pos = world_pos_ao.xyz;
     const vec3 albedo = albedo_roughness.rgb;
-    const vec3 N = normal_metallic.xyz;
-    const float reflectivity = reflectivity_unused.r;
+    vec3 N = normal_metallic.xyz;
+    const float reflectivity = reflectivity_anisotropy.r;
+	const float anisotropy = reflectivity_anisotropy.g;
+	const vec3 anisotropic_t = vec3(reflectivity_anisotropy.ba, anisotropytb.r);
+	const vec3 anisotropic_b = vec3(anisotropytb.gba);
+
     #ifdef PBR_PLUS
     float roughness = clamp(albedo_roughness.a, MIN_PERCEPTUAL_ROUGHNESS, 1.f);
     #else
@@ -74,10 +92,9 @@ void main()
 
     // Constants
     const vec3 irradiance = texture(t_irradiance, vec3(N.x, N.y * -1, N.z)).rgb;
-    const vec3 view_pos = vec3(inv_view[3][0], inv_view[3][1], inv_view[3][2]);
+    const vec3 view_pos = vec3(inv_view[3]);
 
     vec3 V = normalize(view_pos - world_pos);
-	vec3 R = reflect(-vec3(V.x, V.y * -1, V.z), N);
 
     vec2 dfg = texture(t_brdf_lut, vec2(max(dot(N, V), MIN_N_DOT_V), roughness)).gr; // lut
 
@@ -103,7 +120,7 @@ void main()
 
     // specular layer
     vec3 E = SpecularDFG(F0, dfg);
-    vec3 spec = E * GetEnvReflection(R, roughness);
+    vec3 spec = E * GetEnvReflection(N, V, roughness, anisotropy, anisotropic_t, anisotropic_b);
     spec *= SingleBounceAO(spec_ao) * energy_compensation;
 
     // diffuse layer
@@ -120,7 +137,7 @@ void main()
     vec3 ibl_color = (diff + spec) * ibl_luminance;
     #endif
 
-    uint num_lights = lights.lights[0].m_type >> 2; //Light count is stored in 30 upper-bits of first light
+    uint num_lights = 1; //Light count is stored in 30 upper-bits of first light
     vec3 lighting = vec3(0);
     for (uint i = 0; i < num_lights; i++)
     {
@@ -133,8 +150,8 @@ void main()
 
 		const vec3 pos_to_light = light_pos - world_pos;
         vec3 L = normalize(pos_to_light);
-        #ifdef PBR_PLUS
 
+        #ifdef PBR_PLUS
 		float sqr_falloff = lights.lights[i].m_radius * lights.lights[i].m_radius;
 		float sqr_inv_radius = sqr_falloff > 0.0f ? (1 / sqr_falloff) : 0;
 
@@ -149,15 +166,15 @@ void main()
 			attenuation *= GetAngleAttenuation(light_dir, L, inner_angle, outer_angle);
 		}
 
+
         float NdotL = clamp(dot(N, L), 0.0, 1.0); // TODO: Duplicate ndotl
         if (NdotL > 0.0)
         {
-            lighting += BRDF(L, V, N, metallic, roughness, diffuse_color, light_color, F0, energy_compensation, 1.0f) * attenuation;
+            lighting += BRDF(L, V, N, metallic, roughness, diffuse_color, light_color, F0, energy_compensation, attenuation, 1.0f, anisotropy, anisotropic_t, anisotropic_b);
         }
         #else
         lighting += BRDF(L, V, N, metallic, roughness, albedo, light_color);
         #endif
-
     }
 
     #ifdef PBR_PLUS

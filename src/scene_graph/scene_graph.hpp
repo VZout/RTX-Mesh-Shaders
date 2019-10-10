@@ -114,7 +114,7 @@ namespace sg
 			}
 
 			m_model_handles.emplace_back(ComponentData<ModelHandle>(
-				std::move(model_handle),
+				model_handle,
 				handle
 			));
 
@@ -127,6 +127,20 @@ namespace sg
 
 			m_requires_buffer_update.emplace_back(ComponentData<std::vector<bool>>(
 				std::vector<bool>(gfx::settings::num_back_buffers, true),
+				handle
+			));
+
+			// TODO: Simplify this by moving the material handle from the mesh to the model.
+			std::vector<MaterialHandle> mats;
+			for (auto const & mesh_handle : model_handle.m_mesh_handles)
+			{
+				if (mesh_handle.m_material_handle.has_value())
+				{
+					mats.push_back(mesh_handle.m_material_handle.value());
+				}
+			}
+			m_model_material_handles.emplace_back(ComponentData<std::vector<MaterialHandle>>(
+				mats,
 				handle
 			));
 
@@ -217,6 +231,7 @@ namespace sg
 
 		// Mesh Component
 		std::vector<ComponentData<ModelHandle>> m_model_handles;
+		std::vector<ComponentData<std::vector<MaterialHandle>>> m_model_material_handles;
 		std::vector<ComponentData<ConstantBufferHandle>> m_transform_cb_handles;
 		std::vector<ComponentData<std::vector<bool>>> m_requires_buffer_update;
 
@@ -261,6 +276,12 @@ namespace sg
 			glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3(0, 1, 0)));
 
 			return { forward, right };
+		}
+
+		inline void SetMaterial(SceneGraph* sg, NodeHandle handle, std::vector<MaterialHandle> mats)
+		{
+			auto model_handle = sg->GetNode(handle).m_mesh_component;
+			sg->m_model_material_handles[model_handle] = mats;
 		}
 
 		inline void Translate(SceneGraph* sg, NodeHandle handle, glm::vec3 value)
