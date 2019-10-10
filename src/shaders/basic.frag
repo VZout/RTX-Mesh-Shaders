@@ -33,16 +33,19 @@ void main()
     mat3 TBN = mat3( normalize(g_tangent), normalize(g_bitangent), normal );
     vec3 normal_t = normalize(texture(ts_textures[1], g_uv).xyz * 2.0f - 1.0f);
 
-    vec3 albedo = material.color.x > -1 ? material.color : texture(ts_textures[0], g_uv).xyz;
+    vec4 albedo = material.color.x > -1 ? vec4(material.color, 1) : texture(ts_textures[0], g_uv);
     vec3 obj_normal = normalize(TBN * (normal_t * material.normal_strength));
     float roughness = material.roughness > -1 ? material.roughness : compressed_mra.g;
     float metallic = material.metallic > -1 ? material.metallic : compressed_mra.b;
     float ao = compressed_mra.r;
 
+	if (albedo.a < 0.5)
+		discard;
+
     // disable normal mapping
     obj_normal = material.normal_strength > -1 ? obj_normal : normal;
 
-    out_color = vec4(albedo, roughness);
+    out_color = vec4(albedo.rgb, roughness);
     out_normal = vec4(obj_normal, metallic);
     out_pos = vec4(g_frag_pos, ao);
     out_material = vec4(material.reflectivity, 0, 0, 0);

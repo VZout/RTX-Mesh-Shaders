@@ -186,10 +186,10 @@ void main()
         color = textureLod(t_skybox, direction.xyz, 0).rgb;
     }
 
-	const vec2 buv = (vec2(gl_GlobalInvocationID.xy) / resolution.y);
+	/*const vec2 buv = (vec2(gl_GlobalInvocationID.xy) / resolution.y);
     if (uv.x < 0.5) {
 		color = vec3(texture(t_brdf_lut, buv).rg, 0);
-    }
+    }*/
 
     imageStore(t_output, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1));
 }
