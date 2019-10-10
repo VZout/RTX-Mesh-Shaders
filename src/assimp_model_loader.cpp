@@ -250,18 +250,26 @@ void AssimpModelLoader::LoadMaterials(ModelData* model, const aiScene* scene)
 			}
 		}
 
-		aiColor3D color;
-		material->Get(AI_MATKEY_COLOR_DIFFUSE, color);
+		if (!material_data.m_albedo_texture.m_pixels)
+		{
+			aiColor3D color;
+			material->Get(AI_MATKEY_COLOR_DIFFUSE, color);
+			memcpy(&material_data.m_base_color, &color, sizeof(color));
+		}
 
-		memcpy(&material_data.m_base_color, &color, sizeof(color));
+		if (!material_data.m_metallic_texture.m_pixels)
+		{
+			aiColor3D color;
+			material->Get(AI_MATKEY_COLOR_SPECULAR, color);
+			memcpy(&material_data.m_base_metallic, &color, sizeof(color));
+		}
 
-		material->Get(AI_MATKEY_COLOR_SPECULAR, color);
-
-		memcpy(&material_data.m_base_metallic, &color, sizeof(color));
-
-		float roughness;
-		material->Get(AI_MATKEY_SHININESS, roughness);
-		material_data.m_base_roughness = roughness;
+		if (!material_data.m_roughness_texture.m_pixels)
+		{
+			float roughness;
+			material->Get(AI_MATKEY_SHININESS, roughness);
+			material_data.m_base_roughness = roughness;
+		}
 
 		float opacity;
 		material->Get(AI_MATKEY_OPACITY, opacity);
