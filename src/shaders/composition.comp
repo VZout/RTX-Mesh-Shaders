@@ -96,7 +96,7 @@ void main()
     }
 
     vec3 energy_compensation = 1.0 + F0 * (1.0 / dfg.y - 1.0);
-    energy_compensation = vec3(1);
+    //energy_compensation = vec3(1);
 
     float diff_ao = ao;
     float spec_ao = 1.f; // TODO: Specular ao
