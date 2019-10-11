@@ -297,7 +297,9 @@ protected:
 			{
 				MaterialData mat{};
 
-				mat.m_base_color[0] = mat.m_base_color[1] = mat.m_base_color[2] = 1;
+				mat.m_base_color[0] = 1.000;
+				mat.m_base_color[1] = 0.766;
+				mat.m_base_color[2] = 0.336;
 				mat.m_base_roughness = x / num_spheres_x;
 				mat.m_base_metallic = y / num_spheres_y;
 				mat.m_base_reflectivity = 0.5f;
