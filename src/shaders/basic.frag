@@ -46,13 +46,12 @@ void main()
     // disable normal mapping
     obj_normal = material.normal_strength > -1 ? obj_normal : normal;
 
-    out_color = vec4(albedo.rgb, roughness);
+	vec3 anisotropic_t = normalize(TBN * material.anisotropy_dir);
+	vec3 anisotropic_b = normalize(cross(normal, anisotropic_t));
+    
+	out_color = vec4(albedo.rgb, roughness);
     out_normal = vec4(obj_normal, metallic);
     out_pos = vec4(g_frag_pos, ao);
-
-	vec3 anisotropic_t = normalize(normalize(g_tangent) * material.anisotropy_dir);
-	vec3 anisotropic_b = normalize(cross(normal, anisotropic_t));
-
     out_material = vec4(material.reflectivity, material.anisotropy, anisotropic_t.rg);
 	out_anisotropy = vec4(anisotropic_t.b, anisotropic_b);
 }

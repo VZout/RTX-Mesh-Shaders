@@ -12,6 +12,13 @@ layout(push_constant) uniform PushConstants {
     float face;
 } settings;
 
+
+float log4(float x) {
+    // log2(x)/log2(4)
+    // log2(x)/2
+    return log2(x) * float(0.5);
+}
+
 mat4 perspective(float fovy, float aspect, float zNear, float zFar)
 {
     float rad = fovy;
@@ -56,7 +63,7 @@ float DistributionGGX(float NoH, float linearRoughness) {
     return (a * a) / (M_PI * f * f);
 }
 
-#define SAMPLE_COUNT 1024u
+#define SAMPLE_COUNT 8048u
 
 void main()
 {
@@ -129,16 +136,17 @@ void main()
 
             // Probability Distribution Function
             #ifdef PBR_PLUS
-            float pdf = DistributionGGX(NdotH, roughness)  / 4.f;
+            float pdf = DistributionGGX(NdotH, roughness) / 4.f;
             #else
             float pdf = D_GGX(NdotH, roughness) * NdotH / (4.0 * VdotH) + 0.0001;
             #endif
             // Slid angle of current smple
-            float omega_s = 1.0 / (float(SAMPLE_COUNT) * pdf +  + 0.0001f);
+            float omega_s = 1.0 / (float(SAMPLE_COUNT) * pdf);
             // Solid angle of 1 pixel across all cube faces
-            float omega_p = 4.0 * M_PI / (6.0 * resolution * resolution);
+            float omega_p = (4.0 * M_PI) / (6.0 * resolution * resolution);
             // Biased (+1.0) mip level for better result
-            float mip_level = roughness == 0.0 ? 0.0 : max(0.5 * log2(omega_s / omega_p) + 1, 0.0f);
+            float mip_level = roughness == 0.0 ? 0.0 : max(0.5 * log2(omega_s / omega_p) + 4, 0.0f);
+
             color += textureLod(t_input, L, mip_level).rgb * NdotL;
             total_weight += NdotL;
         }
