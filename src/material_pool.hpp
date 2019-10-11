@@ -41,5 +41,10 @@ public:
 private:
 	virtual void Load_Impl(MaterialHandle& handle, MaterialData const & data, TexturePool* texture_pool) = 0;
 
+	bool m_loaded_defaults;
+	std::uint32_t m_default_albedo_texture;
+	std::uint32_t m_default_roughness_metallic_texture;
+	std::uint32_t m_default_normal_texture;
+
 	std::uint32_t m_next_id;
 };
