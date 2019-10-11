@@ -1,6 +1,7 @@
 #version 450
 
 #include "pbr+_util.glsl"
+#undef ANISO
 
 #define NUM_SAMPLES 1024u
 

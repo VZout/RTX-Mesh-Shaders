@@ -136,6 +136,10 @@ protected:
 			int i = 0;
 			for (auto mesh_handle : m_sphere_material_handles)
 			{
+				m_sphere_materials[i].m_base_color[0] = m_imgui_override_color ? m_temp_debug_mat_data.m_base_color[0] : -1;
+				m_sphere_materials[i].m_base_color[1] = m_imgui_override_color ? m_temp_debug_mat_data.m_base_color[1] : -1;
+				m_sphere_materials[i].m_base_color[2] = m_imgui_override_color ? m_temp_debug_mat_data.m_base_color[2] : -1;
+
 				m_sphere_materials[i].m_base_reflectivity = m_ball_reflectivity;
 				m_sphere_materials[i].m_base_anisotropy = m_ball_anisotropy;
 				m_material_pool->Update(mesh_handle, m_sphere_materials[i]);
@@ -324,7 +328,7 @@ protected:
 
 		// second node
 		{
-			float spacing = 2.f * 0.4f;
+			float spacing = 2.1f * 0.4f;
 			int i = 0;
 			for (auto x = 0; x < num_spheres_x; x++)
 			{

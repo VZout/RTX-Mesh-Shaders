@@ -71,6 +71,13 @@ namespace tasks
 				.m_border_color = gfx::enums::BorderColor::BORDER_WHITE,
 			};
 
+			gfx::SamplerDesc lut_sampler_desc
+			{
+				.m_filter = gfx::enums::TextureFilter::FILTER_LINEAR,
+				.m_address_mode = gfx::enums::TextureAddressMode::TAM_CLAMP,
+				.m_border_color = gfx::enums::BorderColor::BORDER_WHITE,
+			};
+
 			// GPU Heap
 			gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
 			descriptor_heap_desc.m_versions = 1;
@@ -104,7 +111,7 @@ namespace tasks
 			if (fg.HasTask<GenerateBRDFLutData>())
 			{
 				auto brdf_rt = fg.GetPredecessorRenderTarget<GenerateBRDFLutData>();
-				data.m_brdf_set = data.m_gbuffer_heap->CreateSRVSetFromRT(brdf_rt, data.m_root_sig, 7, 0, false, skybox_sampler_desc);
+				data.m_brdf_set = data.m_gbuffer_heap->CreateSRVSetFromRT(brdf_rt, data.m_root_sig, 7, 0, false, lut_sampler_desc);
 			}
 
 			if (resize) return;

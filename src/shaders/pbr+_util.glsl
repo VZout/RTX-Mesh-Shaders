@@ -11,6 +11,7 @@
 #define MIN_ROUGHNESS 0.002025 // Only used for anisotropyic lobes
 #define MIN_N_DOT_V 1e-4
 #define ANISO
+#define CLEAR_COAT
 
 float pow5(float x)
 {
@@ -226,11 +227,47 @@ float Fd_Burley(float roughness, float NdotV, float NdotL, float LdotH) {
     return lightScatter * viewScatter * (1.0 / M_PI);
 }
 
-vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float perceptual_roughness, vec3 diffuse_color, vec3 radiance, vec3 F0, vec3 energy_compensation, float attenuation, float occlusion, float anisotropy, vec3 anisotropic_t, vec3 anisotropic_b)
+float ClearCoatLobe(vec3 N, vec3 H, float NdotH, float LdotH, float clear_coat, float cc_roughness, out float Fcc)
 {
-    vec3 color = vec3(0);
+#if MATERIAL_HAS_NORMAL
+	float cc_NdotH = saturate(dot(N, H));
+#else
+    float cc_NdotH = NdotH;
+#endif
+    float D = D_GGX(cc_NdotH, cc_roughness);
+    float G = G_Kelemen(LdotH);
+    float F = F_Schlick(0.04, 1.0, LdotH) * clear_coat; // fix IOR to 1.5
 
+	Fcc = F;
+	return D * G * F;
+}
+
+#ifdef ENV_SAMPLING
+vec3 GetEnvReflection(vec3 R, float roughness)
+{
+    const float MAX_REFLECTION_LOD = 8.0;
+    float lod = roughness * MAX_REFLECTION_LOD;
+    return textureLod(t_environment, R, lod).rgb;
+}
+
+void EvaluateClearCoatIBL(float clear_coat, float cc_roughness, float NdotV, vec3 R, float spec_ao, inout vec3 diff, inout vec3 spec)
+{
+    float cc_NdotV = NdotV;
+    vec3 cc_R = R;
+
+	 // The clear coat layer assumes an IOR of 1.5 (4% reflectance)
+    float Fc = F_Schlick(0.04, 1.0, cc_NdotV) * clear_coat;
+    float cc_attenuation = 1.0 - Fc;
+    diff *= cc_attenuation;
+    spec *= cc_attenuation;
+    spec += GetEnvReflection(cc_R, cc_roughness) * (spec_ao * Fc);
+}
+#endif
+
+vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float perceptual_roughness, vec3 diffuse_color, vec3 radiance, vec3 F0, vec3 energy_compensation, float attenuation, float occlusion, float anisotropy, vec3 anisotropic_t, vec3 anisotropic_b, float clear_coat, float perceptual_cc_roughness)
+{
     float roughness = PerceptualRoughnessToRoughness(perceptual_roughness);
+	float cc_roughness = PerceptualRoughnessToRoughness(perceptual_cc_roughness);
 
     // Precalculate vectors and dot products
     vec3 H = normalize(V + L);
@@ -240,6 +277,12 @@ vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float perceptual_roughness, ve
     float LdotH = clamp(dot(L, H), 0.0, 1.0);
 
     float F90 = clamp(dot(F0, vec3(50.0 * 0.33)), 0.f, 1.f);
+
+#ifdef CLEAR_COAT
+	float Fcc;
+    float cc = ClearCoatLobe(N, H, NdotH, LdotH, clear_coat, cc_roughness, Fcc);
+    float cc_attenuation = 1.0 - Fcc;
+#endif
 
 #ifdef ANISO
     vec3 t = anisotropic_t;
@@ -268,7 +311,11 @@ vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float perceptual_roughness, ve
     //vec3 diff = diffuse_color * Fd_Lambert();
     vec3 diff = diffuse_color * Fd_Burley(roughness, NdotV, NdotL, LdotH);
 
-    color = diff + spec * energy_compensation;
+#ifdef CLEAR_COAT
+	vec3 color = (diff + spec * energy_compensation) * cc_attenuation + cc;
+#else
+    vec3 color = diff + spec * energy_compensation;
+#endif
 
     return (color * radiance) * (NdotL * occlusion * attenuation);
 }
