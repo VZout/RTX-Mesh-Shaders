@@ -7,8 +7,8 @@
 #pragma once
 
 #include <vector>
+#include <vec2.hpp>
 #include <vec3.hpp>
-#include <vec4.hpp>
 #include <optional>
 #include <vulkan/vulkan.h>
 
@@ -38,7 +38,9 @@ struct MaterialData
 	float m_base_emissive = -1;
 	float m_base_normal_strength = 1;
 	float m_base_anisotropy = 0;
-	glm::vec3 m_base_anisotropy_dir = { 1, 0, 0 };
+	glm::vec2 m_base_anisotropy_dir = { 1, 0 };
+	float m_base_clear_coat = 0;
+	float m_base_clear_coat_roughness = 0;
 };
 
 struct MeshData

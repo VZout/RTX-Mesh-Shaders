@@ -116,6 +116,8 @@ void gfx::VkMaterialPool::Update(MaterialHandle handle, MaterialData const & dat
 	material_cb_data.anisotropy = data.m_base_anisotropy;
 	material_cb_data.anisotropy_dir = data.m_base_anisotropy_dir;
 	material_cb_data.normal_strength = data.m_base_normal_strength;
+	material_cb_data.clear_coat = data.m_base_clear_coat;
+	material_cb_data.clear_coat_roughness = data.m_base_clear_coat_roughness;
 
 	auto buffer = GetCBBuffer(handle);
 
