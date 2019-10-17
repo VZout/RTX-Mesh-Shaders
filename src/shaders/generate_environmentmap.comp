@@ -63,7 +63,7 @@ float DistributionGGX(float NoH, float linearRoughness) {
     return (a * a) / (M_PI * f * f);
 }
 
-#define SAMPLE_COUNT 8048u
+#define SAMPLE_COUNT 1024u
 
 void main()
 {
