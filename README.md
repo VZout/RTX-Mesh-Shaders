@@ -11,7 +11,7 @@ This is a demo repository for a few techniques made possible by NVIDIA's Turing 
 
 ## Building
 
-To build this project you require **CMake 3.15** or higher and a **C++20 capable compiler**. To run the application you need a GPU and driver that **supports Vulkan 1.1**. To run the application and make use of mesh shaders you need a **[RTX capable gpu](https://en.wikipedia.org/wiki/Nvidia_RTX)**.
+To build this project you require [**CMake 3.15**](https://cmake.org/) or higher and a **C++20 capable compiler**. To run the application you need a GPU and driver that **supports Vulkan 1.1**. To run the application and make use of mesh shaders you need a **[RTX capable gpu](https://en.wikipedia.org/wiki/Nvidia_RTX)**.
 
 * [Visual Studio 2019 (16.2.3)](https://visualstudio.microsoft.com/)
 * [GCC 9.2](https://gcc.gnu.org/)
