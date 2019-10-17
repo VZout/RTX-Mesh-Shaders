@@ -83,14 +83,14 @@ namespace gfx
 			bool m_is_hdr = false;
 		};
 
-		Texture(Context* context, Desc desc, bool uav = false);
+		Texture(Context* context, Desc desc);
 		virtual ~Texture();
 
 		bool HasMipMaps();
 
 	protected:
 		void CreateImageAndMemory(VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
-		                          VkImage& image, VkDeviceMemory memory);
+		                          VkImage& image, VkDeviceMemory& memory);
 	private:
 		Context* m_hidden_context;
 

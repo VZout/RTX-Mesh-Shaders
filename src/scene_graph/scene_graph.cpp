@@ -15,6 +15,7 @@ sg::SceneGraph::~SceneGraph()
 {
 	delete m_per_object_buffer_pool;
 	delete m_camera_buffer_pool;
+	delete m_light_buffer_pool;
 }
 
 sg::NodeHandle sg::SceneGraph::CreateNode()

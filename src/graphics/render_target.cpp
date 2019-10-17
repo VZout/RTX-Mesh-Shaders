@@ -47,34 +47,7 @@ gfx::RenderTarget::RenderTarget(Context* context, Desc desc)
 
 gfx::RenderTarget::~RenderTarget()
 {
-	auto logical_device = m_context->m_logical_device;
-
-	// Clean depth buffer
-	if (m_depth_buffer_view != VK_NULL_HANDLE) vkDestroyImageView(logical_device, m_depth_buffer_view, nullptr);
-	if (m_depth_buffer != VK_NULL_HANDLE) vkDestroyImage(logical_device, m_depth_buffer, nullptr);
-	if (m_depth_buffer_memory != VK_NULL_HANDLE) vkFreeMemory(logical_device, m_depth_buffer_memory, nullptr);
-
-	for (auto& view : m_image_views)
-	{
-		vkDestroyImageView(logical_device, view, nullptr);
-	}
-
-	for (auto& image : m_images)
-	{
-		if (image != VK_NULL_HANDLE) vkDestroyImage(logical_device, image, nullptr);
-	}
-
-	for (auto& image_memory : m_images_memory)
-	{
-		vkFreeMemory(logical_device, image_memory, nullptr);
-	}
-
-	vkDestroyRenderPass(logical_device, m_render_pass, nullptr);
-
-	for (auto buffer : m_frame_buffers)
-	{
-		vkDestroyFramebuffer(logical_device, buffer, nullptr);
-	}
+	Cleanup();
 }
 
 void gfx::RenderTarget::Resize(std::uint32_t width, std::uint32_t height)
@@ -83,41 +56,8 @@ void gfx::RenderTarget::Resize(std::uint32_t width, std::uint32_t height)
 	m_desc.m_width = width;
 	m_desc.m_height = height;
 
-	// cleanup // TODO: Create cleanup function.
-
-	// Clean depth buffer
-	if (m_depth_buffer_view != VK_NULL_HANDLE) vkDestroyImageView(logical_device, m_depth_buffer_view, nullptr);
-	if (m_depth_buffer != VK_NULL_HANDLE) vkDestroyImage(logical_device, m_depth_buffer, nullptr);
-	if (m_depth_buffer_memory != VK_NULL_HANDLE) vkFreeMemory(logical_device, m_depth_buffer_memory, nullptr);
-
-	std::vector<VkImage> m_images;
-	std::vector<VkDeviceMemory> m_images_memory;
-
-	for (auto& image_view : m_image_views)
-	{
-		vkDestroyImageView(logical_device, image_view, nullptr);
-	}
-	m_image_views.clear();
-
-	for (auto& image : m_images)
-	{
-		vkDestroyImage(logical_device, image, nullptr);
-	}
-	m_images.clear();
-
-	for (auto& image_memory : m_images_memory)
-	{
-		vkFreeMemory(logical_device, image_memory, nullptr);
-	}
-	m_images_memory.clear();
-
-	vkDestroyRenderPass(logical_device, m_render_pass, nullptr);
-
-	for (auto buffer : m_frame_buffers)
-	{
-		vkDestroyFramebuffer(logical_device, buffer, nullptr);
-	}
-	m_frame_buffers.clear();
+	// Destroy old resources
+	Cleanup();
 
 	// Recreate stuff TODO: This is all duplicate from the cosntructor
 	CreateImages();
@@ -408,5 +348,37 @@ void gfx::RenderTarget::CreateDepthBufferView()
 
 	if (vkCreateImageView(logical_device, &view_create_info, nullptr, &m_depth_buffer_view) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create texture image view!");
+	}
+}
+
+void gfx::RenderTarget::Cleanup()
+{
+	auto logical_device = m_context->m_logical_device;
+
+	// Clean depth buffer
+	if (m_depth_buffer_view != VK_NULL_HANDLE) vkDestroyImageView(logical_device, m_depth_buffer_view, nullptr);
+	if (m_depth_buffer != VK_NULL_HANDLE) vkDestroyImage(logical_device, m_depth_buffer, nullptr);
+	if (m_depth_buffer_memory != VK_NULL_HANDLE) vkFreeMemory(logical_device, m_depth_buffer_memory, nullptr);
+
+	for (auto& view : m_image_views)
+	{
+		vkDestroyImageView(logical_device, view, nullptr);
+	}
+
+	for (auto& image : m_images)
+	{
+		if (image != VK_NULL_HANDLE) vkDestroyImage(logical_device, image, nullptr);
+	}
+
+	for (auto& image_memory : m_images_memory)
+	{
+		vkFreeMemory(logical_device, image_memory, nullptr);
+	}
+
+	vkDestroyRenderPass(logical_device, m_render_pass, nullptr);
+
+	for (auto buffer : m_frame_buffers)
+	{
+		vkDestroyFramebuffer(logical_device, buffer, nullptr);
 	}
 }
