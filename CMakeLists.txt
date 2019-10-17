@@ -385,6 +385,7 @@ add_custom_command(TARGET WispVK PRE_BUILD
 # Build Tests
 message(STATUS "${Magenta}Configuring WispVk Tests & Benchmarks:${ColorReset}")
 add_subdirectory(tests)
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Demo)
 
 message(STATUS "${Magenta}WispVK Configuration Info:${ColorReset}")
 if(NOT CMAKE_BUILD_TYPE)
