@@ -45,7 +45,7 @@ macro(add_dependency)
 
 	  if(${ADD_DEP_USE_CMAKELIST})
 		message("\t\t ${Grey}Using CMakeLists.txt${ColorReset}")
-		#set(MESSAGE_QUIET ON)
+		set(MESSAGE_QUIET ON)
         add_subdirectory(${${contentNameLower}_SOURCE_DIR}
                          ${${contentNameLower}_BINARY_DIR})
 		unset(MESSAGE_QUIET)
@@ -98,7 +98,29 @@ set( ASSIMP_BUILD_NFF_IMPORTER      OFF )
 set( ASSIMP_BUILD_NDO_IMPORTER      OFF )
 set( ASSIMP_BUILD_OFF_IMPORTER      OFF )
 set( ASSIMMP_BUILD_OBJ_IMPORTER     ON CACHE BOOL "" FORCE)
+set( ASSIMP_BUILD_OGRE_IMPORTER     OFF )
+set( ASSIMP_BUILD_OPENGEX_IMPORTER  OFF )
+set( ASSIMP_BUILD_PLY_IMPORTER      OFF )
+set( ASSIMP_BUILD_MS3D_IMPORTER     OFF )
+set( ASSIMP_BUILD_COB_IMPORTER      OFF )
+set( ASSIMP_BUILD_BLEND_IMPORTER    OFF )
+set( ASSIMP_BUILD_IFC_IMPORTER      OFF )
+set( ASSIMP_BUILD_XGL_IMPORTER      OFF )
+set( ASSIMMP_BUILD_STEP_IMPORTER    OFF )
 set( ASSIMMP_BUILD_FBX_IMPORTER     ON CACHE BOOL "" FORCE)
+set( ASSIMP_BUILD_Q3D_IMPORTER      OFF )
+set( ASSIMP_BUILD_Q3BSP_IMPORTER    OFF )
+set( ASSIMP_BUILD_RAW_IMPORTER      OFF )
+set( ASSIMP_BUILD_SIB_IMPORTER      OFF )
+set( ASSIMP_BUILD_SMD_IMPORTER      OFF )
+set( ASSIMP_BUILD_STL_IMPORTER      OFF )
+set( ASSIMP_BUILD_TERRAGEN_IMPORTER OFF )
+set( ASSIMP_BUILD_3D_IMPORTER       OFF )
+set( ASSIMP_BUILD_X_IMPORTER        OFF )
+set( ASSIMP_BUILD_X3D_IMPORTER      OFF )
+set( ASSIMP_BUILD_GLTF_IMPORTER     OFF )
+set( ASSIMP_BUILD_3MF_IMPORTER      OFF )
+set( ASSIMP_BUILD_MMD_IMPORTER      OFF )
 # END IMPORTERS
 
 message(STATUS "${Magenta}Setting Up Dependencies${ColorReset}")
@@ -261,22 +283,22 @@ endif ()
 
 # Setup MSVC Folders
 if(MSVC)
-	set_target_properties(assimp PROPERTIES FOLDER ThirdParty)
-	set_target_properties(IrrXML PROPERTIES FOLDER ThirdParty)
-	set_target_properties(UpdateAssimpLibsDebugSymbolsAndDLLs PROPERTIES FOLDER ThirdParty)
+	set_target_properties(assimp PROPERTIES FOLDER "Third Party")
+	set_target_properties(IrrXML PROPERTIES FOLDER "Third Party")
+	set_target_properties(UpdateAssimpLibsDebugSymbolsAndDLLs PROPERTIES FOLDER "Third Party")
 	if (TARGET zlib)
-		set_target_properties(zlib PROPERTIES FOLDER ThirdParty)
-		set_target_properties(zlibstatic PROPERTIES FOLDER ThirdParty)
+		set_target_properties(zlib PROPERTIES FOLDER "Third Party")
+		set_target_properties(zlibstatic PROPERTIES FOLDER "Third Party")
 	endif()
-	set_target_properties(uninstall PROPERTIES FOLDER ThirdParty)
-	set_target_properties(benchmark PROPERTIES FOLDER ThirdParty)
-	set_target_properties(benchmark_main PROPERTIES FOLDER ThirdParty)
-	set_target_properties(gtest PROPERTIES FOLDER ThirdParty)
-	set_target_properties(gtest_main PROPERTIES FOLDER ThirdParty)
-	set_target_properties(gmock PROPERTIES FOLDER ThirdParty)
-	set_target_properties(gmock_main PROPERTIES FOLDER ThirdParty)
-	set_target_properties(fmt PROPERTIES FOLDER ThirdParty)
-	set_target_properties(glfw PROPERTIES FOLDER ThirdParty)
+	set_target_properties(uninstall PROPERTIES FOLDER "Third Party")
+	set_target_properties(benchmark PROPERTIES FOLDER "Third Party")
+	set_target_properties(benchmark_main PROPERTIES FOLDER "Third Party")
+	set_target_properties(gtest PROPERTIES FOLDER "Third Party")
+	set_target_properties(gtest_main PROPERTIES FOLDER "Third Party")
+	set_target_properties(gmock PROPERTIES FOLDER "Third Party")
+	set_target_properties(gmock_main PROPERTIES FOLDER "Third Party")
+	set_target_properties(fmt PROPERTIES FOLDER "Third Party")
+	set_target_properties(glfw PROPERTIES FOLDER "Third Party")
 endif()
 
 # C++ settings
@@ -310,16 +332,45 @@ endif()
 set(CMAKE_DEBUG_POSTFIX "d")
 
 # Source files
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
-file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp")
+file(GLOB SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+file(GLOB HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp")
+file(GLOB SOURCES_FG CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/frame_graph/*.cpp")
+file(GLOB HEADERS_FG CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/frame_graph/*.hpp")
+file(GLOB SOURCES_SG CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/scene_graph/*.cpp")
+file(GLOB HEADERS_SG CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/scene_graph/*.hpp")
+file(GLOB SOURCES_TASKS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/render_tasks/*.cpp")
+file(GLOB HEADERS_TASKS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/render_tasks/*.hpp")
+file(GLOB SOURCES_UTIL CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/util/*.cpp")
+file(GLOB HEADERS_UTIL CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/util/*.hpp")
+file(GLOB SOURCES_GFX CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/*.cpp")
+file(GLOB HEADERS_GFX CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/*.hpp")
+file(GLOB SOURCES_IMGUI CONFIGURE_DEPENDS "${imgui_SOURCE_DIR}/*.cpp")
+file(GLOB HEADERS_IMGUI CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/imgui/*.hpp")
+
 file(GLOB_RECURSE GLSL_SOURCE_FILES CONFIGURE_DEPENDS
 		"${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/*.frag"
 		"${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/*.vert"
 		"${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/*.comp")
-file(GLOB IMGUI CONFIGURE_DEPENDS "${imgui_SOURCE_DIR}/*.cpp")
+
+source_group("High Level API" FILES ${SOURCES} ${HEADERS})
+source_group("Frame Graph" FILES ${HEADERS_FG} ${SOURCES_FG})
+source_group("Scene Graph" FILES ${HEADERS_SG} ${SOURCES_SG})
+source_group("Render Tasks" FILES ${SOURCES_TASKS} ${HEADERS_TASKS})
+source_group("Graphics" FILES ${HEADERS_GFX} ${SOURCES_GFX})
+source_group("Utility" FILES ${HEADERS_UTIL} ${SOURCES_UTIL})
+source_group("ImGui" FILES ${HEADERS_IMGUI} ${SOURCES_IMGUI})
+source_group("Shaders" FILES ${GLSL_SOURCE_FILES})
 
 # Application
-add_library(WispVK ${HEADERS} ${SOURCES} ${GLSL_SOURCE_FILES} ${IMGUI})
+add_library(WispVK
+	${HEADERS} ${SOURCES}
+	${HEADERS_FG} ${SOURCES_FG}
+	${HEADERS_SG} ${SOURCES_SG}
+	${HEADERS_TASKS} ${SOURCES_TASKS}
+	${HEADERS_UTIL} ${SOURCES_UTIL}
+	${HEADERS_GFX} ${SOURCES_GFX}
+	${HEADERS_IMGUI} ${SOURCES_IMGUI}
+	${GLSL_SOURCE_FILES})
 target_link_libraries(WispVK ${VULKAN_LIBRARY} glfw fmt assimp)
 target_include_directories(WispVK PUBLIC
 	${glfw_SOURCE_DIR}/include
