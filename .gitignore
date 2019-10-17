@@ -1,5 +1,7 @@
 *.swp
 /build/
+/build_vs2019/
+/build_mingw/
 /cmake-build-debug/
 /cmake-build-release/
 /.idea/
