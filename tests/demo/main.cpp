@@ -107,6 +107,8 @@ protected:
 			ImGui::DragFloat("Ball Reflectivity", &m_ball_reflectivity, 0.01, -0, 1);
 			ImGui::DragFloat("Ball Anisotropy", &m_ball_anisotropy, 0.01, -1, 1);
 			ImGui::DragFloat3("Ball Anisotropy Dir", reinterpret_cast<float*>(&m_ball_anisotropy_dir), 0.01, -1, 1);
+			ImGui::DragFloat("Ball Clear Coat", &m_ball_clear_coat, 0.01, 0, 1);
+			ImGui::DragFloat("Ball Clear Coat Roughness", &m_ball_clear_coat_roughness, 0.01, 0, 1);
 
 			ImGui::Separator();
 
@@ -142,6 +144,8 @@ protected:
 
 				m_sphere_materials[i].m_base_reflectivity = m_ball_reflectivity;
 				m_sphere_materials[i].m_base_anisotropy = m_ball_anisotropy;
+				m_sphere_materials[i].m_base_clear_coat = m_ball_clear_coat;
+				m_sphere_materials[i].m_base_clear_coat_roughness = m_ball_clear_coat_roughness;
 				m_material_pool->Update(mesh_handle, m_sphere_materials[i]);
 				m_sphere_materials[i].m_base_anisotropy_dir = m_ball_anisotropy_dir;
 				i++;
@@ -496,6 +500,8 @@ protected:
 	float m_ball_reflectivity = 0.5;
 	float m_ball_anisotropy = 0;
 	glm::vec3 m_ball_anisotropy_dir = { 1, 0, 0 };
+	float m_ball_clear_coat = 0;
+	float m_ball_clear_coat_roughness = 0;
 
 	std::vector<sg::NodeHandle> m_sphere_nodes;
 	std::vector<MaterialHandle> m_sphere_material_handles;

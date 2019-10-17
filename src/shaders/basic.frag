@@ -22,9 +22,17 @@ layout(set = 3, binding = 3) uniform UniformBufferObject {
     float metallic;
     float normal_strength;
     float anisotropy;
-	vec3 anisotropy_dir;
-	float unused;
+	vec2 anisotropy_dir;
+	float clear_coat;
+	float clear_coat_roughness;
 } material;
+
+highp int EncodeMaterialProperties(float x, float y)
+{
+	lowp int i_x = int(x * 200.f);
+	lowp int i_y = int(y * 200.f);
+	return i_x | (i_y << 8);
+}
 
 void main()
 {
@@ -46,12 +54,13 @@ void main()
     // disable normal mapping
     obj_normal = material.normal_strength > -1 ? obj_normal : normal;
 
-	vec3 anisotropic_t = normalize(TBN * material.anisotropy_dir);
-	vec3 anisotropic_b = normalize(cross(normal, anisotropic_t));
-    
+	vec3 anisotropic_t = normalize(TBN * vec3(material.anisotropy_dir, 0));
+
 	out_color = vec4(albedo.rgb, roughness);
     out_normal = vec4(obj_normal, metallic);
     out_pos = vec4(g_frag_pos, ao);
-    out_material = vec4(material.reflectivity, material.anisotropy, anisotropic_t.rg);
-	out_anisotropy = vec4(anisotropic_t.b, anisotropic_b);
+    out_material = vec4(EncodeMaterialProperties(material.reflectivity, material.anisotropy),
+						EncodeMaterialProperties(material.clear_coat, material.clear_coat_roughness),
+						anisotropic_t.rg);
+	out_anisotropy = vec4(anisotropic_t.b, normal);
 }

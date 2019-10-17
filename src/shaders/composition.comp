@@ -58,6 +58,13 @@ vec3 GetReflectionVec(vec3 N, vec3 V, float roughness, float anisotropy, vec3 an
 	return R;
 }
 
+vec2 DecodeMaterialProperties(float enc)
+{
+    const float x = float(int(enc) & 0xFF) / 200.f;
+	const float y = float((int(enc) >> 8)) / 200.f;
+	return vec2(x, y);
+}
+
 void main()
 {
     const ivec2 resolution = imageSize(t_output);
@@ -69,17 +76,24 @@ void main()
     const vec4 normal_metallic = imageLoad(ts_gbuffers[1], s_uv);
     const vec4 world_pos_ao = imageLoad(ts_gbuffers[2], s_uv);
     const vec4 reflectivity_anisotropy = imageLoad(ts_gbuffers[3], s_uv);
-	const vec4 anisotropytb = imageLoad(ts_gbuffers[4], s_uv);
+	const vec4 anisotropyt_geomnormal = imageLoad(ts_gbuffers[4], s_uv);
 
     const vec3 world_pos = world_pos_ao.xyz;
     const vec3 albedo = albedo_roughness.rgb;
     vec3 N = normal_metallic.xyz;
-    const float reflectivity = reflectivity_anisotropy.r;
-	const float anisotropy = reflectivity_anisotropy.g;
-	const vec3 anisotropic_t = vec3(reflectivity_anisotropy.ba, anisotropytb.r);
-	const vec3 anisotropic_b = vec3(anisotropytb.gba);
-	float clear_coat = 1.0;
-	float cc_roughness = clamp(0, MIN_PERCEPTUAL_ROUGHNESS, 1.0);;
+	vec3 geometric_normal = vec3(anisotropyt_geomnormal.gba);
+
+	// Anisotropy
+	const vec2 decoded_refl_aniso = DecodeMaterialProperties(reflectivity_anisotropy.r);
+    const float reflectivity = decoded_refl_aniso.x;
+	const float anisotropy = decoded_refl_aniso.y;
+	const vec3 anisotropic_t = vec3(reflectivity_anisotropy.ba, anisotropyt_geomnormal.r);
+	const vec3 anisotropic_b = normalize(cross(geometric_normal, anisotropic_t));
+
+	// Clear Coat
+	const vec2 decoded_cc_ccr = DecodeMaterialProperties(reflectivity_anisotropy.g);
+	float clear_coat = decoded_cc_ccr.x;
+	float cc_roughness = clamp(decoded_cc_ccr.y, MIN_PERCEPTUAL_ROUGHNESS, 1.0);
 
     #ifdef PBR_PLUS
     float roughness = clamp(albedo_roughness.a, MIN_PERCEPTUAL_ROUGHNESS, 1.f);
