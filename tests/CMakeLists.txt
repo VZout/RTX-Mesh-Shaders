@@ -48,5 +48,3 @@ endfunction(add_benchmark)
 add_test(demo Demo)
 add_test(test_pbr Test_PBR)
 add_benchmark(bm_scene_graph BM_SceneGraph)
-
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Demo)
