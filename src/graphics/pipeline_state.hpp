@@ -50,6 +50,7 @@ namespace gfx
 
 	private:
 		void CreateRenderPass();
+		void Cleanup();
 
 		Context* m_context;
 		Desc m_desc;

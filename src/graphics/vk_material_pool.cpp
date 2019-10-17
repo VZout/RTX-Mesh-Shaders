@@ -65,6 +65,11 @@ gfx::VkMaterialPool::~VkMaterialPool()
 	vkDestroyDescriptorSetLayout(logical_device, m_material_set_layout, nullptr);
 	vkDestroyDescriptorSetLayout(logical_device, m_material_cb_set_layout, nullptr);
 
+	for (auto mat : m_constant_buffers)
+	{
+		delete mat.second;
+	}
+
 	delete m_desc_heap;
 }
 
@@ -135,7 +140,7 @@ void gfx::VkMaterialPool::Load_Impl(MaterialHandle& handle, MaterialData const &
 		.m_border_color = gfx::enums::BorderColor::BORDER_WHITE,
 	};
 
-	auto buffer= new gfx::GPUBuffer(m_context, sizeof(cb::BasicMaterial), gfx::enums::BufferUsageFlag::CONSTANT_BUFFER);
+	auto buffer = new gfx::GPUBuffer(m_context, sizeof(cb::BasicMaterial), gfx::enums::BufferUsageFlag::CONSTANT_BUFFER);
 	auto descriptor_cb_set_id = m_desc_heap->CreateSRVFromCB(buffer, m_material_cb_set_layout, 3, 0);
 
 	cb::BasicMaterial material_cb_data;

@@ -14,7 +14,6 @@ gfx::GPUBuffer::GPUBuffer(gfx::Context* context, std::uint64_t size)
 	: m_context(context), m_size(size), m_mapped(false), m_mapped_data(nullptr), m_buffer(VK_NULL_HANDLE),
 	m_buffer_memory(VK_NULL_HANDLE)
 {
-
 }
 
 gfx::GPUBuffer::GPUBuffer(Context* context, std::uint64_t size, enums::BufferUsageFlag usage)
@@ -176,14 +175,9 @@ void gfx::StagingBuffer::FreeStagingResources()
 }
 
 
-gfx::Texture::Texture(gfx::Context* context, gfx::Texture::Desc desc, bool uav)
+gfx::Texture::Texture(gfx::Context* context, gfx::Texture::Desc desc)
 		: m_hidden_context(context), m_desc(desc),	m_texture(VK_NULL_HANDLE), m_texture_memory(VK_NULL_HANDLE)
 {
-	if (uav)
-	{
-		CreateImageAndMemory(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
-		                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_texture, m_texture_memory);
-	}
 }
 
 gfx::Texture::~Texture()
@@ -200,7 +194,7 @@ bool gfx::Texture::HasMipMaps()
 }
 
 void gfx::Texture::CreateImageAndMemory(VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
-                                        VkImage& image, VkDeviceMemory memory)
+                                        VkImage& image, VkDeviceMemory& memory)
 {
 	auto logical_device = m_hidden_context->m_logical_device;
 

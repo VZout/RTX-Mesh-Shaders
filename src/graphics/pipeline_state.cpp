@@ -95,10 +95,7 @@ gfx::PipelineState::PipelineState(Context* context, Desc desc)
 
 gfx::PipelineState::~PipelineState()
 {
-	auto logical_device = m_context->m_logical_device;
-
-	vkDestroyRenderPass(logical_device, m_render_pass, nullptr);
-	vkDestroyPipeline(logical_device, m_pipeline, nullptr);
+	Cleanup();
 }
 
 void gfx::PipelineState::SetViewport(Viewport* viewport)
@@ -129,7 +126,10 @@ void gfx::PipelineState::Compile()
 {
 	auto logical_device = m_context->m_logical_device;
 
-	CreateRenderPass();
+	if (m_desc.m_depth_format != VK_FORMAT_UNDEFINED || !m_desc.m_rtv_formats.empty())
+	{
+		CreateRenderPass();
+	}
 
 	// Vertex Input
 	m_vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -198,10 +198,7 @@ void gfx::PipelineState::Compile()
 
 void gfx::PipelineState::Recompile()
 {
-	auto logical_device = m_context->m_logical_device;
-
-	vkDestroyPipeline(logical_device, m_pipeline, nullptr);
-
+	Cleanup();
 	Compile();
 }
 
@@ -296,4 +293,15 @@ void gfx::PipelineState::CreateRenderPass()
 	{
 		LOGC("failed to create render pass!");
 	}
+}
+
+void gfx::PipelineState::Cleanup()
+{
+	auto logical_device = m_context->m_logical_device;
+
+	if (m_desc.m_depth_format != VK_FORMAT_UNDEFINED || !m_desc.m_rtv_formats.empty())
+	{
+		vkDestroyRenderPass(logical_device, m_render_pass, nullptr);
+	}
+	vkDestroyPipeline(logical_device, m_pipeline, nullptr);
 }

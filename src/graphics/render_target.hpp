@@ -54,6 +54,7 @@ namespace gfx
 		void CreateRenderPass();
 		void CreateDepthBuffer();
 		void CreateDepthBufferView();
+		void Cleanup();
 
 		Context* m_context;
 
