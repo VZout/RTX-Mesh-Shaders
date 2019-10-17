@@ -2,7 +2,7 @@ file(GLOB COMMON_SOURCES "common/*.cpp")
 file(GLOB COMMON_HEADERS "common/*.hpp")
 
 function(add_test TEST_DIR TEST_NAME)
-	message(STATUS "Configuring example ${TEST_NAME} in ${TEST_DIR}")
+	message(STATUS "\tConfiguring test ${BoldBlue}${TEST_NAME}${ColorReset} in ${Yellow}${TEST_DIR}${ColorReset}")
 
 	# source
 	file(GLOB SOURCES "${TEST_DIR}/*.cpp")
@@ -15,6 +15,7 @@ function(add_test TEST_DIR TEST_NAME)
 	set_target_properties(${TEST_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 	set_target_properties(${TEST_NAME} PROPERTIES CMAKE_CXX_STANDARD_REQUIRED ON)
 	set_target_properties(${TEST_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/../")
+	set_target_properties(${TEST_NAME} PROPERTIES FOLDER WispVK_Tests)
 	
 	if(MSVC)
 		set_target_properties(${TEST_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin/")
@@ -23,7 +24,7 @@ function(add_test TEST_DIR TEST_NAME)
 endfunction(add_test)
 
 function(add_benchmark TEST_DIR TEST_NAME)
-	message(STATUS "Configuring example ${TEST_NAME} in ${TEST_DIR}")
+	message(STATUS "\tConfiguring benchmark ${BoldBlue}${TEST_NAME}${ColorReset} in ${Yellow}${TEST_DIR}${ColorReset}")
 
 	# source
 	file(GLOB SOURCES "${TEST_DIR}/*.cpp")
@@ -36,6 +37,7 @@ function(add_benchmark TEST_DIR TEST_NAME)
 	set_target_properties(${TEST_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 	set_target_properties(${TEST_NAME} PROPERTIES CMAKE_CXX_STANDARD_REQUIRED ON)
 	set_target_properties(${TEST_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/../")
+	set_target_properties(${TEST_NAME} PROPERTIES FOLDER WispVK_Benchmarks)
 
 	if(MSVC)
 		set_target_properties(${TEST_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin/")
@@ -46,3 +48,5 @@ endfunction(add_benchmark)
 add_test(demo Demo)
 add_test(test_pbr Test_PBR)
 add_benchmark(bm_scene_graph BM_SceneGraph)
+
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Demo)

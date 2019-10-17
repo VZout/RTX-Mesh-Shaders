@@ -3,6 +3,59 @@ cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 project(TuringMeshShaders)
 include(FetchContent)
 
+if(MSVC)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+endif()
+
+# Sileceable message func
+function(message)
+    if (NOT MESSAGE_QUIET)
+        _message(${ARGN})
+    endif()
+endfunction()
+
+if(NOT WIN32)
+  string(ASCII 27 Esc)
+  set(ColorReset "${Esc}[m")
+  set(ColorBold  "${Esc}[1m")
+  set(Red         "${Esc}[31m")
+  set(Green       "${Esc}[32m")
+  set(Yellow      "${Esc}[33m")
+  set(Blue        "${Esc}[34m")
+  set(Magenta     "${Esc}[35m")
+  set(Cyan        "${Esc}[36m")
+  set(White       "${Esc}[37m")
+  set(BoldRed     "${Esc}[1;31m")
+  set(BoldGreen   "${Esc}[1;32m")
+  set(BoldYellow  "${Esc}[1;33m")
+  set(BoldBlue    "${Esc}[1;34m")
+  set(BoldMagenta "${Esc}[1;35m")
+  set(BoldCyan    "${Esc}[1;36m")
+  set(Grey        "${Esc}[90m")
+  set(BoldWhite   "${Esc}[1;37m")
+endif()
+
+macro(add_dependency)
+  foreach(contentName IN ITEMS ${ARGV})
+    string(TOLOWER ${contentName} contentNameLower)
+    FetchContent_GetProperties(${contentName})
+    if(NOT ${contentNameLower}_POPULATED)
+		message(STATUS "\tSetting up ${BoldBlue}${contentName}${ColorReset}")
+      FetchContent_Populate(${contentName})
+
+	  if(${ADD_DEP_USE_CMAKELIST})
+		message("\t\t ${Grey}Using CMakeLists.txt${ColorReset}")
+		set(MESSAGE_QUIET ON)
+        add_subdirectory(${${contentNameLower}_SOURCE_DIR}
+                         ${${contentNameLower}_BINARY_DIR})
+		unset(MESSAGE_QUIET)
+	  else()
+		message("\t\t ${Grey}Using as header only library${ColorReset}")
+      endif()
+    endif()
+  endforeach()
+endmacro()
+
 # CMake module path
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
@@ -54,54 +107,63 @@ set( ASSIMP_BUILD_XGL_IMPORTER      OFF )
 set( ASSIMMP_BUILD_FBX_IMPORTER     ON  ) #ON
 set( ASSIMP_BUILD_Q3D_IMPORTER      OFF )
 set( ASSIMP_BUILD_Q3BSP_IMPORTER    OFF )
-set( ASSIMP_BUILD_RAW_IMPORTER      ON  ) #ON
-set( ASSIMP_BUILD_SIB_IMPORTER      ON  ) #ON
-set( ASSIMP_BUILD_SMD_IMPORTER      ON  ) #ON
+set( ASSIMP_BUILD_RAW_IMPORTER      OFF )
+set( ASSIMP_BUILD_SIB_IMPORTER      OFF )
+set( ASSIMP_BUILD_SMD_IMPORTER      OFF )
 set( ASSIMP_BUILD_STL_IMPORTER      OFF )
 set( ASSIMP_BUILD_TERRAGEN_IMPORTER OFF )
 set( ASSIMP_BUILD_3D_IMPORTER       OFF )
 set( ASSIMP_BUILD_X_IMPORTER        OFF )
 set( ASSIMP_BUILD_X3D_IMPORTER      OFF )
-set( ASSIMP_BUILD_GLTF_IMPORTER     ON  ) #ON
+set( ASSIMP_BUILD_GLTF_IMPORTER     OFF )
 set( ASSIMP_BUILD_3MF_IMPORTER      OFF )
 set( ASSIMP_BUILD_MMD_IMPORTER      OFF )
 # END IMPORTERS
+
+message(STATUS "${Magenta}Setting Up Dependencies${ColorReset}")
 
 # Externals
 FetchContent_Declare(
   googletest
   GIT_REPOSITORY https://github.com/google/googletest.git
   GIT_TAG        release-1.10.0
+  GIT_SHALLOW true
 )
 FetchContent_Declare(
   benchmark
   GIT_REPOSITORY https://github.com/google/benchmark.git
   GIT_TAG        v1.5.0
+  GIT_SHALLOW true
 )
 FetchContent_Declare(
   fmt
   GIT_REPOSITORY https://github.com/fmtlib/fmt.git
   GIT_TAG        6.0.0
+  GIT_SHALLOW true
 )
 FetchContent_Declare(
   glfw
   GIT_REPOSITORY https://github.com/glfw/glfw.git
   GIT_TAG        3.3
+  GIT_SHALLOW true
 )
 FetchContent_Declare(
   imgui
   GIT_REPOSITORY https://github.com/ocornut/imgui.git
   GIT_TAG        origin/docking
+  GIT_SHALLOW true
 )
 FetchContent_Declare(
   glm
   GIT_REPOSITORY https://github.com/g-truc/glm.git
   GIT_TAG        0.9.9.6
+  GIT_SHALLOW true
 )
 FetchContent_Declare(
   tinygltf
   GIT_REPOSITORY https://github.com/syoyo/tinygltf.git
-  GIT_TAG        8dccf9bf4e50d40c986fb0ddd264dd766e432019
+  GIT_TAG        cece6ee6d2d002a9afe1795d7607f16922f1f19d
+  GIT_SHALLOW true
 )
 FetchContent_Declare(
   vulkan
@@ -112,6 +174,13 @@ FetchContent_Declare(
   assimp
   GIT_REPOSITORY https://github.com/assimp/assimp.git
   GIT_TAG        v5.0.0
+  GIT_SHALLOW true
+)
+FetchContent_Declare(
+  vma
+  GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+  GIT_TAG        v2.2.0
+  GIT_SHALLOW true
 )
 
 FetchContent_GetProperties(googletest)
@@ -129,47 +198,16 @@ set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
 set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "" FORCE)
 set(BENCHMARK_ENABLE_LTO OFF CACHE BOOL "" FORCE)
-# Build externals in release mode
+# Build some externals in release mode
 set(CMAKE_BUILD_TYPE Release)
-if(NOT googletest_POPULATED)
-	message(STATUS "Setting up dependency: googletest")
-	FetchContent_Populate(googletest)
-	add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
-endif()
-if(NOT benchmark_POPULATED)
-	message(STATUS "Setting up dependency: benchmark")
-	FetchContent_Populate(benchmark)
-	add_subdirectory(${benchmark_SOURCE_DIR} ${benchmark_BINARY_DIR})
-endif()
-if(NOT glfw_POPULATED)
-	message(STATUS "Setting up dependency: GLFW")
-	FetchContent_Populate(glfw)
-	add_subdirectory(${glfw_SOURCE_DIR} ${glfw_BINARY_DIR})
-endif()
-if(NOT assimp_POPULATED)
-	message(STATUS "Setting up dependency: ASSIMP")
-	FetchContent_Populate(assimp)
-	add_subdirectory(${assimp_SOURCE_DIR} ${assimp_BINARY_DIR})
-endif()
-if(NOT glm_POPULATED)
-	message(STATUS "Setting up dependency: GLM")
-	FetchContent_Populate(glm)
-endif()
-if(NOT tinygltf_POPULATED)
-	message(STATUS "Setting up dependency: TinyGLTF")
-	FetchContent_Populate(tinygltf)
-endif()
+set(ADD_DEP_USE_CMAKELIST TRUE)
+add_dependency(googletest benchmark glfw assimp) # Libraries build in release mode.
 unset(CMAKE_BUILD_TYPE CACHE)
 set(CMAKE_BUILD_TYPE)
-if(NOT fmt_POPULATED)
-	message(STATUS "Setting up dependency: fmt")
-	FetchContent_Populate(fmt)
-	add_subdirectory(${fmt_SOURCE_DIR} ${fmt_BINARY_DIR})
-endif()
-if(NOT imgui_POPULATED)
-	message(STATUS "Setting up dependency: ImGUI")
-	FetchContent_Populate(imgui)
-endif()
+set(ADD_DEP_USE_CMAKELIST FALSE)
+add_dependency(glm glm imgui tinygltf) # Header only libraries.
+set(ADD_DEP_USE_CMAKELIST TRUE)
+add_dependency(fmt) # Libraries build in debug mode.
 
 # Vulkan External
 # Use FindVulkan module
@@ -180,7 +218,7 @@ if (WIN32)
 	if (NOT VULKAN_FOUND)
 		FetchContent_GetProperties(vulkan)
 		if(NOT vulkan_POPULATED)
-			message(STATUS "Setting up dependency: VulkanLibHeaders")
+			message(STATUS "Setting up VulkanLibHeaders")
 			FetchContent_Populate(vulkan)
 		endif()
 		find_library(VULKAN_LIBRARY NAMES vulkan-1 vulkan PATHS ${vulkan_SOURCE_DIR}/libs)
@@ -239,6 +277,27 @@ endif (WIN32)
 if (NOT VULKAN_FOUND)
 	message(FATAL_ERROR "Could not find Vulkan library!")
 endif ()
+
+# Setup MSVC Folders
+if(MSVC)
+	set_target_properties(assimp PROPERTIES FOLDER ThirdParty)
+	set_target_properties(assimp_cmd PROPERTIES FOLDER ThirdParty)
+	set_target_properties(IrrXML PROPERTIES FOLDER ThirdParty)
+	set_target_properties(UpdateAssimpLibsDebugSymbolsAndDLLs PROPERTIES FOLDER ThirdParty)
+	if (TARGET zlib)
+		set_target_properties(zlib PROPERTIES FOLDER ThirdParty)
+		set_target_properties(zlibstatic PROPERTIES FOLDER ThirdParty)
+	endif()
+	set_target_properties(uninstall PROPERTIES FOLDER ThirdParty)
+	set_target_properties(benchmark PROPERTIES FOLDER ThirdParty)
+	set_target_properties(benchmark_main PROPERTIES FOLDER ThirdParty)
+	set_target_properties(gtest PROPERTIES FOLDER ThirdParty)
+	set_target_properties(gtest_main PROPERTIES FOLDER ThirdParty)
+	set_target_properties(gmock PROPERTIES FOLDER ThirdParty)
+	set_target_properties(gmock_main PROPERTIES FOLDER ThirdParty)
+	set_target_properties(fmt PROPERTIES FOLDER ThirdParty)
+	set_target_properties(glfw PROPERTIES FOLDER ThirdParty)
+endif()
 
 # C++ settings
 set(CMAKE_CXX_STANDARD 20)
@@ -311,11 +370,11 @@ foreach(GLSL ${GLSL_SOURCE_FILES})
 endforeach(GLSL)
 
 add_custom_target(
-    Shaders 
+    WispVK_Shaders 
     DEPENDS ${SPIRV_BINARY_FILES}
     )
 
-add_dependencies(WispVK Shaders)
+add_dependencies(WispVK WispVK_Shaders)
 
 # Copy external resources
 add_custom_command(TARGET WispVK PRE_BUILD
@@ -324,4 +383,13 @@ add_custom_command(TARGET WispVK PRE_BUILD
 		COMMENT "Copying Resources")
 
 # Build Tests
+message(STATUS "${Magenta}Configuring WispVk Tests & Benchmarks:${ColorReset}")
 add_subdirectory(tests)
+
+message(STATUS "${Magenta}WispVK Configuration Info:${ColorReset}")
+if(NOT CMAKE_BUILD_TYPE)
+	message("\tBuild Type: ${Yellow}${CMAKE_CONFIGURATION_TYPES}${ColorReset}")
+else()
+	message("\tBuild Type: ${Yellow}${BUILD_TYPE}${ColorReset}")
+endif()
+message("\tC++ Version: ${Yellow}${CMAKE_CXX_STANDARD}${ColorReset}")
