@@ -12,15 +12,17 @@
 #include "gpu_buffers.hpp"
 #include "../util/log.hpp"
 
-gfx::VkConstantBufferPool::VkConstantBufferPool(Context* context, std::uint32_t binding, VkShaderStageFlags flags)
+gfx::VkConstantBufferPool::VkConstantBufferPool(Context* context, std::size_t buffer_size, std::size_t num_buffers, std::uint32_t binding, VkShaderStageFlags flags)
 	: m_context(context), m_binding(binding), m_cb_set_layout(VK_NULL_HANDLE), m_desc_heap(nullptr)
 {
 	auto logical_device = context->m_logical_device;
 
 	gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
 	descriptor_heap_desc.m_versions = gfx::settings::num_back_buffers;
-	descriptor_heap_desc.m_num_descriptors = 300;
+	descriptor_heap_desc.m_num_descriptors = num_buffers;
 	m_desc_heap = new gfx::DescriptorHeap(m_context, descriptor_heap_desc);
+
+	m_pool = new MemoryPool(m_context, buffer_size, num_buffers * gfx::settings::num_back_buffers);
 
 	m_buffers.resize(gfx::settings::num_back_buffers);
 
@@ -59,6 +61,7 @@ gfx::VkConstantBufferPool::~VkConstantBufferPool()
 	vkDestroyDescriptorSetLayout(logical_device, m_cb_set_layout, nullptr);
 
 	delete m_desc_heap;
+	delete m_pool;
 }
 
 void gfx::VkConstantBufferPool::Update(ConstantBufferHandle handle, std::uint64_t size, void* data, std::uint32_t frame_idx, std::uint64_t offset)
@@ -75,7 +78,8 @@ void gfx::VkConstantBufferPool::Allocate_Impl(ConstantBufferHandle& handle, std:
 {
 	for (std::uint32_t frame_idx = 0; frame_idx < gfx::settings::num_back_buffers; frame_idx++)
 	{
-		auto buffer= new gfx::GPUBuffer(m_context, size, gfx::enums::BufferUsageFlag::CONSTANT_BUFFER);
+		// TODO: memory pool
+		auto buffer= new gfx::GPUBuffer(m_context, m_pool, size, gfx::enums::BufferUsageFlag::CONSTANT_BUFFER);
 		buffer->Map();
 		handle.m_cb_set_id = m_desc_heap->CreateSRVFromCB(buffer, m_cb_set_layout, m_binding, frame_idx);
 		m_buffers[frame_idx].push_back(buffer);

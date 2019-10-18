@@ -8,6 +8,8 @@
 
 #include <vulkan/vulkan.h>
 #include <cstdint>
+#include <vk_mem_alloc.h>
+#include <optional>
 
 #include "gfx_enums.hpp"
 
@@ -18,15 +20,31 @@ namespace gfx
 
 	class Context;
 
+	class MemoryPool
+	{
+		friend class GPUBuffer;
+		friend class Texture;
+	public:
+		MemoryPool(Context* context, std::size_t block_size, std::size_t num_blocks);
+		~MemoryPool();
+
+	private:
+		Context* m_context;
+		VmaPool m_pool;
+
+		std::size_t m_block_size;
+		std::size_t m_num_blocks;
+	};
+
 	class GPUBuffer
 	{
 		friend class CommandList;
 		friend class DescriptorHeap;
 		friend class ::ImGuiImpl;
 	public:
-		GPUBuffer(Context* context, std::uint64_t size);
-		GPUBuffer(Context* context, std::uint64_t size, enums::BufferUsageFlag usage);
-		GPUBuffer(Context* context, void* data, std::uint64_t size, std::uint64_t stride, enums::BufferUsageFlag usage);
+		GPUBuffer(Context* context, std::optional<MemoryPool*> pool, std::uint64_t size);
+		GPUBuffer(Context* context, std::optional<MemoryPool*> pool, std::uint64_t size, enums::BufferUsageFlag usage);
+		GPUBuffer(Context* context, std::optional<MemoryPool*> pool, void* data, std::uint64_t size, std::uint64_t stride, enums::BufferUsageFlag usage);
 		virtual ~GPUBuffer();
 
 		virtual void Map();
@@ -34,25 +52,26 @@ namespace gfx
 		void Update(void* data, std::uint64_t size, std::uint64_t offset = 0);
 
 	protected:
-		void CreateBufferAndMemory(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
-				VkBuffer& buffer, VkDeviceMemory& memory);
-		void Map_Internal(VkDeviceMemory memory);
-		void Unmap_Internal(VkDeviceMemory memory);
+		void CreateBufferAndMemory(std::optional<MemoryPool*> pool, VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memory_usage,
+			VkBuffer& buffer, VmaAllocation& allocation);
+		void Map_Internal(VmaAllocation& allocation);
+		void Unmap_Internal(VmaAllocation& allocation);
 
 		Context* m_context;
+		std::optional<MemoryPool*> m_pool;
 
 		std::uint64_t m_size;
 		bool m_mapped;
 		void* m_mapped_data;
 		VkBuffer m_buffer;
-		VkDeviceMemory m_buffer_memory;
+		VmaAllocation m_buffer_allocation;
 	};
 
 	class StagingBuffer : public GPUBuffer
 	{
 		friend class CommandList;
 	public:
-		StagingBuffer(Context* context, void* data, std::uint64_t size, std::uint64_t stride, enums::BufferUsageFlag usage);
+		StagingBuffer(Context* context, std::optional<MemoryPool*> pool, std::optional<MemoryPool*> staging_pool, void* data, std::uint64_t size, std::uint64_t stride, enums::BufferUsageFlag usage);
 		~StagingBuffer() final;
 
 		void Map() final;
@@ -62,7 +81,7 @@ namespace gfx
 	private:
 		std::uint64_t m_stride;
 		VkBuffer m_staging_buffer;
-		VkDeviceMemory m_staging_buffer_memory;
+		VmaAllocation m_staging_buffer_allocation;
 	};
 
 	class Texture
@@ -83,21 +102,22 @@ namespace gfx
 			bool m_is_hdr = false;
 		};
 
-		Texture(Context* context, Desc desc);
+		Texture(Context* context, std::optional<MemoryPool*> pool, Desc desc);
 		virtual ~Texture();
 
 		bool HasMipMaps();
 
 	protected:
-		void CreateImageAndMemory(VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
-		                          VkImage& image, VkDeviceMemory& memory);
+		void CreateImageAndMemory(VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memory_usage,
+		                          VkImage& image, VmaAllocation& allocation);
 	private:
 		Context* m_hidden_context;
+		std::optional<MemoryPool*> m_hidden_pool;
 
 	protected:
 		Desc m_desc;
 		VkImage m_texture;
-		VkDeviceMemory m_texture_memory;
+		VmaAllocation m_texture_allocation;
 	};
 
 	class StagingTexture : public GPUBuffer, public Texture
@@ -106,8 +126,8 @@ namespace gfx
 		friend class CommandList;
 	public:
 
-		StagingTexture(Context* context, Desc desc);
-		StagingTexture(Context* context, Desc desc, void* pixels);
+		StagingTexture(Context* context, std::optional<MemoryPool*> pool, Desc desc);
+		StagingTexture(Context* context, std::optional<MemoryPool*> pool, Desc desc, void* pixels);
 		~StagingTexture() final = default;
 
 		void FreeStagingResources();

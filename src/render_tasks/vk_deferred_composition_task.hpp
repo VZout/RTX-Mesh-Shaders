@@ -33,8 +33,6 @@ namespace tasks
 
 	struct DeferredCompositionData
 	{
-		std::vector<gfx::GPUBuffer*> m_cbs;
-		std::vector<std::vector<std::uint32_t>> m_cb_sets;
 		std::uint32_t m_gbuffer_set;
 		std::uint32_t m_skybox_set;
 		std::uint32_t m_irradiance_set;
@@ -113,20 +111,6 @@ namespace tasks
 				auto brdf_rt = fg.GetPredecessorRenderTarget<GenerateBRDFLutData>();
 				data.m_brdf_set = data.m_gbuffer_heap->CreateSRVSetFromRT(brdf_rt, data.m_root_sig, 7, 0, false, lut_sampler_desc);
 			}
-
-			if (resize) return;
-
-			// Descriptors uniform camera
-			auto desc_heap = rs.GetDescHeap();
-			data.m_cb_sets.resize(gfx::settings::num_back_buffers);
-			data.m_cbs.resize(gfx::settings::num_back_buffers);
-			for (std::uint32_t frame_idx = 0; frame_idx < gfx::settings::num_back_buffers; frame_idx++)
-			{
-				data.m_cbs[frame_idx] = new gfx::GPUBuffer(context, sizeof(cb::Camera), gfx::enums::BufferUsageFlag::CONSTANT_BUFFER);
-				data.m_cbs[frame_idx]->Map();
-
-				data.m_cb_sets[frame_idx].push_back(desc_heap->CreateSRVFromCB(data.m_cbs[frame_idx], data.m_root_sig, 0, frame_idx));
-			}
 		}
 
 		inline void ExecuteDeferredCompositionTask(Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, fg::RenderTaskHandle handle)
@@ -164,13 +148,6 @@ namespace tasks
 		{
 			auto& data = fg.GetData<DeferredCompositionData>(handle);
 			delete data.m_gbuffer_heap;
-
-			if (resize) return;
-
-			for (auto& cb : data.m_cbs)
-			{
-				delete cb;
-			}
 		}
 
 	} /* internal */

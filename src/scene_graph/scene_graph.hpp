@@ -21,6 +21,8 @@
 #include "../constant_buffer_pool.hpp"
 #include "../graphics/gfx_settings.hpp"
 
+class Renderer;
+
 namespace sg
 {
 
@@ -80,7 +82,7 @@ namespace sg
 	class SceneGraph
 	{
 	public:
-		SceneGraph();
+		SceneGraph(Renderer* renderer);
 		~SceneGraph();
 
 		NodeHandle CreateNode();
@@ -214,11 +216,8 @@ namespace sg
 
 		void Update(std::uint32_t frame_idx);
 
-		void SetPOConstantBufferPool(ConstantBufferPool* pool);
 		ConstantBufferPool* GetPOConstantBufferPool();
-		void SetCameraConstantBufferPool(ConstantBufferPool* pool);
 		ConstantBufferPool* GetCameraConstantBufferPool();
-		void SetLightConstantBufferPool(ConstantBufferPool* pool);
 		ConstantBufferPool* GetLightConstantBufferPool();
 		ConstantBufferHandle GetLightBufferHandle();
 

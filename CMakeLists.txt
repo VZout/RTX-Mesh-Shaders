@@ -194,6 +194,7 @@ FetchContent_GetProperties(imgui)
 FetchContent_GetProperties(glm)
 FetchContent_GetProperties(tinygltf)
 FetchContent_GetProperties(assimp)
+FetchContent_GetProperties(vma)
 # Set external options
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -208,7 +209,7 @@ add_dependency(googletest benchmark glfw assimp) # Libraries build in release mo
 unset(CMAKE_BUILD_TYPE CACHE)
 set(CMAKE_BUILD_TYPE)
 set(ADD_DEP_USE_CMAKELIST FALSE)
-add_dependency(glm glm imgui tinygltf) # Header only libraries.
+add_dependency(glm glm imgui tinygltf vma) # Header only libraries.
 set(ADD_DEP_USE_CMAKELIST TRUE)
 add_dependency(fmt) # Libraries build in debug mode.
 
@@ -369,14 +370,14 @@ add_library(WispVK
 	${HEADERS_TASKS} ${SOURCES_TASKS}
 	${HEADERS_UTIL} ${SOURCES_UTIL}
 	${HEADERS_GFX} ${SOURCES_GFX}
-	${HEADERS_IMGUI} ${SOURCES_IMGUI}
-	${GLSL_SOURCE_FILES})
+	${HEADERS_IMGUI} ${SOURCES_IMGUI})
 target_link_libraries(WispVK ${VULKAN_LIBRARY} glfw fmt assimp)
 target_include_directories(WispVK PUBLIC
 	${glfw_SOURCE_DIR}/include
 	${vulkan_SOURCE_DIR}/include
 	${glm_SOURCE_DIR}/glm
 	${imgui_SOURCE_DIR}
+	${vma_SOURCE_DIR}/src
 	${fmt_SOURCE_DIR}/include
 	${assimp_SOURCE_DIR}/include
 	${tinygltf_SOURCE_DIR})
@@ -403,6 +404,7 @@ endforeach(GLSL)
 add_custom_target(
     WispVK_Shaders 
     DEPENDS ${SPIRV_BINARY_FILES}
+	SOURCES ${GLSL_SOURCE_FILES}
     )
 
 add_dependencies(WispVK WispVK_Shaders)

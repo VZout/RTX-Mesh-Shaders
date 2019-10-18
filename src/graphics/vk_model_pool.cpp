@@ -34,8 +34,8 @@ gfx::VkModelPool::~VkModelPool()
 void gfx::VkModelPool::AllocateMesh(void* vertex_data, std::uint32_t num_vertices, std::uint32_t vertex_stride,
 		void* index_data, std::uint32_t num_indices, std::uint32_t index_stride)
 {
-	auto vb = new gfx::StagingBuffer(m_context, vertex_data, num_vertices, vertex_stride, gfx::enums::BufferUsageFlag::VERTEX_BUFFER);
-	auto ib = new gfx::StagingBuffer(m_context, index_data, num_indices, index_stride, gfx::enums::BufferUsageFlag::INDEX_BUFFER);
+	auto vb = new gfx::StagingBuffer(m_context, std::nullopt, std::nullopt, vertex_data, num_vertices, vertex_stride, gfx::enums::BufferUsageFlag::VERTEX_BUFFER);
+	auto ib = new gfx::StagingBuffer(m_context, std::nullopt, std::nullopt, index_data, num_indices, index_stride, gfx::enums::BufferUsageFlag::INDEX_BUFFER);
 
 	m_vertex_buffers.push_back(vb);
 	m_index_buffers.push_back(ib);

@@ -28,10 +28,7 @@ static void BM_SceneGraphMeshNode(benchmark::State& state) {
 	auto renderer = new Renderer();
 	renderer->Init(app);
 
-	auto sg = new sg::SceneGraph();
-	sg->SetPOConstantBufferPool(renderer->CreateConstantBufferPool(1));
-	sg->SetCameraConstantBufferPool(renderer->CreateConstantBufferPool(0, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT));
-	sg->SetLightConstantBufferPool(renderer->CreateConstantBufferPool(3, VK_SHADER_STAGE_COMPUTE_BIT));
+	auto sg = new sg::SceneGraph(renderer);
 
 	std::vector<sg::NodeHandle> nodes(num_mesh_nodes);
 	for (auto& node : nodes)

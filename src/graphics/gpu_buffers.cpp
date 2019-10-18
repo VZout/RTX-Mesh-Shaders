@@ -10,28 +10,72 @@
 #include "context.hpp"
 #include "gfx_defines.hpp"
 
-gfx::GPUBuffer::GPUBuffer(gfx::Context* context, std::uint64_t size)
-	: m_context(context), m_size(size), m_mapped(false), m_mapped_data(nullptr), m_buffer(VK_NULL_HANDLE),
-	m_buffer_memory(VK_NULL_HANDLE)
+template<typename T, typename A>
+constexpr inline T SizeAlignTwoPower(T size, A alignment)
+{
+	return (size + (alignment - 1U)) & ~(alignment - 1U);
+}
+
+template<typename T, typename A>
+constexpr inline T SizeAlignAnyAlignment(T size, A alignment)
+{
+	return (size / alignment + (size % alignment > 0)) * alignment;
+}
+
+gfx::MemoryPool::MemoryPool(Context* context, std::size_t block_size, std::size_t num_blocks)
+	: m_context(context), m_block_size(block_size), m_num_blocks(num_blocks)
+{
+	auto vma_allocator = context->m_vma_allocator;
+
+	VkBufferCreateInfo exampleBufCreateInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+	exampleBufCreateInfo.size = block_size;
+	exampleBufCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+	VmaAllocationCreateInfo allocCreateInfo = {};
+	allocCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+	uint32_t memTypeIndex;
+	vmaFindMemoryTypeIndexForBufferInfo(vma_allocator, &exampleBufCreateInfo, &allocCreateInfo, &memTypeIndex);
+
+	VmaPoolCreateInfo pool_create_info = {};
+	pool_create_info.memoryTypeIndex = memTypeIndex;
+	pool_create_info.blockSize = SizeAlignAnyAlignment(block_size, 256);
+	pool_create_info.maxBlockCount = num_blocks;
+	pool_create_info.flags = VMA_POOL_CREATE_LINEAR_ALGORITHM_BIT;
+
+	if (vmaCreatePool(vma_allocator, &pool_create_info, &m_pool) != VK_SUCCESS)
+	{
+		LOGC("Failed to create VMA memory pool");
+	}
+}
+
+gfx::MemoryPool::~MemoryPool()
+{
+	auto vma_allocator = m_context->m_vma_allocator;
+
+	vmaDestroyPool(vma_allocator, m_pool);
+}
+
+gfx::GPUBuffer::GPUBuffer(gfx::Context* context, std::optional<MemoryPool*> pool, std::uint64_t size)
+	: m_context(context), m_pool(pool), m_size(size), m_mapped(false), m_mapped_data(nullptr), m_buffer(VK_NULL_HANDLE),
+	m_buffer_allocation(VK_NULL_HANDLE)
 {
 }
 
-gfx::GPUBuffer::GPUBuffer(Context* context, std::uint64_t size, enums::BufferUsageFlag usage)
-		: m_context(context), m_size(size), m_mapped(false), m_mapped_data(nullptr), m_buffer(VK_NULL_HANDLE),
-		  m_buffer_memory(VK_NULL_HANDLE)
+gfx::GPUBuffer::GPUBuffer(Context* context, std::optional<MemoryPool*> pool, std::uint64_t size, enums::BufferUsageFlag usage)
+	: m_context(context), m_pool(pool), m_size(size), m_mapped(false), m_mapped_data(nullptr), m_buffer(VK_NULL_HANDLE),
+	m_buffer_allocation(VK_NULL_HANDLE)
 {
 	// Create default buffer
-	CreateBufferAndMemory(m_size, (int)usage, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-	                      m_buffer, m_buffer_memory);
+	CreateBufferAndMemory(m_pool, m_size, (int)usage, VMA_MEMORY_USAGE_CPU_TO_GPU,
+	                      m_buffer, m_buffer_allocation);
 }
 
-gfx::GPUBuffer::GPUBuffer(Context* context, void* data, std::uint64_t size, std::uint64_t stride, enums::BufferUsageFlag usage)
-	: m_context(context), m_size(size * stride), m_mapped(false), m_mapped_data(nullptr), m_buffer(VK_NULL_HANDLE),
-	m_buffer_memory(VK_NULL_HANDLE)
+gfx::GPUBuffer::GPUBuffer(Context* context, std::optional<MemoryPool*> pool, void* data, std::uint64_t size, std::uint64_t stride, enums::BufferUsageFlag usage)
+	: m_context(context), m_pool(pool), m_size(size * stride), m_mapped(false), m_mapped_data(nullptr), m_buffer(VK_NULL_HANDLE),
+	m_buffer_allocation(VK_NULL_HANDLE)
 {
 	// Create default buffer
-	CreateBufferAndMemory(m_size, (int)usage, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-	                      m_buffer, m_buffer_memory);
+	CreateBufferAndMemory(m_pool, m_size, (int)usage, VMA_MEMORY_USAGE_CPU_TO_GPU,
+	                      m_buffer, m_buffer_allocation);
 
 	Map();
 	Update(data, m_size);
@@ -40,20 +84,24 @@ gfx::GPUBuffer::GPUBuffer(Context* context, void* data, std::uint64_t size, std:
 
 gfx::GPUBuffer::~GPUBuffer()
 {
-	auto logical_device = m_context->m_logical_device;
+	if (m_mapped)
+	{
+		Unmap();
+	}
 
-	if (m_buffer != VK_NULL_HANDLE) vkDestroyBuffer(logical_device, m_buffer, nullptr);
-	if (m_buffer_memory != VK_NULL_HANDLE) vkFreeMemory(logical_device, m_buffer_memory, nullptr);
+	auto vma_allocator = m_context->m_vma_allocator;
+
+	if (m_buffer != VK_NULL_HANDLE) vmaDestroyBuffer(m_context->m_vma_allocator, m_buffer, m_buffer_allocation);
 }
 
 void gfx::GPUBuffer::Map()
 {
-	Map_Internal(m_buffer_memory);
+	Map_Internal(m_buffer_allocation);
 }
 
 void gfx::GPUBuffer::Unmap()
 {
-	Unmap_Internal(m_buffer_memory);
+	Unmap_Internal(m_buffer_allocation);
 }
 
 void gfx::GPUBuffer::Update(void* data, std::uint64_t size, std::uint64_t offset)
@@ -66,11 +114,9 @@ void gfx::GPUBuffer::Update(void* data, std::uint64_t size, std::uint64_t offset
 	memcpy(static_cast<std::uint8_t*>(m_mapped_data) + offset, data, static_cast<std::size_t>(size));
 }
 
-void gfx::GPUBuffer::CreateBufferAndMemory(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
-                           VkBuffer& buffer, VkDeviceMemory& memory)
+void gfx::GPUBuffer::CreateBufferAndMemory(std::optional<MemoryPool*> pool, VkDeviceSize size, VkBufferUsageFlags usage,
+	VmaMemoryUsage memory_usage, VkBuffer& buffer, VmaAllocation& allocation)
 {
-	auto logical_device = m_context->m_logical_device;
-
 	// Create the buffer.
 	VkBufferCreateInfo buffer_create_info = {};
 	buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -78,114 +124,101 @@ void gfx::GPUBuffer::CreateBufferAndMemory(VkDeviceSize size, VkBufferUsageFlags
 	buffer_create_info.usage = usage;
 	buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	if (vkCreateBuffer(logical_device, &buffer_create_info, nullptr, &buffer) != VK_SUCCESS)
+	VmaAllocationCreateInfo alloc_create_info = {};
+	alloc_create_info.usage = memory_usage;
+	alloc_create_info.pool = pool.has_value() ? pool.value()->m_pool : VK_NULL_HANDLE;
+
+	if (pool.has_value())
 	{
-		LOGC("failed to create vertex buffer!");
+		if (pool.value()->m_block_size != size)
+		{
+			LOGE("Mismatch between pool size and buffer size");
+		}
 	}
 
-	// Get buffer memory requirements
-	VkMemoryRequirements buffer_memory_requirements;
-	vkGetBufferMemoryRequirements(logical_device, buffer, &buffer_memory_requirements);
-
-	// Allocate memory
-	VkMemoryAllocateInfo buffer_alloc_info = {};
-	buffer_alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	buffer_alloc_info.allocationSize = buffer_memory_requirements.size;
-	buffer_alloc_info.memoryTypeIndex = m_context->FindMemoryType(buffer_memory_requirements.memoryTypeBits, properties);
-
-	if (vkAllocateMemory(logical_device, &buffer_alloc_info, nullptr, &memory) != VK_SUCCESS)
-	{
-		LOGC("failed to allocate vertex buffer memory!");
-	}
-	VK_NAME_OBJ_DEF(logical_device, memory, VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_MEMORY_EXT)
-
-	// Bind the buffer to the memory allocation
-	if (vkBindBufferMemory(logical_device, buffer, memory, 0))
-	{
-		LOGC("Failed to map buffer to memory.");
+	VkResult r = vmaCreateBuffer(m_context->m_vma_allocator, &buffer_create_info, &alloc_create_info, &buffer, &allocation, nullptr);
+	if (r != VK_SUCCESS) {
+		LOGC("Failed to allocate VMA buffer");
 	}
 }
 
-void gfx::GPUBuffer::Map_Internal(VkDeviceMemory memory)
+void gfx::GPUBuffer::Map_Internal(VmaAllocation& allocation)
 {
-	auto logical_device = m_context->m_logical_device;
+	auto vma_allocator = m_context->m_vma_allocator;
 
-	if (vkMapMemory(logical_device, memory, 0, m_size, 0, &m_mapped_data) != VK_SUCCESS)
+	if (vmaMapMemory(vma_allocator, allocation, &m_mapped_data) != VK_SUCCESS)
 	{
-		LOGC("Failed to map staging buffer");
+		LOGC("Failed to map vma allocation");
 	}
 
 	m_mapped = true;
 }
 
-void gfx::GPUBuffer::Unmap_Internal(VkDeviceMemory memory)
+void gfx::GPUBuffer::Unmap_Internal(VmaAllocation& allocation)
 {
-	auto logical_device = m_context->m_logical_device;
+	auto vma_allocator = m_context->m_vma_allocator;
 
-	vkUnmapMemory(logical_device, memory);
+	vmaUnmapMemory(vma_allocator, allocation);
 
 	m_mapped = false;
 }
 
-gfx::StagingBuffer::StagingBuffer(Context* context, void* data, std::uint64_t size, std::uint64_t stride, enums::BufferUsageFlag usage)
-	: GPUBuffer(context, size * stride), m_staging_buffer(VK_NULL_HANDLE), m_staging_buffer_memory(VK_NULL_HANDLE)
+gfx::StagingBuffer::StagingBuffer(Context* context, std::optional<MemoryPool*> pool, std::optional<MemoryPool*> staging_pool, void* data, std::uint64_t size, std::uint64_t stride, enums::BufferUsageFlag usage)
+	: GPUBuffer(context, pool, size * stride), m_staging_buffer(VK_NULL_HANDLE), m_staging_buffer_allocation(VK_NULL_HANDLE)
 {
 	m_size = size * stride;
 	m_stride = stride;
 
 	// Create staging buffer
-	CreateBufferAndMemory(m_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-	                      m_staging_buffer, m_staging_buffer_memory);
+	CreateBufferAndMemory(pool, m_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
+	                      m_staging_buffer, m_staging_buffer_allocation);
 
 	Map();
 	Update(data, m_size);
 	Unmap();
 
 	// Create default buffer
-	CreateBufferAndMemory(m_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | (int)usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-	                      m_buffer, m_buffer_memory);
+	CreateBufferAndMemory(staging_pool, m_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | (int)usage, VMA_MEMORY_USAGE_GPU_ONLY,
+	                      m_buffer, m_buffer_allocation);
 }
 
 gfx::StagingBuffer::~StagingBuffer()
 {
-	auto logical_device = m_context->m_logical_device;
+	auto vma_allocator = m_context->m_vma_allocator;
 
-	if (m_staging_buffer) vkDestroyBuffer(logical_device, m_staging_buffer, nullptr);
-	if (m_staging_buffer_memory) vkFreeMemory(logical_device, m_staging_buffer_memory, nullptr);
+	if (m_staging_buffer != VK_NULL_HANDLE) vmaDestroyBuffer(vma_allocator, m_staging_buffer, m_staging_buffer_allocation);
 }
 
 void gfx::StagingBuffer::Map()
 {
-	Map_Internal(m_staging_buffer_memory);
+	Map_Internal(m_staging_buffer_allocation);
 }
 
 void gfx::StagingBuffer::Unmap()
 {
-	Unmap_Internal(m_staging_buffer_memory);
+	Unmap_Internal(m_staging_buffer_allocation);
 }
 
 void gfx::StagingBuffer::FreeStagingResources()
 {
-	auto logical_device = m_context->m_logical_device;
+	auto vma_allocator = m_context->m_vma_allocator;
 
-	vkDestroyBuffer(logical_device, m_staging_buffer, nullptr);
-	vkFreeMemory(logical_device, m_staging_buffer_memory, nullptr);
+	vmaDestroyBuffer(vma_allocator, m_staging_buffer, m_staging_buffer_allocation);
 	m_staging_buffer = VK_NULL_HANDLE;
-	m_staging_buffer_memory = VK_NULL_HANDLE;
+	m_staging_buffer_allocation = VK_NULL_HANDLE;
 }
 
 
-gfx::Texture::Texture(gfx::Context* context, gfx::Texture::Desc desc)
-		: m_hidden_context(context), m_desc(desc),	m_texture(VK_NULL_HANDLE), m_texture_memory(VK_NULL_HANDLE)
+gfx::Texture::Texture(gfx::Context* context, std::optional<MemoryPool*> pool, gfx::Texture::Desc desc)
+		: m_hidden_context(context), m_hidden_pool(pool), m_desc(desc),	m_texture(VK_NULL_HANDLE), m_texture_allocation(VK_NULL_HANDLE)
 {
 }
 
 gfx::Texture::~Texture()
 {
-	auto logical_device = m_hidden_context->m_logical_device;
+	auto vma_allocator = m_hidden_context->m_vma_allocator;
 
-	if (m_texture) vkDestroyImage(logical_device, m_texture, nullptr);
-	if (m_texture_memory) vkFreeMemory(logical_device, m_texture_memory, nullptr);
+	if (m_texture != VK_NULL_HANDLE) vmaDestroyImage(vma_allocator, m_texture, m_texture_allocation);
 }
 
 bool gfx::Texture::HasMipMaps()
@@ -193,8 +226,8 @@ bool gfx::Texture::HasMipMaps()
 	return m_desc.m_mip_levels > 1;
 }
 
-void gfx::Texture::CreateImageAndMemory(VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
-                                        VkImage& image, VkDeviceMemory& memory)
+void gfx::Texture::CreateImageAndMemory(VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memory_usage,
+										VkImage& image, VmaAllocation& allocation)
 {
 	auto logical_device = m_hidden_context->m_logical_device;
 
@@ -215,46 +248,34 @@ void gfx::Texture::CreateImageAndMemory(VkImageTiling tiling, VkImageUsageFlags 
 	image_info.samples = VK_SAMPLE_COUNT_1_BIT;
 	image_info.flags = 0;
 
-	if (vkCreateImage(logical_device, &image_info, nullptr, &image) != VK_SUCCESS)
+	VmaAllocationCreateInfo alloc_create_info = {};
+	alloc_create_info.usage = memory_usage;
+	alloc_create_info.pool = m_hidden_pool.has_value() ? m_hidden_pool.value()->m_pool : VK_NULL_HANDLE;
+
+	if (vmaCreateImage(m_hidden_context->m_vma_allocator, &image_info, &alloc_create_info, &image, &allocation, nullptr) != VK_SUCCESS)
 	{
-		LOGC("Failed to create texture");
+		LOGC("Failed to allocate VMA image");
 	}
-
-	VkMemoryRequirements memory_requirements;
-	vkGetImageMemoryRequirements(logical_device, image, &memory_requirements);
-
-	VkMemoryAllocateInfo alloc_info = {};
-	alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	alloc_info.allocationSize = memory_requirements.size;
-	alloc_info.memoryTypeIndex = m_hidden_context->FindMemoryType(memory_requirements.memoryTypeBits, properties);
-
-	if (vkAllocateMemory(logical_device, &alloc_info, nullptr, &memory) != VK_SUCCESS)
-	{
-		LOGC("failed to allocate image memory!");
-	}
-	VK_NAME_OBJ_DEF(logical_device, memory, VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_MEMORY_EXT)
-
-	vkBindImageMemory(logical_device, image, memory, 0);
 }
 
-gfx::StagingTexture::StagingTexture(Context* context, Desc desc)
-		: GPUBuffer(context, desc.m_width * desc.m_height * enums::BytesPerPixel(desc.m_format)), Texture(context, desc)
+gfx::StagingTexture::StagingTexture(Context* context, std::optional<MemoryPool*> pool, Desc desc)
+		: GPUBuffer(context, pool, desc.m_width * desc.m_height * enums::BytesPerPixel(desc.m_format)), Texture(context, pool, desc)
 {
-	CreateBufferAndMemory(m_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-	                      m_buffer, m_buffer_memory);
+	CreateBufferAndMemory(pool, m_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
+	                      m_buffer, m_buffer_allocation);
 
 	CreateImageAndMemory(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-	                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_texture, m_texture_memory);
+	                     VMA_MEMORY_USAGE_GPU_ONLY, m_texture, m_texture_allocation);
 }
 
-gfx::StagingTexture::StagingTexture(Context* context, Desc desc, void* pixels)
-		: GPUBuffer(context, desc.m_width * desc.m_height * enums::BytesPerPixel(desc.m_format)), Texture(context, desc)
+gfx::StagingTexture::StagingTexture(Context* context, std::optional<MemoryPool*> pool, Desc desc, void* pixels)
+		: GPUBuffer(context, pool, desc.m_width * desc.m_height * enums::BytesPerPixel(desc.m_format)), Texture(context, pool, desc)
 {
-	CreateBufferAndMemory(m_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-	                      m_buffer, m_buffer_memory);
+	CreateBufferAndMemory(pool, m_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
+	                      m_buffer, m_buffer_allocation);
 
 	CreateImageAndMemory(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-	                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_texture, m_texture_memory);
+	                     VMA_MEMORY_USAGE_GPU_ONLY, m_texture, m_texture_allocation);
 
 	Map();
 	Update(pixels, m_size);
@@ -263,10 +284,10 @@ gfx::StagingTexture::StagingTexture(Context* context, Desc desc, void* pixels)
 
 void gfx::StagingTexture::FreeStagingResources()
 {
-	auto logical_device = m_context->m_logical_device;
+	auto vma_allocator = m_context->m_vma_allocator;
 
-	if (m_buffer != VK_NULL_HANDLE) vkDestroyBuffer(logical_device, m_buffer, nullptr);
-	if (m_buffer_memory != VK_NULL_HANDLE) vkFreeMemory(logical_device, m_buffer_memory, nullptr);
+	if (m_buffer != VK_NULL_HANDLE) vmaDestroyBuffer(m_context->m_vma_allocator, m_buffer, m_buffer_allocation);
+
 	m_buffer = VK_NULL_HANDLE;
-	m_buffer_memory = VK_NULL_HANDLE;
+	m_buffer_allocation = VK_NULL_HANDLE;
 }

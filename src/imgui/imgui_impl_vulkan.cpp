@@ -225,7 +225,7 @@ void ImGuiImpl::InitImGuiResources(gfx::Context* context, gfx::RenderWindow* ren
     VK_CHECK_RESULT(vkCreateImageView(logical_device, &viewInfo, nullptr, &fontView));
 
     // Staging buffers for font data upload
-    auto stagingBuffer = new gfx::GPUBuffer(m_context, uploadSize, gfx::enums::BufferUsageFlag::TRANSFER_SRC);
+    auto stagingBuffer = new gfx::GPUBuffer(m_context, std::nullopt, uploadSize, gfx::enums::BufferUsageFlag::TRANSFER_SRC);
     stagingBuffer->Map();
     stagingBuffer->Update(fontData, uploadSize);
     stagingBuffer->Unmap();
@@ -508,10 +508,10 @@ void ImGuiImpl::InitImGuiResources(gfx::Context* context, gfx::RenderWindow* ren
     VK_CHECK_RESULT(vkCreateGraphicsPipelines(logical_device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
 
 	// Vertex buffer
-	vertexBuffer = new gfx::GPUBuffer(m_context, m_max_vertices * sizeof(ImDrawVert), gfx::enums::BufferUsageFlag::VERTEX_BUFFER); // TODO: Check if the default settings inside the constructor are correct related to ther esource state.
+	vertexBuffer = new gfx::GPUBuffer(m_context, std::nullopt, m_max_vertices * sizeof(ImDrawVert), gfx::enums::BufferUsageFlag::VERTEX_BUFFER); // TODO: Check if the default settings inside the constructor are correct related to ther esource state.
 	vertexBuffer->Map();
 	// Index buffer
-	indexBuffer = new gfx::GPUBuffer(m_context, m_max_indices * sizeof(ImDrawIdx), gfx::enums::BufferUsageFlag::INDEX_BUFFER); // TODO: Check if the default settings inside the constructor are correct related to ther esource state.
+	indexBuffer = new gfx::GPUBuffer(m_context, std::nullopt, m_max_indices * sizeof(ImDrawIdx), gfx::enums::BufferUsageFlag::INDEX_BUFFER); // TODO: Check if the default settings inside the constructor are correct related to ther esource state.
 	indexBuffer->Map();
 }
 
@@ -540,16 +540,8 @@ void ImGuiImpl::UpdateBuffers()
 	}
 
 	// Flush to make writes visible to GPU
-	VkMappedMemoryRange vb_mapped_range = {}, ib_mapped_range = {};
-	vb_mapped_range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-	vb_mapped_range.pNext = nullptr;
-	vb_mapped_range.offset = 0;
-	vb_mapped_range.size = VK_WHOLE_SIZE;
-	vb_mapped_range.memory = vertexBuffer->m_buffer_memory;
-	ib_mapped_range = vb_mapped_range;
-	ib_mapped_range.memory = indexBuffer->m_buffer_memory;
-	std::vector<VkMappedMemoryRange> mapped_ranges = { vb_mapped_range, ib_mapped_range };
-	vkFlushMappedMemoryRanges(m_context->m_logical_device, mapped_ranges.size(), mapped_ranges.data());
+	vmaFlushAllocation(m_context->m_vma_allocator, vertexBuffer->m_buffer_allocation, 0, VK_WHOLE_SIZE);
+	vmaFlushAllocation(m_context->m_vma_allocator, indexBuffer->m_buffer_allocation, 0, VK_WHOLE_SIZE);
 }
 
 void ImGuiImpl::Draw(gfx::CommandList* cmd_list, std::uint32_t frame_idx) // TODO: Kill the frame index

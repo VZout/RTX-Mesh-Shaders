@@ -90,7 +90,7 @@ public:
 	void CloseCommandList(gfx::CommandList* cmd_list);
 	void DestroyCommandList(gfx::CommandList* cmd_list);
 
-	ConstantBufferPool* CreateConstantBufferPool(std::uint32_t binding, VkShaderStageFlags flags = VK_SHADER_STAGE_VERTEX_BIT);
+	ConstantBufferPool* CreateConstantBufferPool(std::size_t buffer_size, std::size_t num_buffers, std::uint32_t binding, VkShaderStageFlags flags = VK_SHADER_STAGE_VERTEX_BIT);
 
 	gfx::RenderTarget* CreateRenderTarget(RenderTargetProperties const & properties, bool compute);
 	void ResizeRenderTarget(gfx::RenderTarget* render_target, std::uint32_t width, std::uint32_t height);
