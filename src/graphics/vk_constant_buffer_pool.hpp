@@ -12,13 +12,14 @@ namespace gfx
 {
 
 	class Context;
+	class MemoryPool;
 	class DescriptorHeap;
 	class GPUBuffer;
 
 	class VkConstantBufferPool : public ConstantBufferPool
 	{
 	public:
-		explicit VkConstantBufferPool(Context* context, std::uint32_t binding, VkShaderStageFlags flags = VK_SHADER_STAGE_VERTEX_BIT);
+		explicit VkConstantBufferPool(Context* context, std::size_t buffer_size, std::size_t num_buffers, std::uint32_t binding, VkShaderStageFlags flags = VK_SHADER_STAGE_VERTEX_BIT);
 		~VkConstantBufferPool() final;
 
 		void Update(ConstantBufferHandle handle, std::uint64_t size, void* data, std::uint32_t frame_idx, std::uint64_t offset = 0) final;
@@ -35,6 +36,7 @@ namespace gfx
 
 		gfx::DescriptorHeap* m_desc_heap;
 		std::vector<std::vector<GPUBuffer*>> m_buffers;
+		MemoryPool* m_pool;
 
 	};
 

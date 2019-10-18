@@ -10,6 +10,7 @@
 #include <vector>
 #include <cstdint>
 #include <optional>
+#include <vk_mem_alloc.h>
 
 class Application;
 class Renderer;
@@ -39,6 +40,7 @@ namespace gfx
 		friend class RenderTarget;
 		friend class CommandList;
 		friend class Fence;
+		friend class MemoryPool;
 		friend class GPUBuffer;
 		friend class StagingBuffer;
 		friend class StagingTexture;
@@ -54,10 +56,14 @@ namespace gfx
 
 		std::vector<VkExtensionProperties> GetSupportedExtensions();
 		std::vector<VkExtensionProperties> GetSupportedDeviceExtensions();
+		VkPhysicalDeviceProperties GetPhysicalDeviceProperties();
+		const VkPhysicalDeviceMemoryProperties* GetPhysicalDeviceMemoryProperties();
+		
 		bool HasValidationLayerSupport();
 		std::uint32_t GetDirectQueueFamilyIdx();
 		void WaitForDevice();
 		std::uint32_t FindMemoryType(std::uint32_t filter, VkMemoryPropertyFlags properties);
+		VmaStats CalculateVMAStats();
 
 		inline static PFN_vkDebugMarkerSetObjectTagEXT DebugMarkerSetObjectTag = VK_NULL_HANDLE;
 		inline static PFN_vkDebugMarkerSetObjectNameEXT DebugMarkerSetObjectName = VK_NULL_HANDLE;
@@ -76,6 +82,7 @@ namespace gfx
 		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 		void EnableDebugCallback();
 		void SetupDebugMarkerExtension();
+		void SetupVMA();
 
 		VkApplicationInfo m_app_info = {};
 		VkInstanceCreateInfo  m_instance_create_info;
@@ -91,6 +98,7 @@ namespace gfx
 		SwapChainSupportDetails m_swapchain_support_details;
 		VkSurfaceKHR m_surface;
 		VkWin32SurfaceCreateInfoKHR m_surface_create_info;
+		VmaAllocator m_vma_allocator;
 
 		Application* m_app;
 	};

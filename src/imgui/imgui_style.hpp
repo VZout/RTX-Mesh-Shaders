@@ -2,6 +2,7 @@
 
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <string>
 
 namespace ImGui
 {
@@ -11,6 +12,9 @@ namespace ImGui
 	IMGUI_API void StyleColorsLightGreen(ImGuiStyle* dst = NULL); // https://github.com/ocornut/imgui/pull/1776
 	IMGUI_API void StyleColorsUE(ImGuiStyle* dst = NULL); // https://github.com/ocornut/imgui/issues/707
 	IMGUI_API void StyleCorporateGrey(ImGuiStyle* dst = NULL); // https://github.com/ocornut/imgui/issues/707
+
+	IMGUI_API void InfoText(std::string const& label, std::string const& value);
+	IMGUI_API void InfoText(std::string const& label, int value);
 
 	inline void ToggleButton(const char* str_id, bool* v)
 	{

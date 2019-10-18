@@ -6,9 +6,25 @@
 
 #include "scene_graph.hpp"
 
-sg::SceneGraph::SceneGraph()
+#include "../renderer.hpp"
+
+sg::SceneGraph::SceneGraph(Renderer* renderer)
 {
 	m_num_lights.resize(gfx::settings::num_back_buffers, 0);
+
+	m_per_object_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Basic), 200, 1);
+	m_camera_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Camera), 1, 0, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT);
+	m_light_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Light) * gfx::settings::max_lights, 1, 3, VK_SHADER_STAGE_COMPUTE_BIT);
+
+	// Initialize the light buffer as empty.
+	cb::Light light = {};
+	light.m_type &= 3;
+	light.m_type |= 0 << 2;
+	m_light_buffer_handle = m_light_buffer_pool->Allocate(sizeof(cb::Light) * gfx::settings::max_lights);
+	for (std::uint32_t i = 0; i < gfx::settings::num_back_buffers; i++)
+	{
+		m_light_buffer_pool->Update(m_light_buffer_handle, sizeof(cb::Light), &light, i);
+	}
 }
 
 sg::SceneGraph::~SceneGraph()
@@ -191,40 +207,14 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 	}
 }
 
-void sg::SceneGraph::SetPOConstantBufferPool(ConstantBufferPool* pool)
-{
-	m_per_object_buffer_pool = pool;
-}
-
 ConstantBufferPool* sg::SceneGraph::GetPOConstantBufferPool()
 {
 	return m_per_object_buffer_pool;
 }
 
-void sg::SceneGraph::SetCameraConstantBufferPool(ConstantBufferPool* pool)
-{
-	m_camera_buffer_pool = pool;
-}
-
 ConstantBufferPool* sg::SceneGraph::GetCameraConstantBufferPool()
 {
 	return m_camera_buffer_pool;
-}
-
-void sg::SceneGraph::SetLightConstantBufferPool(ConstantBufferPool* pool)
-{
-	m_light_buffer_pool = pool;
-	m_light_buffer_handle = m_light_buffer_pool->Allocate(sizeof(cb::Light) * gfx::settings::max_lights);
-
-	cb::Light light = {};
-	light.m_type &= 3;
-	light.m_type |= 0 << 2;
-
-	// Initialize the buffer as empty.
-	for (std::uint32_t i = 0; i < gfx::settings::num_back_buffers; i++)
-	{
-		m_light_buffer_pool->Update(m_light_buffer_handle, sizeof(cb::Light), &light, i);
-	}
 }
 
 ConstantBufferPool* sg::SceneGraph::GetLightConstantBufferPool()

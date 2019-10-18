@@ -11,6 +11,8 @@
 #include <map>
 #include <set>
 #include <string>
+#define VMA_IMPLEMENTATION
+#include <vk_mem_alloc.h>
 
 #include "../application.hpp"
 #include "gfx_settings.hpp"
@@ -171,10 +173,14 @@ gfx::Context::Context(Application* app)
 	{
 		SetupDebugMarkerExtension();
 	}
+
+	SetupVMA();
 }
 
 gfx::Context::~Context()
 {
+	vmaDestroyAllocator(m_vma_allocator);
+
 	vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
 
 	if (gfx::settings::enable_validation_layers)
@@ -202,6 +208,20 @@ std::vector<VkExtensionProperties> gfx::Context::GetSupportedDeviceExtensions()
 	return GetSupportedDeviceExtensions(m_physical_device);
 }
 
+VkPhysicalDeviceProperties gfx::Context::GetPhysicalDeviceProperties()
+{
+	VkPhysicalDeviceProperties properties;
+	vkGetPhysicalDeviceProperties(m_physical_device, &properties);
+	return properties;
+}
+
+const VkPhysicalDeviceMemoryProperties* gfx::Context::GetPhysicalDeviceMemoryProperties()
+{
+	VkPhysicalDeviceMemoryProperties const * properties = new (VkPhysicalDeviceMemoryProperties);
+	vmaGetMemoryProperties(m_vma_allocator, &properties);
+	return properties;
+}
+
 std::vector<VkExtensionProperties> gfx::Context::GetSupportedDeviceExtensions(VkPhysicalDevice device)
 {
 	std::uint32_t extension_count = 0;
@@ -215,7 +235,7 @@ std::vector<VkExtensionProperties> gfx::Context::GetSupportedDeviceExtensions(Vk
 
 bool gfx::Context::HasValidationLayerSupport()
 {
-	uint32_t layerCount;
+	std::uint32_t layerCount;
 	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
 	std::vector<VkLayerProperties> availableLayers(layerCount);
@@ -264,6 +284,13 @@ std::uint32_t gfx::Context::FindMemoryType(std::uint32_t filter, VkMemoryPropert
 	}
 
 	LOGC("failed to find suitable memory type!");
+}
+
+VmaStats gfx::Context::CalculateVMAStats()
+{
+	VmaStats stats;
+	vmaCalculateStats(m_vma_allocator, &stats);
+	return stats;
 }
 
 void gfx::Context::CreateSurface()
@@ -467,6 +494,16 @@ void gfx::Context::SetupDebugMarkerExtension()
 	CmdDebugMarkerBegin = reinterpret_cast<PFN_vkCmdDebugMarkerBeginEXT>(vkGetDeviceProcAddr(m_logical_device, "vkCmdDebugMarkerBeginEXT"));
 	CmdDebugMarkerEnd = reinterpret_cast<PFN_vkCmdDebugMarkerEndEXT>(vkGetDeviceProcAddr(m_logical_device, "vkCmdDebugMarkerEndEXT"));
 	CmdDebugMarkerInsert = reinterpret_cast<PFN_vkCmdDebugMarkerInsertEXT>(vkGetDeviceProcAddr(m_logical_device, "vkCmdDebugMarkerInsertEXT"));
+}
+
+void gfx::Context::SetupVMA()
+{
+	VmaAllocatorCreateInfo allocator_info = {};
+	allocator_info.physicalDevice = m_physical_device;
+	allocator_info.device = m_logical_device;
+	allocator_info.frameInUseCount = settings::num_back_buffers - 1;
+
+	vmaCreateAllocator(&allocator_info, &m_vma_allocator);
 }
 
 bool gfx::QueueFamilyIndices::HasDirectFamily()

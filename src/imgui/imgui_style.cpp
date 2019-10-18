@@ -1,5 +1,19 @@
 #include "imgui_style.hpp"
 
+void ImGui::InfoText(std::string const& label, std::string const& value)
+{
+	#define TEXT(v) ImVec4(0.860f, 0.930f, 0.890f, v)
+
+	ImGui::TextColored(TEXT(0.9f), (label + ": ").c_str());
+	ImGui::SameLine();
+	ImGui::TextColored(TEXT(0.6f), value.c_str());
+}
+
+void ImGui::InfoText(std::string const& label, int value)
+{
+	InfoText(label, std::to_string(value));
+}
+
 void ImGui::StyleColorsCherry(ImGuiStyle* dst)
 {
 	ImGuiStyle* style = dst ? dst : &ImGui::GetStyle();

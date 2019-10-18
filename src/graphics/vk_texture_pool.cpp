@@ -54,7 +54,8 @@ void gfx::VkTexturePool::Load_Impl(TextureData const & data, std::uint32_t id, b
 		desc.m_format = srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
 	}
 
-	auto texture = new StagingTexture(m_context, desc, data.m_pixels);
+	// TODO: memory pool
+	auto texture = new StagingTexture(m_context, std::nullopt, desc, data.m_pixels);
 	m_queued_for_staging_textures.insert(std::make_pair(id, texture));
 }
 

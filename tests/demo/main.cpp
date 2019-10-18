@@ -250,6 +250,105 @@ protected:
 
 			ImGui::Plot("plot", conf);
 		});
+
+		editor.RegisterWindow("GPU Info", "Stats", [&]()
+		{
+			auto context = m_renderer->GetContext();
+			auto device_properties = context->GetPhysicalDeviceProperties();
+			auto device_mem_properties = context->GetPhysicalDeviceMemoryProperties();
+
+			VkDeviceSize vram = 0;
+			for (auto i = 0; i < device_mem_properties->memoryHeapCount; i++)
+			{
+				if (device_mem_properties->memoryHeaps[i].flags == VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
+				{
+					vram = device_mem_properties->memoryHeaps[i].size;
+				}
+			}
+
+			std::string type_str = "Unknown";
+			auto type = device_properties.deviceType;
+			switch (type)
+			{
+			default: break;
+			case VK_PHYSICAL_DEVICE_TYPE_CPU: type_str = "CPU"; break;
+			case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU: type_str = "Discrete GPU"; break;
+			case VK_PHYSICAL_DEVICE_TYPE_OTHER: type_str = "Other"; break;
+			case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: type_str = "Integrated GPU"; break;
+			case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU: type_str = "Virtual GPU"; break;
+			}
+			
+			ImGui::InfoText("Name", std::string(device_properties.deviceName));
+			ImGui::InfoText("Device Type", type_str);
+			ImGui::InfoText("VRAM", std::to_string(vram / 1024.f / 1024.f / 1024.f) + " (GB)");
+			ImGui::InfoText("API Version", device_properties.apiVersion);
+			ImGui::InfoText("Driver Version", device_properties.driverVersion);
+			ImGui::InfoText("Device ID", device_properties.deviceID);
+			ImGui::InfoText("Vendor ID", device_properties.vendorID);
+		});
+
+		editor.RegisterWindow("Memory Allocator Stats", "Stats", [&]()
+		{
+			auto context = m_renderer->GetContext();
+			auto stats = context->CalculateVMAStats();
+
+			auto render_vma_stat_info = [](VmaStatInfo& stat_info)
+			{
+				ImGui::InfoText("Used Bytes", stat_info.usedBytes);
+				ImGui::InfoText("Unused Bytes", stat_info.unusedBytes);
+				ImGui::InfoText("Allocation Count", stat_info.allocationCount);
+				ImGui::InfoText("Allocation Size Avg", stat_info.allocationSizeAvg);
+				ImGui::InfoText("Allocation Size Max", stat_info.allocationSizeMax);
+				ImGui::InfoText("Allocation Size Min", stat_info.allocationSizeMin);
+				ImGui::InfoText("Block Count", stat_info.blockCount);
+				ImGui::InfoText("Unused Range Count", stat_info.unusedRangeCount);
+				ImGui::InfoText("Unused Range Size Avg", stat_info.unusedRangeSizeAvg);
+				ImGui::InfoText("Unused Range Size Max", stat_info.unusedRangeSizeMax);
+				ImGui::InfoText("Unused Range Size Min", stat_info.unusedRangeSizeMin);
+			};
+
+			if (ImGui::CollapsingHeader("Total"))
+			{
+				render_vma_stat_info(stats.total);
+			}
+
+			if (ImGui::CollapsingHeader("Memory Heaps"))
+			{
+				for (auto i = 0; i < VK_MAX_MEMORY_HEAPS; i++)
+				{
+					auto device_mem_properties = context->GetPhysicalDeviceMemoryProperties();
+
+					auto stat_info = stats.memoryHeap[i];
+					if (stat_info.allocationCount < 1) continue; // dont show mem info without allocations 
+
+					std::string name = "Heap " + std::to_string(i);
+
+					if (ImGui::TreeNode(name.c_str()))
+					{
+						render_vma_stat_info(stat_info);
+						ImGui::TreePop();
+					}
+				}
+			}
+
+			if (ImGui::CollapsingHeader("Memory Types"))
+			{
+				for (auto i = 0; i < VK_MAX_MEMORY_TYPES; i++)
+				{
+					auto stat_info = stats.memoryType[i];
+					if (stat_info.allocationCount < 1) continue; // dont show mem info without allocations 
+
+					std::string name = "Type " + std::to_string(i);
+
+					if (ImGui::TreeNode(name.c_str()))
+					{
+						render_vma_stat_info(stat_info);
+						ImGui::TreePop();
+					}
+				}
+			}
+		});
+
 		editor.RegisterWindow("About", "Help", [&]()
 		{
 			ImGui::Text("Turing Mesh Shading");
@@ -319,10 +418,7 @@ protected:
 
 		m_renderer->Upload();
 
-		m_scene_graph = new sg::SceneGraph();
-		m_scene_graph->SetPOConstantBufferPool(m_renderer->CreateConstantBufferPool(1));
-		m_scene_graph->SetCameraConstantBufferPool(m_renderer->CreateConstantBufferPool(0, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT));
-		m_scene_graph->SetLightConstantBufferPool(m_renderer->CreateConstantBufferPool(3, VK_SHADER_STAGE_COMPUTE_BIT));
+		m_scene_graph = new sg::SceneGraph(m_renderer);
 
 		m_camera_node = m_scene_graph->CreateNode<sg::CameraComponent>();
 		sg::helper::SetPosition(m_scene_graph, m_camera_node, glm::vec3(0, 0, 2.5));

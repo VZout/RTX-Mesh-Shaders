@@ -371,9 +371,9 @@ void Renderer::DestroyRenderTarget(gfx::RenderTarget* render_target)
 	delete render_target;
 }
 
-ConstantBufferPool* Renderer::CreateConstantBufferPool(std::uint32_t binding, VkShaderStageFlags flags)
+ConstantBufferPool* Renderer::CreateConstantBufferPool(std::size_t buffer_size, std::size_t num_buffers, std::uint32_t binding, VkShaderStageFlags flags)
 {
-	return new gfx::VkConstantBufferPool(m_context, binding, flags);
+	return new gfx::VkConstantBufferPool(m_context, buffer_size, num_buffers, binding, flags);
 }
 
 gfx::RenderWindow* Renderer::GetRenderWindow()
