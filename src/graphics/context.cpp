@@ -110,14 +110,12 @@ gfx::Context::Context(Application* app)
 	m_physical_device_properties(),
 	m_physical_device_mem_properties(),
 	m_surface(VK_NULL_HANDLE),
-	m_surface_create_info(),
 	m_app(app)
 {
 	std::uint32_t glfw_extension_count;
 	const char** glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
 
 	// TODO: Check if the glfw extensions are supported.
-
 	std::vector<const char*> extensions(glfw_extensions, glfw_extensions + glfw_extension_count);
 
 	if (gfx::settings::enable_validation_layers)
@@ -295,11 +293,7 @@ VmaStats gfx::Context::CalculateVMAStats()
 
 void gfx::Context::CreateSurface()
 {
-	m_surface_create_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-	m_surface_create_info.hwnd = m_app->GetNativeHandle();
-	m_surface_create_info.hinstance = GetModuleHandle(nullptr);
-
-	if (vkCreateWin32SurfaceKHR(m_instance, &m_surface_create_info, nullptr, &m_surface) != VK_SUCCESS)
+	if (glfwCreateWindowSurface(m_instance, m_app->GetWindow(), NULL, &m_surface) != VK_SUCCESS)
 	{
 		LOGC("failed to create window surface!");
 	}

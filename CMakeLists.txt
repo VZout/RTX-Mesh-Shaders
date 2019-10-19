@@ -165,7 +165,7 @@ FetchContent_Declare(
 FetchContent_Declare(
   tinygltf
   GIT_REPOSITORY https://github.com/syoyo/tinygltf.git
-  GIT_TAG        cece6ee6d2d002a9afe1795d7607f16922f1f19d
+  GIT_TAG        83bb1a48d79729f2688d9c63e2754ce976a65f72
   GIT_SHALLOW true
 )
 FetchContent_Declare(
@@ -383,10 +383,14 @@ target_include_directories(WispVK PUBLIC
 	${tinygltf_SOURCE_DIR})
 
 # Compile GLSL Shaders Into SPRIV
-if (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "AMD64")
-  set(GLSL_VALIDATOR "$ENV{VULKAN_SDK}/Bin/glslc.exe")
+if (NOT WIN32)
+	set(GLSL_VALIDATOR "glslc")
 else()
-  set(GLSL_VALIDATOR "$ENV{VULKAN_SDK}/Bin32/glslc.exe")
+	if (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "AMD64")
+	  set(GLSL_VALIDATOR "$ENV{VULKAN_SDK}/Bin/glslc.exe")
+	else()
+	  set(GLSL_VALIDATOR "$ENV{VULKAN_SDK}/Bin32/glslc.exe")
+	endif()
 endif()
 
 foreach(GLSL ${GLSL_SOURCE_FILES})

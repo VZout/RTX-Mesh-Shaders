@@ -185,7 +185,7 @@ std::uint32_t gfx::RenderWindow::ComputeNumBackBuffers()
 
 	if (gfx::settings::num_back_buffers < capabilities.minImageCount || gfx::settings::num_back_buffers > capabilities.maxImageCount)
 	{
-		LOGC("Invalid number of back buffers");
+		LOGW("Invalid number of back buffers.");
 	}
 
 	return gfx::settings::num_back_buffers;

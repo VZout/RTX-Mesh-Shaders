@@ -7,9 +7,7 @@
 #pragma once
 
 #define GLFW_INCLUDE_VULKAN
-#define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3.h>
-#include <GLFW/glfw3native.h>
 #include <string>
 
 class Application
@@ -28,7 +26,6 @@ public:
 	void SetVisibility(bool value);
 	void SetMouseVisibility(bool value);
 	void SetMousePos(float x, float y);
-	HWND GetNativeHandle();
 	GLFWwindow* GetWindow();
 
 protected:

@@ -208,11 +208,6 @@ void Application::SetMousePos(float x, float y)
 	glfwSetCursorPos(m_window, x, y);
 }
 
-HWND Application::GetNativeHandle()
-{
-	return glfwGetWin32Window(m_window);
-}
-
 GLFWwindow* Application::GetWindow()
 {
 	return m_window;
