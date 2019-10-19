@@ -22,7 +22,7 @@ gfx::VkMaterialPool::VkMaterialPool(gfx::Context* context)
 
 	gfx::DescriptorHeap::Desc desc;
 	desc.m_versions = 1;
-	desc.m_num_descriptors = 500;
+	desc.m_num_descriptors = 300;
 	m_desc_heap = new gfx::DescriptorHeap(m_context, desc);
 
 	// TODO: make this entire layout static and use it when creating root signatures.

@@ -159,8 +159,16 @@ ImGuiImpl::~ImGuiImpl()
     auto logical_device = m_context->m_logical_device;
 
     // Release all Vulkan resources required for rendering imGui
-    delete vertexBuffer;
-    delete indexBuffer;
+	for (auto& b : vertexBuffer)
+	{
+		delete b;
+
+	}
+	for (auto& b : indexBuffer)
+	{
+		delete b;
+
+	}
     delete m_vertex_shader;
     delete m_fragment_shader;
     vkDestroyImage(logical_device, fontImage, nullptr);
@@ -508,14 +516,20 @@ void ImGuiImpl::InitImGuiResources(gfx::Context* context, gfx::RenderWindow* ren
     VK_CHECK_RESULT(vkCreateGraphicsPipelines(logical_device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
 
 	// Vertex buffer
-	vertexBuffer = new gfx::GPUBuffer(m_context, std::nullopt, m_max_vertices * sizeof(ImDrawVert), gfx::enums::BufferUsageFlag::VERTEX_BUFFER); // TODO: Check if the default settings inside the constructor are correct related to ther esource state.
-	vertexBuffer->Map();
+	for (auto& b : vertexBuffer)
+	{
+		b = new gfx::GPUBuffer(m_context, std::nullopt, m_max_vertices * sizeof(ImDrawVert), gfx::enums::BufferUsageFlag::VERTEX_BUFFER); // TODO: Check if the default settings inside the constructor are correct related to ther esource state.
+		b->Map();
+	}
 	// Index buffer
-	indexBuffer = new gfx::GPUBuffer(m_context, std::nullopt, m_max_indices * sizeof(ImDrawIdx), gfx::enums::BufferUsageFlag::INDEX_BUFFER); // TODO: Check if the default settings inside the constructor are correct related to ther esource state.
-	indexBuffer->Map();
+	for (auto& b : indexBuffer)
+	{
+		b = new gfx::GPUBuffer(m_context, std::nullopt, m_max_indices * sizeof(ImDrawIdx), gfx::enums::BufferUsageFlag::INDEX_BUFFER); // TODO: Check if the default settings inside the constructor are correct related to ther esource state.
+		b->Map();
+	}
 }
 
-void ImGuiImpl::UpdateBuffers()
+void ImGuiImpl::UpdateBuffers(std::uint32_t frame_idx)
 {
 	ImDrawData* imDrawData = ImGui::GetDrawData();
 
@@ -528,8 +542,8 @@ void ImGuiImpl::UpdateBuffers()
 	}
 
 	// Upload data
-	ImDrawVert* vtxDst = (ImDrawVert*)vertexBuffer->m_mapped_data;
-	ImDrawIdx* idxDst = (ImDrawIdx*)indexBuffer->m_mapped_data;
+	ImDrawVert* vtxDst = (ImDrawVert*)vertexBuffer[frame_idx]->m_mapped_data;
+	ImDrawIdx* idxDst = (ImDrawIdx*)indexBuffer[frame_idx]->m_mapped_data;
 
 	for (int n = 0; n < imDrawData->CmdListsCount; n++) {
 		const ImDrawList* cmd_list = imDrawData->CmdLists[n];
@@ -540,8 +554,8 @@ void ImGuiImpl::UpdateBuffers()
 	}
 
 	// Flush to make writes visible to GPU
-	vmaFlushAllocation(m_context->m_vma_allocator, vertexBuffer->m_buffer_allocation, 0, VK_WHOLE_SIZE);
-	vmaFlushAllocation(m_context->m_vma_allocator, indexBuffer->m_buffer_allocation, 0, VK_WHOLE_SIZE);
+	vmaFlushAllocation(m_context->m_vma_allocator, vertexBuffer[frame_idx]->m_buffer_allocation, 0, VK_WHOLE_SIZE);
+	vmaFlushAllocation(m_context->m_vma_allocator, indexBuffer[frame_idx]->m_buffer_allocation, 0, VK_WHOLE_SIZE);
 }
 
 void ImGuiImpl::Draw(gfx::CommandList* cmd_list, std::uint32_t frame_idx) // TODO: Kill the frame index
@@ -573,8 +587,8 @@ void ImGuiImpl::Draw(gfx::CommandList* cmd_list, std::uint32_t frame_idx) // TOD
 	if (imDrawData->CmdListsCount > 0) {
 
 		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(native_cmd_buffer, 0, 1, &vertexBuffer->m_buffer, offsets);
-		vkCmdBindIndexBuffer(native_cmd_buffer, indexBuffer->m_buffer, 0, VK_INDEX_TYPE_UINT16);
+		vkCmdBindVertexBuffers(native_cmd_buffer, 0, 1, &vertexBuffer[frame_idx]->m_buffer, offsets);
+		vkCmdBindIndexBuffer(native_cmd_buffer, indexBuffer[frame_idx]->m_buffer, 0, VK_INDEX_TYPE_UINT16);
 
 		for (int32_t i = 0; i < imDrawData->CmdListsCount; i++)
 		{
