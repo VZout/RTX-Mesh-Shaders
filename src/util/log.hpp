@@ -38,10 +38,12 @@
 
 namespace util::internal
 {
+#ifdef _WIN32
 	enum class MSGB_ICON
 	{
 		CRITICAL_ERROR = (unsigned)MB_OK | (unsigned)MB_ICONERROR
 	};
+#endif
 
 	template <typename S, typename... Args>
 	inline void log_impl([[maybe_unused]] int color, char type, [[maybe_unused]] std::string file, [[maybe_unused]] std::string func, [[maybe_unused]] int line, S const & format, Args const &... args)
@@ -98,6 +100,7 @@ namespace util::internal
 #endif
 	}
 
+#ifdef _WIN32
 	template <typename S, typename... Args>
 	inline void log_msgb_impl(MSGB_ICON icon, [[maybe_unused]] std::string file, [[maybe_unused]] std::string func, [[maybe_unused]] int line, S const & format, Args const &... args)
 	{
@@ -137,6 +140,8 @@ namespace util::internal
 				break;
 		}
 	}
+#endif
+
 } /* internal */
 
 #ifdef _MSC_VER

@@ -194,7 +194,7 @@ protected:
 
 				ImGui::Separator();
 				int selected_type = (int)m_scene_graph->m_light_types[node.m_light_component].m_value;
-				ImGui::Combo("Type", &selected_type, types, _countof(types));
+				ImGui::Combo("Type", &selected_type, types, 3);
 				m_scene_graph->m_light_types[node.m_light_component].m_value = (cb::LightType)selected_type;
 
 				ImGui::DragFloat3("Color", &m_scene_graph->m_colors[node.m_light_component].m_value[0], 0.1f);
@@ -365,7 +365,7 @@ protected:
 
 	void Init() final
 	{
-		SetupEditor();
+		//SetupEditor();
 
 
 		m_frame_graph = new fg::FrameGraph();
@@ -377,7 +377,7 @@ protected:
 		tasks::AddDeferredCompositionTask(*m_frame_graph);
 		tasks::AddPostProcessingTask<tasks::DeferredCompositionData>(*m_frame_graph);
 		tasks::AddCopyToBackBufferTask<tasks::PostProcessingData>(*m_frame_graph);
-		tasks::AddImGuiTask(*m_frame_graph, [this]() { editor.Render(); });
+		//tasks::AddImGuiTask(*m_frame_graph, [this]() { editor.Render(); });
 
 		m_renderer = new Renderer();
 		m_renderer->Init(this);
@@ -486,8 +486,8 @@ protected:
 			}
 		};
 
-		append_graph_list(m_frame_rates, ImGui::GetIO().Framerate, m_max_frame_rates, m_min_frame_rate,
-		                  m_max_frame_rate);
+		//append_graph_list(m_frame_rates, ImGui::GetIO().Framerate, m_max_frame_rates, m_min_frame_rate,
+		 //                 m_max_frame_rate);
 
 		auto forward_right = sg::helper::GetForwardRight(m_scene_graph, m_camera_node);
 		sg::helper::Translate(m_scene_graph, m_camera_node, (m_z_axis.z * m_move_speed) * forward_right.first);

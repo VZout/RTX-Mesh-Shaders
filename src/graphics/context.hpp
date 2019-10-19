@@ -97,7 +97,6 @@ namespace gfx
 		QueueFamilyIndices m_queue_family_indices;
 		SwapChainSupportDetails m_swapchain_support_details;
 		VkSurfaceKHR m_surface;
-		VkWin32SurfaceCreateInfoKHR m_surface_create_info;
 		VmaAllocator m_vma_allocator;
 
 		Application* m_app;
