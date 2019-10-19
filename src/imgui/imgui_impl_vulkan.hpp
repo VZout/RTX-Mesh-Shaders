@@ -7,6 +7,7 @@
 #include "../graphics/shader.hpp"
 #include "../graphics/render_window.hpp"
 #include <vec2.hpp>
+#include <array>
 
 struct PushConstBlock {
 	glm::vec2 scale;
@@ -20,8 +21,8 @@ struct ImGuiImpl
 	static inline std::uint64_t m_max_indices = 500000;
 
 	VkSampler sampler;
-	gfx::GPUBuffer* vertexBuffer;
-	gfx::GPUBuffer* indexBuffer;
+	std::array<gfx::GPUBuffer*, 3> vertexBuffer;
+	std::array <gfx::GPUBuffer*, 3> indexBuffer;
 	VkDeviceMemory fontMemory = VK_NULL_HANDLE;
 	VkImage fontImage = VK_NULL_HANDLE;
 	VkImageView fontView = VK_NULL_HANDLE;
@@ -39,6 +40,6 @@ struct ImGuiImpl
 	~ImGuiImpl();
 
 	void InitImGuiResources(gfx::Context* m_context, gfx::RenderWindow* render_window, gfx::CommandQueue* direct_queue);
-	void UpdateBuffers();
+	void UpdateBuffers(std::uint32_t frame_idx);
 	void Draw(gfx::CommandList* cmd_list, std::uint32_t frame_idx);
 };

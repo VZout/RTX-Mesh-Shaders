@@ -72,7 +72,7 @@ namespace tasks
 			// Render to generate draw buffers
 			ImGui::Render();
 
-			data.m_imgui_impl->UpdateBuffers();
+			data.m_imgui_impl->UpdateBuffers(frame_idx);
 			data.m_imgui_impl->Draw(cmd_list, frame_idx);
 #endif
 		}
