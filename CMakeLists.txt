@@ -351,7 +351,8 @@ file(GLOB HEADERS_IMGUI CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/imgui
 file(GLOB_RECURSE GLSL_SOURCE_FILES CONFIGURE_DEPENDS
 		"${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/*.frag"
 		"${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/*.vert"
-		"${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/*.comp")
+		"${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/*.comp"
+		"${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/*.glsl")
 
 source_group("High Level API" FILES ${SOURCES} ${HEADERS})
 source_group("Frame Graph" FILES ${HEADERS_FG} ${SOURCES_FG})
