@@ -62,6 +62,11 @@ gfx::DescriptorHeap::~DescriptorHeap()
 	}
 }
 
+VkDescriptorSet gfx::DescriptorHeap::GetDescriptorSet(std::uint32_t frame_idx, std::uint32_t handle)
+{
+	return m_descriptor_sets[frame_idx % m_desc.m_versions][handle];
+}
+
 std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx)
 {
 	return CreateSRVFromCB(buffer, root_signature->m_descriptor_set_layouts[handle], handle, frame_idx);
@@ -261,8 +266,12 @@ std::uint32_t gfx::DescriptorHeap::CreateUAVSetFromTexture(std::vector<Texture*>
 	return descriptor_set_id;
 }
 
-
 std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromRT(RenderTarget* render_target, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx, bool include_depth, std::optional<SamplerDesc> sampler_desc)
+{
+	return CreateSRVSetFromRT(render_target, root_signature->m_descriptor_set_layouts[handle], handle, frame_idx, include_depth, sampler_desc);
+}
+
+std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromRT(RenderTarget* render_target, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx, bool include_depth, std::optional<SamplerDesc> sampler_desc)
 {
 	auto logical_device = m_context->m_logical_device;
 
@@ -271,7 +280,7 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromRT(RenderTarget* render_targe
 	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	alloc_info.descriptorPool = m_descriptor_pools[frame_idx];
 	alloc_info.descriptorSetCount = 1;
-	alloc_info.pSetLayouts = &root_signature->m_descriptor_set_layouts[handle];
+	alloc_info.pSetLayouts = &layout;
 
 	VkDescriptorSet descriptor_set;
 	if (vkAllocateDescriptorSets(logical_device, &alloc_info, &descriptor_set) != VK_SUCCESS)

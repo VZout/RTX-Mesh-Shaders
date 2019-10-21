@@ -564,7 +564,6 @@ void ImGuiImpl::Draw(gfx::CommandList* cmd_list, std::uint32_t frame_idx) // TOD
 
 	auto native_cmd_buffer = cmd_list->m_cmd_buffers[frame_idx];
 
-	vkCmdBindDescriptorSets(native_cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 	vkCmdBindPipeline(native_cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
 	VkViewport viewport {};
@@ -596,6 +595,16 @@ void ImGuiImpl::Draw(gfx::CommandList* cmd_list, std::uint32_t frame_idx) // TOD
 			for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++)
 			{
 				const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[j];
+				if (pcmd->TextureId)
+				{
+					auto img_descriptor_set = (VkDescriptorSet)pcmd->TextureId;
+					vkCmdBindDescriptorSets(native_cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &img_descriptor_set, 0, nullptr);
+				}
+				else
+				{
+					vkCmdBindDescriptorSets(native_cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+				}
+
 				VkRect2D scissorRect;
 				scissorRect.offset.x = std::max((int32_t)(pcmd->ClipRect.x), 0);
 				scissorRect.offset.y = std::max((int32_t)(pcmd->ClipRect.y), 0);

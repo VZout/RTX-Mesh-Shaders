@@ -98,8 +98,8 @@ protected:
 						m_selected_node = handle;
 					}
 				}
+				ImGui::ListBoxFooter();
 			}
-			ImGui::ListBoxFooter();
 		}, false, reinterpret_cast<const char*>(ICON_FA_GLOBE_EUROPE));
 
 		editor.RegisterWindow("Temporary Material Settings", "Scene Graph", [&]()
