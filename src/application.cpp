@@ -208,6 +208,23 @@ void Application::SetMousePos(float x, float y)
 	glfwSetCursorPos(m_window, x, y);
 }
 
+bool Application::GetGamepad(int id, GLFWgamepadstate* state)
+{
+	int present = glfwJoystickPresent(id);
+	int is_gamepad = glfwJoystickIsGamepad(id);
+	if (present && is_gamepad)
+	{
+		if (glfwGetGamepadState(id, state))
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	return false;
+}
+
 GLFWwindow* Application::GetWindow()
 {
 	return m_window;
