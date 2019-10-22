@@ -49,6 +49,7 @@ protected:
 		editor.RegisterCategory("File", reinterpret_cast<const char*>(ICON_FA_FILE));
 		editor.RegisterCategory("Scene Graph", reinterpret_cast<const char*>(ICON_FA_PROJECT_DIAGRAM));
 		editor.RegisterCategory("Stats", reinterpret_cast<const char*>(ICON_FA_CHART_BAR));
+		editor.RegisterCategory("Debug", reinterpret_cast<const char*>(ICON_FA_BUG));
 		editor.RegisterCategory("Help", reinterpret_cast<const char*>(ICON_FA_INFO_CIRCLE));
 
 		// Actions
@@ -227,6 +228,7 @@ protected:
 		{
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100);
+			ImGui::Text("Delta: %.6f", m_delta);
 			ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 			ImGui::NextColumn();
 			ImGui::InputInt("Max Samples", &m_max_frame_rates);
@@ -352,7 +354,7 @@ protected:
 			}
 		});
 
-		editor.RegisterWindow("Input", "Debug", [&]()
+		editor.RegisterWindow("Input Settings", "Debug", [&]()
 		{
 			ImGui::DragFloat("Movement Speed", &m_move_speed, 1, 0, 100);
 			ImGui::DragFloat("Mouse Sensitivity", &m_mouse_sensitivity, 1, 0, 100);
@@ -438,6 +440,7 @@ protected:
 		m_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_robot_model_handle);
 		sg::helper::SetPosition(m_scene_graph, m_node, glm::vec3(-0.75, -1, 0));
 		sg::helper::SetScale(m_scene_graph, m_node, glm::vec3(0.01, 0.01, 0.01));
+		sg::helper::SetRotation(m_scene_graph, m_node, glm::vec3(-90._deg, 0, 0));
 
 		// second node
 		{
@@ -466,15 +469,15 @@ protected:
 			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(4.805, -2.800, -1.200));
 		}
 
-		m_start = std::chrono::high_resolution_clock::now();
+		m_last = std::chrono::high_resolution_clock::now();
 	}
 
 	void Loop() final
 	{
-		auto diff = std::chrono::high_resolution_clock::now() - m_start;
-		float t = diff.count();
-
-		sg::helper::SetRotation(m_scene_graph, m_node, glm::vec3(-90._deg, 0, 0));
+		auto now = std::chrono::high_resolution_clock::now();
+		auto diff = now - m_last; 
+		m_delta = (float)diff.count() / 1000000000.f; // milliseconds
+		m_last = now;
 
 		m_scene_graph->Update(m_renderer->GetFrameIdx());
 		m_renderer->Render(*m_scene_graph, *m_frame_graph);
@@ -502,10 +505,11 @@ protected:
 
 		HandleControllerInput();
 
+		float speed = m_move_speed * m_delta;
 		auto forward_right = sg::helper::GetForwardRight(m_scene_graph, m_camera_node);
-		sg::helper::Translate(m_scene_graph, m_camera_node, (m_z_axis.z * m_move_speed) * forward_right.first);
-		sg::helper::Translate(m_scene_graph, m_camera_node, (m_z_axis.y * m_move_speed) * glm::vec3(0, 1, 0));
-		sg::helper::Translate(m_scene_graph, m_camera_node, (m_z_axis.x * m_move_speed) * forward_right.second);
+		sg::helper::Translate(m_scene_graph, m_camera_node, (m_z_axis.z * speed) * forward_right.first);
+		sg::helper::Translate(m_scene_graph, m_camera_node, (m_z_axis.y * speed) * glm::vec3(0, 1, 0));
+		sg::helper::Translate(m_scene_graph, m_camera_node, (m_z_axis.x * speed) * forward_right.second);
 	}
 
 	void ResizeCallback(std::uint32_t width, std::uint32_t height) final
@@ -529,6 +533,7 @@ protected:
 			{
 				float x_axis = state.axes[GLFW_GAMEPAD_AXIS_RIGHT_X];
 				float y_axis = state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y] * -1;
+				float sensitivity = m_controller_sensitivity * m_delta;
 				if (m_flip_controller_y)
 				{
 					y_axis = y_axis * -1;
@@ -536,7 +541,7 @@ protected:
 
 				if (x_axis > dead_zone || y_axis > dead_zone || x_axis < -dead_zone || y_axis < -dead_zone)
 				{
-					sg::helper::Rotate(m_scene_graph, m_camera_node, glm::vec3(y_axis * m_controller_sensitivity, x_axis * m_controller_sensitivity, 0));
+					sg::helper::Rotate(m_scene_graph, m_camera_node, glm::vec3(y_axis * sensitivity, x_axis * sensitivity, 0));
 				}
 			}
 			// translation
@@ -575,8 +580,9 @@ protected:
 
 		float x_movement = x - center.x;
 		float y_movement = center.y - y;
+		float sensitivity = m_mouse_sensitivity * m_delta;
 
-		sg::helper::Rotate(m_scene_graph, m_camera_node, glm::vec3(y_movement * m_mouse_sensitivity, x_movement * m_mouse_sensitivity, 0));
+		sg::helper::Rotate(m_scene_graph, m_camera_node, glm::vec3(y_movement * sensitivity, x_movement * sensitivity, 0));
 
 		SetMousePos(GetWidth() / 2.f, GetHeight() / 2.f);
 	}
@@ -669,16 +675,18 @@ protected:
 	std::vector<MaterialHandle> m_sphere_material_handles;
 	std::vector<MaterialData> m_sphere_materials;
 
+	float m_delta;
+
 	// Camera Movement
-	float m_move_speed = 0.01;
-	float m_mouse_sensitivity = 0.005;
-	float m_controller_sensitivity = 0.01;
+	float m_move_speed = 5;
+	float m_mouse_sensitivity = 0.4;
+	float m_controller_sensitivity = 2.5;
 	glm::vec3 m_z_axis = glm::vec3(0);
 	bool m_rmb = false;
 	bool m_flip_controller_y = false;
 
 	// ImGui
-	std::chrono::time_point<std::chrono::high_resolution_clock> m_start;
+	std::chrono::time_point<std::chrono::high_resolution_clock> m_last;
 	std::vector<float> m_frame_rates;
 	int m_max_frame_rates = 1000;
 	float m_min_frame_rate = 0;
