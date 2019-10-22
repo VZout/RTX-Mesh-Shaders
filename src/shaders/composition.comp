@@ -189,7 +189,7 @@ void main()
         float NdotL = clamp(dot(N, L), 0.0, 1.0); // TODO: Duplicate ndotl
         if (NdotL > 0.0)
         {
-            lighting += BRDF(L, V, N, metallic, roughness, diffuse_color, light_color, F0, energy_compensation, attenuation, 1.0f, anisotropy, anisotropic_t, anisotropic_b, clear_coat, cc_roughness);
+            lighting += BRDF(L, V, N, geometric_normal, metallic, roughness, diffuse_color, light_color, F0, energy_compensation, attenuation, 1.0f, anisotropy, anisotropic_t, anisotropic_b, clear_coat, cc_roughness);
         }
         #else
         lighting += BRDF(L, V, N, metallic, roughness, albedo, light_color);

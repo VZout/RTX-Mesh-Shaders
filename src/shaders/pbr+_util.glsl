@@ -12,6 +12,7 @@
 #define MIN_N_DOT_V 1e-4
 #define ANISO
 #define CLEAR_COAT
+#define MATERIAL_HAS_NORMAL
 
 float pow5(float x)
 {
@@ -227,10 +228,10 @@ float Fd_Burley(float roughness, float NdotV, float NdotL, float LdotH) {
     return lightScatter * viewScatter * (1.0 / M_PI);
 }
 
-float ClearCoatLobe(vec3 N, vec3 H, float NdotH, float LdotH, float clear_coat, float cc_roughness, out float Fcc)
+float ClearCoatLobe(vec3 N, vec3 geometric_normal, vec3 H, float NdotH, float LdotH, float clear_coat, float cc_roughness, out float Fcc)
 {
-#if MATERIAL_HAS_NORMAL
-	float cc_NdotH = saturate(dot(N, H));
+#ifdef MATERIAL_HAS_NORMAL
+	float cc_NdotH = clamp(dot(geometric_normal, H), 0, 1);
 #else
     float cc_NdotH = NdotH;
 #endif
@@ -264,7 +265,7 @@ void EvaluateClearCoatIBL(float clear_coat, float cc_roughness, float NdotV, vec
 }
 #endif
 
-vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float perceptual_roughness, vec3 diffuse_color, vec3 radiance, vec3 F0, vec3 energy_compensation, float attenuation, float occlusion, float anisotropy, vec3 anisotropic_t, vec3 anisotropic_b, float clear_coat, float perceptual_cc_roughness)
+vec3 BRDF(vec3 L, vec3 V, vec3 N, vec3 geometric_normal, float metallic, float perceptual_roughness, vec3 diffuse_color, vec3 radiance, vec3 F0, vec3 energy_compensation, float attenuation, float occlusion, float anisotropy, vec3 anisotropic_t, vec3 anisotropic_b, float clear_coat, float perceptual_cc_roughness)
 {
     float roughness = PerceptualRoughnessToRoughness(perceptual_roughness);
 	float cc_roughness = PerceptualRoughnessToRoughness(perceptual_cc_roughness);
@@ -280,7 +281,7 @@ vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float perceptual_roughness, ve
 
 #ifdef CLEAR_COAT
 	float Fcc;
-    float cc = ClearCoatLobe(N, H, NdotH, LdotH, clear_coat, cc_roughness, Fcc);
+    float cc = ClearCoatLobe(N, geometric_normal, H, NdotH, LdotH, clear_coat, cc_roughness, Fcc);
     float cc_attenuation = 1.0 - Fcc;
 #endif
 
@@ -312,7 +313,16 @@ vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float perceptual_roughness, ve
     vec3 diff = diffuse_color * Fd_Burley(roughness, NdotV, NdotL, LdotH);
 
 #ifdef CLEAR_COAT
+#ifdef MATERIAL_HAS_NORMAL
+	vec3 color = (diff + spec * energy_compensation) * cc_attenuation * NdotL;
+	float cc_NdotL = clamp(dot(geometric_normal, L), 0, 1);
+	color += cc * cc_NdotL;
+
+	// Return early so we don't apply NdotL twice.
+	return (color * radiance) * (attenuation * occlusion);
+#else
 	vec3 color = (diff + spec * energy_compensation) * cc_attenuation + cc;
+#endif
 #else
     vec3 color = diff + spec * energy_compensation;
 #endif

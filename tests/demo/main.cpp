@@ -128,6 +128,9 @@ protected:
 			ImGui::DragFloat("Metallic", &m_temp_debug_mat_data.m_base_metallic, 0.01, -0, 1);
 			ImGui::Checkbox("##2", &m_imgui_override_reflectivity); ImGui::SameLine();
 			ImGui::DragFloat("Reflectivity", &m_temp_debug_mat_data.m_base_reflectivity, 0.01, -0, 1);
+			ImGui::DragFloat("Anisotropy ", &m_temp_debug_mat_data.m_base_anisotropy, 0.01, -1, 1);
+			ImGui::DragFloat("Clear Coat", &m_temp_debug_mat_data.m_base_clear_coat, 0.01, 0, 1);
+			ImGui::DragFloat("Clear Coat Roughness", &m_temp_debug_mat_data.m_base_clear_coat_roughness, 0.01, 0, 1);
 
 			m_temp_debug_mat_data.m_base_normal_strength = m_imgui_disable_normal_mapping ? -1 : m_temp_debug_mat_data.m_base_normal_strength;
 			m_temp_debug_mat_data.m_base_color[0] = m_imgui_override_color ? m_temp_debug_mat_data.m_base_color[0] : -1;
@@ -349,6 +352,14 @@ protected:
 			}
 		});
 
+		editor.RegisterWindow("Input", "Debug", [&]()
+		{
+			ImGui::DragFloat("Movement Speed", &m_move_speed, 1, 0, 100);
+			ImGui::DragFloat("Mouse Sensitivity", &m_mouse_sensitivity, 1, 0, 100);
+			ImGui::DragFloat("Controller Sensitivity", &m_controller_sensitivity, 1, 0, 100);
+			ImGui::ToggleButton("Inverted Controller Y", &m_flip_controller_y);
+		});
+
 		editor.RegisterWindow("About", "Help", [&]()
 		{
 			ImGui::Text("Turing Mesh Shading");
@@ -489,6 +500,8 @@ protected:
 		append_graph_list(m_frame_rates, ImGui::GetIO().Framerate, m_max_frame_rates, m_min_frame_rate,
 		                  m_max_frame_rate);
 
+		HandleControllerInput();
+
 		auto forward_right = sg::helper::GetForwardRight(m_scene_graph, m_camera_node);
 		sg::helper::Translate(m_scene_graph, m_camera_node, (m_z_axis.z * m_move_speed) * forward_right.first);
 		sg::helper::Translate(m_scene_graph, m_camera_node, (m_z_axis.y * m_move_speed) * glm::vec3(0, 1, 0));
@@ -499,6 +512,59 @@ protected:
 	{
 		m_renderer->Resize(width, height);
 		m_frame_graph->Resize(width, height);
+	}
+
+	void HandleControllerInput()
+	{
+		GLFWgamepadstate state;
+		if (GetGamepad(GLFW_JOYSTICK_1, &state))
+		{
+			float dead_zone = 0.1;
+			if (!m_rmb)
+			{
+				m_z_axis = { 0, 0, 0 };
+			}
+
+			// rotation
+			{
+				float x_axis = state.axes[GLFW_GAMEPAD_AXIS_RIGHT_X];
+				float y_axis = state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y] * -1;
+				if (m_flip_controller_y)
+				{
+					y_axis = y_axis * -1;
+				}
+
+				if (x_axis > dead_zone || y_axis > dead_zone || x_axis < -dead_zone || y_axis < -dead_zone)
+				{
+					sg::helper::Rotate(m_scene_graph, m_camera_node, glm::vec3(y_axis * m_controller_sensitivity, x_axis * m_controller_sensitivity, 0));
+				}
+			}
+			// translation
+			{
+				float x_axis = state.axes[GLFW_GAMEPAD_AXIS_LEFT_X];
+				float z_axis = state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y] * -1;
+				float y_plus_axis = (state.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] + 1) / 2;
+				float y_minus_axis = (state.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] + 1) / 2;
+
+				if (x_axis > dead_zone || z_axis > dead_zone || x_axis < -dead_zone || z_axis < -dead_zone)
+				{
+					m_z_axis.x = x_axis;
+					m_z_axis.z = z_axis;
+				}
+
+				if (y_plus_axis > dead_zone || y_plus_axis < -dead_zone)
+				{
+					m_z_axis.y += y_plus_axis;
+				}
+				if (y_minus_axis > dead_zone || y_minus_axis < -dead_zone)
+				{
+					m_z_axis.y -= y_minus_axis;
+				}
+
+				m_z_axis = glm::clamp(m_z_axis, glm::vec3(-1), glm::vec3(1));
+			}
+
+		}
 	}
 
 	void MousePosCallback(float x, float y) final
@@ -606,8 +672,10 @@ protected:
 	// Camera Movement
 	float m_move_speed = 0.01;
 	float m_mouse_sensitivity = 0.005;
+	float m_controller_sensitivity = 0.01;
 	glm::vec3 m_z_axis = glm::vec3(0);
 	bool m_rmb = false;
+	bool m_flip_controller_y = false;
 
 	// ImGui
 	std::chrono::time_point<std::chrono::high_resolution_clock> m_start;
