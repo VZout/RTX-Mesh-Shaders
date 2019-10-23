@@ -1,5 +1,7 @@
 #include "imgui_style.hpp"
 
+#include <algorithm>
+
 ImGuiID ImGui::DockSpaceOverViewport(bool has_main_menu_bar, ImGuiViewport* viewport, ImGuiDockNodeFlags dockspace_flags, const ImGuiWindowClass* window_class)
 {
 	if (viewport == NULL)
@@ -44,18 +46,24 @@ ImGuiID ImGui::DockSpaceOverViewport(bool has_main_menu_bar, ImGuiViewport* view
 	return dockspace_id;
 }
 
-void ImGui::InfoText(std::string const& label, std::string const& value)
+void ImGui::InfoText(std::string const& label, std::string const& value, bool right_aligned)
 {
 	#define TEXT(v) ImVec4(0.860f, 0.930f, 0.890f, v)
 
+	auto right_size = ImGui::CalcTextSize(value.c_str()).x;
+	auto left_size = ImGui::CalcTextSize((label + ": ").c_str()).x;
+
+	auto right_align = ImGui::GetContentRegionAvailWidth() - (right_size + left_size);
+	right_align = std::max(right_align, ImGui::GetStyle().FramePadding.x);
+
 	ImGui::TextColored(TEXT(0.9f), (label + ": ").c_str());
-	ImGui::SameLine();
+	ImGui::SameLine(right_aligned ? left_size + right_align : 0);
 	ImGui::TextColored(TEXT(0.6f), value.c_str());
 }
 
-void ImGui::InfoText(std::string const& label, int value)
+void ImGui::InfoText(std::string const& label, int value, bool right_aligned)
 {
-	InfoText(label, std::to_string(value));
+	InfoText(label, std::to_string(value), right_aligned);
 }
 
 void ImGui::StyleColorsCherry(ImGuiStyle* dst)
@@ -121,7 +129,7 @@ void ImGui::StyleColorsCherry(ImGuiStyle* dst)
 	colors[ImGuiCol_PlotHistogramHovered] = MED(1.00f);
 	colors[ImGuiCol_TextSelectedBg] = MED(0.43f);
 	// [...]
-	colors[ImGuiCol_ModalWindowDarkening] = BG(1.73f);
+	colors[ImGuiCol_ModalWindowDarkening] = ImVec4(0, 0, 0, 0.35);
 	colors[ImGuiCol_Border] = ImVec4(0.539f, 0.479f, 0.255f, 0.162f);
 
 	style->TabRounding = 0.0f;
