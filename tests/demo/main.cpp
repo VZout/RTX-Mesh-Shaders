@@ -769,7 +769,7 @@ protected:
 
 	void KeyCallback(int key, int action) final
 	{
-		if (!ImGui::GetIO().WantCaptureKeyboard || m_viewport_has_focus)
+		if ((!ImGui::GetIO().WantCaptureKeyboard || m_viewport_has_focus) && !m_rmb)
 		{
 			if (key == GLFW_KEY_W)
 			{
