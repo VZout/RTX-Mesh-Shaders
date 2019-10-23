@@ -192,7 +192,7 @@ protected:
 			}
 		}, true, reinterpret_cast<const char*>(ICON_FA_GLOBE_EUROPE));
 
-		editor.RegisterWindow("Temporary Material Settings", "Scene Graph", [&]()
+		editor.RegisterWindow("Temp Material Settings", "Scene Graph", [&]()
 		{
 			ImGui::DragFloat("Ball Reflectivity", &m_ball_reflectivity, 0.01, -0, 1);
 			ImGui::DragFloat("Ball Anisotropy", &m_ball_anisotropy, 0.01, -1, 1);
@@ -249,7 +249,7 @@ protected:
 				m_material_pool->Update(mesh_handle.m_material_handle.value(), m_temp_debug_mat_data);
 			}
 
-		});
+		}, false, reinterpret_cast<const char*>(ICON_FA_PALETTE));
 
 		editor.RegisterWindow("Inspector", "Scene Graph", [&]()
 		{
@@ -348,7 +348,7 @@ protected:
 			conf.line_thickness = 3.f;
 
 			ImGui::Plot("plot", conf);
-		});
+		}, false, reinterpret_cast<const char*>(ICON_FA_CHART_AREA));
 
 		editor.RegisterWindow("GPU Info", "Stats", [&]()
 		{
@@ -469,20 +469,50 @@ protected:
 			ImGui::DragFloat("Mouse Sensitivity", &m_mouse_sensitivity, 1, 0, 100);
 			ImGui::DragFloat("Controller Sensitivity", &m_controller_sensitivity, 1, 0, 100);
 			ImGui::ToggleButton("Inverted Controller Y", &m_flip_controller_y);
+
+			if (ImGui::Button("Keyboard Bindings"))
+			{
+				ImGui::OpenPopup("Keyboard Bindings");
+			}
+
+			if (ImGui::BeginPopupModal("Keyboard Bindings", NULL, ImGuiWindowFlags_AlwaysAutoResize
+				| ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove))
+			{
+				ImGui::InfoText("Move Forward", "RMB + W");
+				ImGui::InfoText("Move Backward", "RMB + S");
+				ImGui::InfoText("Move Left", "RMB + A");
+				ImGui::InfoText("Move Right", "RMB + D");
+				ImGui::InfoText("Look Left/Right", "RMB + MouseX");
+				ImGui::InfoText("Look Up/Down", "RMB + MouseY");
+				ImGui::Separator();
+				ImGui::InfoText("Hide ImGui", "F1");
+				ImGui::InfoText("Hide ImGui", "F1");
+				ImGui::InfoText("Dock ImGui Window", "(hold) Shift");
+				ImGui::InfoText("Cycle Through ImGui Windows", "Ctrl + Tab");
+				ImGui::Separator();
+				ImGui::InfoText("Switch To Translate Gizmo", "W");
+				ImGui::InfoText("Switch To Rotate Gizmo", "E");
+				ImGui::InfoText("Switch To Scale Gizmo", "R");
+				ImGui::NewLine();
+
+				if (ImGui::Button("OK", ImVec2(ImGui::GetContentRegionAvail().x, 0))) { ImGui::CloseCurrentPopup(); }
+				ImGui::SetItemDefaultFocus();
+
+				ImGui::EndPopup();
+			}
 		}, true, reinterpret_cast<const char*>(ICON_FA_KEYBOARD));
 
 		editor.RegisterWindow("About", "Help", [&]()
 		{
 			ImGui::Text("Turing Mesh Shading");
 			constexpr auto version = util::GetVersion();
-			std::string version_text = "Version: " + util::VersionToString(version);
-			ImGui::Text("%s", version_text.c_str());
+			ImGui::InfoText("Version", util::VersionToString(version), false);
 			ImGui::Separator();
 			ImGui::Text("Copyright 2019 Viktor Zoutman");
 			if (ImGui::Button("License")) OpenURL("https://github.com/VZout/RTX-Mesh-Shaders/blob/master/LICENSE");
 			ImGui::SameLine();
 			if (ImGui::Button("Portfolio")) OpenURL("http://www.vzout.com/");
-		});
+		}, false, reinterpret_cast<const char*>(ICON_FA_ADDRESS_CARD));
 	}
 
 	void Init() final
