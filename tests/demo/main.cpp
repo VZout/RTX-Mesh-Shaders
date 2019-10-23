@@ -74,7 +74,7 @@ protected:
 		{
 			ImGuizmo::SetRect(0, 0, GetWidth(), GetHeight());
 		}
-		ImGuizmo::Manipulate(glm::value_ptr(data.m_view), glm::value_ptr(data.m_proj), operation, ImGuizmo::MODE::LOCAL, &model[0][0], NULL, NULL);
+		ImGuizmo::Manipulate(glm::value_ptr(data.m_view), glm::value_ptr(data.m_proj), operation, ImGuizmo::MODE::WORLD, &model[0][0], NULL, NULL);
 
 		float new_translation[3], new_rotation[3], new_scale[3];
 		ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(model), new_translation, new_rotation, new_scale);
