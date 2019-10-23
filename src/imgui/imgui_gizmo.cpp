@@ -1077,8 +1077,10 @@ namespace ImGuizmo
             drawList->AddLine(baseSSpace, worldDirSSpace, colors[i + 1], 3.f);
             drawList->AddCircleFilled(worldDirSSpace, 6.f, colors[i + 1]);
 
+#ifdef GIZMO_HATCHED_AXIS
             if (gContext.mAxisFactor[i] < 0.f)
                DrawHatchedAxis(dirAxis * scaleDisplay[i]);
+#endif
          }
       }
 
@@ -1151,8 +1153,10 @@ namespace ImGuizmo
             drawList->AddTriangleFilled(worldDirSSpace - dir, a + ortogonalDir, a - ortogonalDir, colors[i + 1]);
             // Arrow head end
 
+#ifdef GIZMO_HATCHED_AXIS
             if (gContext.mAxisFactor[i] < 0.f)
                DrawHatchedAxis(dirAxis);
+#endif
          }
 
          // draw plane
