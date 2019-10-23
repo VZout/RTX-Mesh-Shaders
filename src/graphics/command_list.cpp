@@ -540,6 +540,22 @@ void gfx::CommandList::TransitionRenderTarget(RenderTarget* render_target, std::
 		source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 		destination_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	}
+	else if (from == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL && to == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+	{
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}
+	else if (from == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && to == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+	{
+		barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+		source_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		destination_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}
 	else if (from == VK_IMAGE_LAYOUT_UNDEFINED && to == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
 	{
 		barrier.srcAccessMask = 0;

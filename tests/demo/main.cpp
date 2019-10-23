@@ -65,7 +65,14 @@ protected:
 		data.m_view = glm::lookAt(cam_pos, cam_pos + forward, up);
 		data.m_proj = glm::perspective(glm::radians(45.0f), (float)1280 / (float)720, 0.01f, 1000.0f);
 
-		ImGuizmo::SetRect(0, 0, GetWidth(), GetHeight());
+		if (m_use_viewport)
+		{
+			ImGuizmo::SetRect(m_viewport_pos.x, m_viewport_pos.y, m_viewport_size.x, m_viewport_size.y);
+		}
+		else
+		{
+			ImGuizmo::SetRect(0, 0, GetWidth(), GetHeight());
+		}
 		ImGuizmo::Manipulate(glm::value_ptr(data.m_view), glm::value_ptr(data.m_proj), operation, ImGuizmo::MODE::LOCAL, &model[0][0], NULL, NULL);
 
 		float new_translation[3], new_rotation[3], new_scale[3];
@@ -88,7 +95,8 @@ protected:
 
 		// Actions
 		editor.RegisterAction("Quit", "File", [&](){ Close(); }, reinterpret_cast<const char*>(ICON_FA_POWER_OFF));
-		editor.RegisterAction("Contribute", "Help", [&](){ OpenURL("https://github.com/VZout/RTX-Mesh-Shaders"); });
+		editor.RegisterAction("Save ImGui Settings", "File", [&]() { ImGui::SaveIniSettingsToDisk(settings::imgui_ini_filename); }, reinterpret_cast<const char*>(ICON_FA_SAVE));
+		editor.RegisterAction("Contribute", "Help", [&](){ OpenURL("https://github.com/VZout/RTX-Mesh-Shaders"); }, reinterpret_cast<const char*>(ICON_FA_HANDS_HELPING));
 		editor.RegisterAction("Report Issue", "Help", [&](){ OpenURL("https://github.com/VZout/RTX-Mesh-Shaders/issues"); }, reinterpret_cast<const char*>(ICON_FA_BUG));
 
 		// Windows
@@ -182,7 +190,7 @@ protected:
 					ImGui_ManipulateNode(node, m_gizmo_operation);
 				}
 			}
-		}, false, reinterpret_cast<const char*>(ICON_FA_GLOBE_EUROPE));
+		}, true, reinterpret_cast<const char*>(ICON_FA_GLOBE_EUROPE));
 
 		editor.RegisterWindow("Temporary Material Settings", "Scene Graph", [&]()
 		{
@@ -265,7 +273,12 @@ protected:
 
 				if (node.m_camera_component == -1 && node.m_light_component == -1)
 				{
-					ImGui::DragFloat3("Scale", &m_scene_graph->m_scales[node.m_transform_component].m_value[0], 0.01f);
+					constexpr float min = 0.0000000000001f;
+					constexpr float max = std::numeric_limits<float>::max();
+
+					auto& scale = m_scene_graph->m_scales[node.m_transform_component].m_value;
+					ImGui::DragFloat3("Scale", &scale[0], 0.01f, min, max);
+					scale = glm::max(scale, min);
 				}
 			}
 
@@ -303,7 +316,7 @@ protected:
 			}
 
 			m_scene_graph->m_requires_update[node.m_transform_component] = true;
-		}, false, reinterpret_cast<const char*>(ICON_FA_EYE));
+		}, true, reinterpret_cast<const char*>(ICON_FA_EYE));
 
 		editor.RegisterWindow("Performance", "Stats", [&]()
 		{
@@ -371,7 +384,7 @@ protected:
 			ImGui::InfoText("Driver Version", device_properties.driverVersion);
 			ImGui::InfoText("Device ID", device_properties.deviceID);
 			ImGui::InfoText("Vendor ID", device_properties.vendorID);
-		});
+		}, true, reinterpret_cast<const char*>(ICON_FA_MICROCHIP));
 
 		editor.RegisterWindow("Memory Allocator Stats", "Stats", [&]()
 		{
@@ -433,7 +446,22 @@ protected:
 					}
 				}
 			}
-		});
+		}, false, reinterpret_cast<const char*>(ICON_FA_MEMORY));
+
+		editor.RegisterWindow("Viewport", "Debug", [&]()
+		{
+			ImVec2 size = ImGui::GetContentRegionAvail();
+			m_viewport_pos = ImGui::GetCursorScreenPos();
+
+			// If the size changed...
+			if (size.x != m_viewport_size.x || size.y != m_viewport_size.y)
+			{
+				m_viewport_size = size;
+				sg::helper::SetAspectRatio(m_scene_graph, m_camera_node, (float)size.x / (float)size.y);
+			}
+
+			ImGui::Image(editor.GetTexture(), size);
+		}, true, reinterpret_cast<const char*>(ICON_FA_GAMEPAD));
 
 		editor.RegisterWindow("Input Settings", "Debug", [&]()
 		{
@@ -441,7 +469,7 @@ protected:
 			ImGui::DragFloat("Mouse Sensitivity", &m_mouse_sensitivity, 1, 0, 100);
 			ImGui::DragFloat("Controller Sensitivity", &m_controller_sensitivity, 1, 0, 100);
 			ImGui::ToggleButton("Inverted Controller Y", &m_flip_controller_y);
-		});
+		}, true, reinterpret_cast<const char*>(ICON_FA_KEYBOARD));
 
 		editor.RegisterWindow("About", "Help", [&]()
 		{
@@ -471,7 +499,11 @@ protected:
 		tasks::AddDeferredCompositionTask(*m_frame_graph);
 		tasks::AddPostProcessingTask<tasks::DeferredCompositionData>(*m_frame_graph);
 		tasks::AddCopyToBackBufferTask<tasks::PostProcessingData>(*m_frame_graph);
-		tasks::AddImGuiTask(*m_frame_graph, [this]() { editor.Render(); });
+		tasks::AddImGuiTask<tasks::PostProcessingData>(*m_frame_graph, [this](ImTextureID texture)
+		{ 
+			editor.SetTexture(texture);
+			editor.Render();
+		});
 
 		m_renderer = new Renderer();
 		m_renderer->Init(this);
@@ -597,6 +629,11 @@ protected:
 	{
 		m_renderer->Resize(width, height);
 		m_frame_graph->Resize(width, height);
+
+		if (!m_use_viewport)
+		{
+			sg::helper::SetAspectRatio(m_scene_graph, m_camera_node, (float)width / (float)height);
+		}
 	}
 
 	void HandleControllerInput()
@@ -792,6 +829,9 @@ protected:
 	float m_max_frame_rate = 1;
 	std::optional<sg::NodeHandle> m_selected_node;
 	ImGuiTextFilter m_outliner_filter;
+	bool m_use_viewport = true;
+	ImVec2 m_viewport_pos = { 0, 0 };
+	ImVec2 m_viewport_size = { 1280, 720};
 };
 
 
