@@ -52,6 +52,7 @@ protected:
 
 		glm::vec3 cam_pos = m_scene_graph->m_positions[cam.m_transform_component].m_value;
 		glm::vec3 cam_rot = m_scene_graph->m_rotations[cam.m_transform_component].m_value;
+		auto aspect_ratio = m_scene_graph->m_camera_aspect_ratios[cam.m_transform_component].m_value;
 
 		glm::vec3 forward;
 		forward.x = cos(cam_rot.y) * cos(cam_rot.x);
@@ -63,7 +64,7 @@ protected:
 
 		cb::Camera data;
 		data.m_view = glm::lookAt(cam_pos, cam_pos + forward, up);
-		data.m_proj = glm::perspective(glm::radians(45.0f), (float)1280 / (float)720, 0.01f, 1000.0f);
+		data.m_proj = glm::perspective(glm::radians(45.0f), aspect_ratio, 0.01f, 1000.0f);
 
 		if (m_use_viewport)
 		{
@@ -448,8 +449,16 @@ protected:
 			}
 		}, false, reinterpret_cast<const char*>(ICON_FA_MEMORY));
 
+		m_viewport_has_focus = false;
 		editor.RegisterWindow("Viewport", "Debug", [&]()
 		{
+			m_viewport_has_focus = ImGui::IsWindowFocused();
+
+			if (m_rmb)
+			{
+				ImGui::SetWindowFocus();
+			}
+
 			ImVec2 size = ImGui::GetContentRegionAvail();
 			m_viewport_pos = ImGui::GetCursorScreenPos();
 
@@ -484,12 +493,15 @@ protected:
 				ImGui::InfoText("Move Right", "RMB + D");
 				ImGui::InfoText("Look Left/Right", "RMB + MouseX");
 				ImGui::InfoText("Look Up/Down", "RMB + MouseY");
-				ImGui::Separator();
-				ImGui::InfoText("Hide ImGui", "F1");
-				ImGui::InfoText("Hide ImGui", "F1");
+				ImGui::NewLine();
+				ImGui::InfoText("Open Key bindings", "F1");
+				ImGui::InfoText("Toggle Editor", "F3 / ESC");
+				ImGui::InfoText("Toggle Fullscreen", "F11 / Alt + Enter");
+				ImGui::InfoText("Close Application", "Alt + F4");
+				ImGui::NewLine();
 				ImGui::InfoText("Dock ImGui Window", "(hold) Shift");
 				ImGui::InfoText("Cycle Through ImGui Windows", "Ctrl + Tab");
-				ImGui::Separator();
+				ImGui::NewLine();
 				ImGui::InfoText("Switch To Translate Gizmo", "W");
 				ImGui::InfoText("Switch To Rotate Gizmo", "E");
 				ImGui::InfoText("Switch To Scale Gizmo", "R");
@@ -757,7 +769,7 @@ protected:
 
 	void KeyCallback(int key, int action) final
 	{
-		if (!ImGui::GetIO().WantCaptureKeyboard)
+		if (!ImGui::GetIO().WantCaptureKeyboard || m_viewport_has_focus)
 		{
 			if (key == GLFW_KEY_W)
 			{
@@ -860,6 +872,7 @@ protected:
 	std::optional<sg::NodeHandle> m_selected_node;
 	ImGuiTextFilter m_outliner_filter;
 	bool m_use_viewport = true;
+	bool m_viewport_has_focus = false;
 	ImVec2 m_viewport_pos = { 0, 0 };
 	ImVec2 m_viewport_size = { 1280, 720};
 };
