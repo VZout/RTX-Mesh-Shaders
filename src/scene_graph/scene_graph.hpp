@@ -216,6 +216,8 @@ namespace sg
 
 		void Update(std::uint32_t frame_idx);
 
+		Node GetActiveCamera();
+
 		ConstantBufferPool* GetPOConstantBufferPool();
 		ConstantBufferPool* GetCameraConstantBufferPool();
 		ConstantBufferPool* GetLightConstantBufferPool();

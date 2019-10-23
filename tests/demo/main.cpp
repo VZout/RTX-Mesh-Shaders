@@ -14,6 +14,8 @@
 #include "render_tasks/vulkan_tasks.hpp"
 #include "imgui/icons_font_awesome5.hpp"
 #include "imgui/imgui_plot.hpp"
+#include "imgui/imgui_gizmo.h"
+#include <gtc/type_ptr.hpp>
 
 #ifdef _WIN32
 #include <shellapi.h>
@@ -43,6 +45,38 @@ public:
 	}
 
 protected:
+	void ImGui_ManipulateNode(sg::Node node, ImGuizmo::OPERATION operation)
+	{
+		auto model = m_scene_graph->m_models[node.m_transform_component].m_value;
+		auto cam = m_scene_graph->GetActiveCamera();
+
+		glm::vec3 cam_pos = m_scene_graph->m_positions[cam.m_transform_component].m_value;
+		glm::vec3 cam_rot = m_scene_graph->m_rotations[cam.m_transform_component].m_value;
+
+		glm::vec3 forward;
+		forward.x = cos(cam_rot.y) * cos(cam_rot.x);
+		forward.y = sin(cam_rot.x);
+		forward.z = sin(cam_rot.y) * cos(cam_rot.x);
+		forward = glm::normalize(forward);
+		glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3(0, 1, 0)));
+		glm::vec3 up = glm::normalize(glm::cross(right, forward));
+
+		cb::Camera data;
+		data.m_view = glm::lookAt(cam_pos, cam_pos + forward, up);
+		data.m_proj = glm::perspective(glm::radians(45.0f), (float)1280 / (float)720, 0.01f, 1000.0f);
+
+		ImGuizmo::SetRect(0, 0, GetWidth(), GetHeight());
+		ImGuizmo::Manipulate(glm::value_ptr(data.m_view), glm::value_ptr(data.m_proj), operation, ImGuizmo::MODE::LOCAL, &model[0][0], NULL, NULL);
+
+		float new_translation[3], new_rotation[3], new_scale[3];
+		ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(model), new_translation, new_rotation, new_scale);
+
+		m_scene_graph->m_positions[node.m_transform_component].m_value = glm::vec3(new_translation[0], new_translation[1], new_translation[2]);
+		m_scene_graph->m_rotations[node.m_transform_component].m_value = glm::vec3(glm::radians(new_rotation[0]), glm::radians(new_rotation[1]), glm::radians(new_rotation[2]));
+		m_scene_graph->m_scales[node.m_transform_component].m_value = glm::vec3(new_scale[0], new_scale[1], new_scale[2]);
+		m_scene_graph->m_requires_update[node.m_transform_component] = true;
+	}
+
 	void SetupEditor()
 	{
 		// Categories
@@ -60,8 +94,44 @@ protected:
 		// Windows
 		editor.RegisterWindow("World Outliner", "Scene Graph", [&]()
 		{
+			auto gizmo_button = [&](auto icon, auto operation, auto tooltip)
+			{
+				bool selected = m_gizmo_operation == operation;
+
+				if (selected)
+				{
+					auto active_color = ImGui::GetStyle().Colors[ImGuiCol_ButtonActive];
+					ImGui::PushStyleColor(ImGuiCol_Button, active_color);
+				}
+
+				if (ImGui::Button(reinterpret_cast<const char*>(icon)))
+				{
+					m_gizmo_operation = operation;
+				}
+				if (ImGui::IsItemHovered())
+				{
+					ImGui::BeginTooltip();
+					ImGui::Text(tooltip);
+					ImGui::EndTooltip();
+				}
+
+				if (selected)
+				{
+					ImGui::PopStyleColor();
+				}
+			};
+
+			gizmo_button(ICON_FA_ARROWS_ALT, ImGuizmo::OPERATION::TRANSLATE, "Translate (W)");
+			ImGui::SameLine();
+			gizmo_button(ICON_FA_SYNC_ALT, ImGuizmo::OPERATION::ROTATE, "Rotate (E)");
+			ImGui::SameLine();
+			gizmo_button(ICON_FA_EXPAND_ARROWS_ALT, ImGuizmo::OPERATION::SCALE, "Scale (R)");
+
+			ImGui::SameLine();
+
+			m_outliner_filter.Draw("##");
+
 			ImVec2 size = ImGui::GetContentRegionAvail();
-			size.y -= ImGui::GetItemsLineHeightWithSpacing();
 			if (ImGui::ListBoxHeader("##", size))
 			{
 				const auto& node_handles = m_scene_graph->GetNodeHandles();
@@ -93,6 +163,8 @@ protected:
 
 					auto node_name = name_prefix + " (" + std::to_string(i) + ")";
 
+					if (!m_outliner_filter.PassFilter(node_name.c_str())) continue;
+
 					bool pressed = ImGui::Selectable(node_name.c_str(), m_selected_node == handle);
 					if (pressed)
 					{
@@ -100,6 +172,15 @@ protected:
 					}
 				}
 				ImGui::ListBoxFooter();
+			}
+
+			if (m_selected_node.has_value())
+			{
+				auto node = m_scene_graph->GetNode(m_selected_node.value());
+				if (node.m_camera_component == -1)
+				{
+					ImGui_ManipulateNode(node, m_gizmo_operation);
+				}
 			}
 		}, false, reinterpret_cast<const char*>(ICON_FA_GLOBE_EUROPE));
 
@@ -609,6 +690,22 @@ protected:
 
 	void KeyCallback(int key, int action) final
 	{
+		if (!ImGui::GetIO().WantCaptureKeyboard)
+		{
+			if (key == GLFW_KEY_W)
+			{
+				m_gizmo_operation = ImGuizmo::OPERATION::TRANSLATE;
+			}
+			else if (key == GLFW_KEY_E)
+			{
+				m_gizmo_operation = ImGuizmo::OPERATION::ROTATE;
+			}
+			else if (key == GLFW_KEY_R)
+			{
+				m_gizmo_operation = ImGuizmo::OPERATION::SCALE;
+			}
+		}
+
 		if (!m_rmb) return;
 
 		float axis_mod = 0;
@@ -685,6 +782,8 @@ protected:
 	bool m_rmb = false;
 	bool m_flip_controller_y = false;
 
+	ImGuizmo::OPERATION m_gizmo_operation = ImGuizmo::OPERATION::TRANSLATE;
+
 	// ImGui
 	std::chrono::time_point<std::chrono::high_resolution_clock> m_last;
 	std::vector<float> m_frame_rates;
@@ -692,6 +791,7 @@ protected:
 	float m_min_frame_rate = 0;
 	float m_max_frame_rate = 1;
 	std::optional<sg::NodeHandle> m_selected_node;
+	ImGuiTextFilter m_outliner_filter;
 };
 
 

@@ -15,6 +15,7 @@
 #include "../renderer.hpp"
 #include "../imgui/imgui_impl_glfw.hpp"
 #include "../imgui/imgui_impl_vulkan.hpp"
+#include "../imgui/imgui_gizmo.h"
 
 #define IMGUI
 
@@ -66,6 +67,7 @@ namespace tasks
 			// imgui itself code
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
+			ImGuizmo::BeginFrame();
 
 			data.m_render_func();
 

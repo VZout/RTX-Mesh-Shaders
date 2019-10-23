@@ -207,6 +207,11 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 	}
 }
 
+sg::Node sg::SceneGraph::GetActiveCamera()
+{
+	return m_nodes[m_camera_node_handles[0]];
+}
+
 ConstantBufferPool* sg::SceneGraph::GetPOConstantBufferPool()
 {
 	return m_per_object_buffer_pool;
