@@ -951,6 +951,11 @@ namespace ImGuizmo
 
    static void DrawRotationGizmo(int type)
    {
+	   if (!IsInContextRect(gContext.mScreenSquareCenter))
+	   {
+		   return;
+	   }
+
       ImDrawList* drawList = gContext.mDrawList;
 
       // colors
@@ -1033,6 +1038,11 @@ namespace ImGuizmo
 
    static void DrawScaleGizmo(int type)
    {
+	   if (!IsInContextRect(gContext.mScreenSquareCenter))
+	   {
+		   return;
+	   }
+
       ImDrawList* drawList = gContext.mDrawList;
 
       // colors
@@ -1098,6 +1108,11 @@ namespace ImGuizmo
 
    static void DrawTranslationGizmo(int type)
    {
+	   if (!IsInContextRect(gContext.mScreenSquareCenter))
+	   {
+		   return;
+	   }
+
       ImDrawList* drawList = gContext.mDrawList;
       if (!drawList)
           return;
