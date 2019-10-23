@@ -466,6 +466,33 @@ namespace fg
 			return *static_cast<T*>(nullptr);
 		}
 
+		/*! Get the render target properties of a previously added task.*/
+		/*!
+			This function loops over all tasks and checks whether it has the same type information as the template variable.
+			If no task is found with the type specified a nullptr will be returned and a error message send to the logging system.
+		*/
+		template<typename T>
+		[[nodiscard]] inline std::optional<RenderTargetProperties>& GetRenderTargetProperties()
+		{
+			static_assert(std::is_class<T>::value,
+				"The template variable should be a class or struct.");
+			static_assert(!std::is_pointer<T>::value,
+				"The template variable type should not be a pointer. Its implicitly converted to a pointer.");
+
+			for (decltype(m_num_tasks) i = 0; i < m_num_tasks; i++)
+			{
+				if (typeid(T) == m_data_type_info[i])
+				{
+					return m_rt_properties[i];
+				}
+			}
+
+			LOGC("Failed to find predecessor render target! Please check your task order.");
+
+			std::optional<RenderTargetProperties> null_retval = std::nullopt;
+			return null_retval;
+		}
+
 		/*! Get the render target of a previously ran task. (Constant) */
 		/*!
 			This function loops over all tasks and checks whether it has the same type information as the template variable.
@@ -871,34 +898,34 @@ namespace fg
 			switch (m_types[handle])
 			{
 			case RenderTaskType::DIRECT:
-				if (rt_properties.has_value())
+				if (rt_properties.has_value() && rt_properties->m_bind_by_default)
 				{
 					m_renderer->StartRenderTask(cmd_list, { render_target, rt_properties.value() });
 				}
 				m_execute_funcs[handle](*m_renderer, *this, sg, handle);
-				if (rt_properties.has_value())
+				if (rt_properties.has_value() && rt_properties->m_bind_by_default)
 				{
 					m_renderer->StopRenderTask(cmd_list, { render_target, rt_properties.value() });
 				}
 				break;
 			case RenderTaskType::COMPUTE:
-				if (rt_properties.has_value())
+				if (rt_properties.has_value() && rt_properties->m_bind_by_default)
 				{
 					m_renderer->StartComputeTask(cmd_list, { render_target, rt_properties.value() });
 				}
 				m_execute_funcs[handle](*m_renderer, *this, sg, handle);
-				if (rt_properties.has_value())
+				if (rt_properties.has_value() && rt_properties->m_bind_by_default)
 				{
 					m_renderer->StopComputeTask(cmd_list, { render_target, rt_properties.value() });
 				}
 				break;
 			case RenderTaskType::COPY:
-				if (rt_properties.has_value())
+				if (rt_properties.has_value() && rt_properties->m_bind_by_default)
 				{
 					m_renderer->StartRenderTask(cmd_list, { render_target, rt_properties.value() });
 				}
 				m_execute_funcs[handle](*m_renderer, *this, sg, handle);
-				if (rt_properties.has_value())
+				if (rt_properties.has_value() && rt_properties->m_bind_by_default)
 				{
 					m_renderer->StopRenderTask(cmd_list, { render_target, rt_properties.value() });
 				}

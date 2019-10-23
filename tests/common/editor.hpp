@@ -4,12 +4,14 @@
  *  \copyright GNU General Public License v3.0
  */
 
-
 #pragma once
+
+#define IMGUI_SHOW_ICONS_IN_MENU_TITLES
 
 #include <string>
 #include <vector>
 #include <optional>
+#include <imgui.h>
 
 #include <util/delegate.hpp>
 
@@ -33,6 +35,8 @@ public:
 	void RegisterAction(std::string const & name, std::string const & category, action_func_t action_func, std::optional<icon_t> icon = std::nullopt);
 	void RegisterWindow(std::string const & name, std::string const & category, window_func_t window_func, bool default_visibility = false, std::optional<icon_t> icon = std::nullopt);
 	void Render();
+	void SetTexture(ImTextureID texture);
+	ImTextureID GetTexture();
 
 private:
 	struct ActionDesc
@@ -60,5 +64,6 @@ private:
 
 	std::vector<CategoryDesc> m_category_descs;
 	bool m_show_main_menu;
+	ImTextureID m_texture;
 
 };
