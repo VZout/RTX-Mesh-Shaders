@@ -400,7 +400,7 @@ foreach(GLSL ${GLSL_SOURCE_FILES})
   add_custom_command(
     OUTPUT ${SPIRV}
 	COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/bin/shaders/"
-    COMMAND ${GLSL_VALIDATOR} ${GLSL} -o ${SPIRV}
+    COMMAND ${GLSL_VALIDATOR} ${GLSL} --target-env=vulkan1.1 --target-spv=spv1.3 -Werror -O -o ${SPIRV}
     DEPENDS ${GLSL}
 	COMMENT "Compiling GLSL to SPRIV")
   list(APPEND SPIRV_BINARY_FILES ${SPIRV})

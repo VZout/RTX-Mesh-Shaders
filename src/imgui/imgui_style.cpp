@@ -1,17 +1,69 @@
 #include "imgui_style.hpp"
 
-void ImGui::InfoText(std::string const& label, std::string const& value)
+#include <algorithm>
+
+ImGuiID ImGui::DockSpaceOverViewport(bool has_main_menu_bar, ImGuiViewport* viewport, ImGuiDockNodeFlags dockspace_flags, const ImGuiWindowClass* window_class)
+{
+	if (viewport == NULL)
+		viewport = GetMainViewport();
+
+	auto pos = viewport->Pos;
+	auto size = viewport->Size;
+
+	if (has_main_menu_bar)
+	{
+		ImGuiContext& g = *GImGui;
+		g.NextWindowData.MenuBarOffsetMinVal = ImVec2(g.Style.DisplaySafeAreaPadding.x, ImMax(g.Style.DisplaySafeAreaPadding.y - g.Style.FramePadding.y, 0.0f));
+
+		float height_offset = g.NextWindowData.MenuBarOffsetMinVal.y + g.FontBaseSize + (g.Style.FramePadding.y * 2);
+		pos.y += height_offset;
+		size.y -= height_offset;
+	}
+
+	SetNextWindowPos(pos);
+	SetNextWindowSize(size);
+	SetNextWindowViewport(viewport->ID);
+
+	ImGuiWindowFlags host_window_flags = 0;
+	host_window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking;
+	host_window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+	if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
+		host_window_flags |= ImGuiWindowFlags_NoBackground;
+
+	char label[32];
+	ImFormatString(label, IM_ARRAYSIZE(label), "DockSpaceViewport_%08X", viewport->ID);
+
+	PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+	PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+	PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+	Begin(label, NULL, host_window_flags);
+	PopStyleVar(3);
+
+	ImGuiID dockspace_id = GetID("DockSpace");
+	DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags, window_class);
+	End();
+
+	return dockspace_id;
+}
+
+void ImGui::InfoText(std::string const& label, std::string const& value, bool right_aligned)
 {
 	#define TEXT(v) ImVec4(0.860f, 0.930f, 0.890f, v)
 
+	auto right_size = ImGui::CalcTextSize(value.c_str()).x;
+	auto left_size = ImGui::CalcTextSize((label + ": ").c_str()).x;
+
+	auto right_align = ImGui::GetContentRegionAvailWidth() - (right_size + left_size);
+	right_align = std::max(right_align, ImGui::GetStyle().FramePadding.x);
+
 	ImGui::TextColored(TEXT(0.9f), (label + ": ").c_str());
-	ImGui::SameLine();
+	ImGui::SameLine(right_aligned ? left_size + right_align : 0);
 	ImGui::TextColored(TEXT(0.6f), value.c_str());
 }
 
-void ImGui::InfoText(std::string const& label, int value)
+void ImGui::InfoText(std::string const& label, int value, bool right_aligned)
 {
-	InfoText(label, std::to_string(value));
+	InfoText(label, std::to_string(value), right_aligned);
 }
 
 void ImGui::StyleColorsCherry(ImGuiStyle* dst)
@@ -77,7 +129,7 @@ void ImGui::StyleColorsCherry(ImGuiStyle* dst)
 	colors[ImGuiCol_PlotHistogramHovered] = MED(1.00f);
 	colors[ImGuiCol_TextSelectedBg] = MED(0.43f);
 	// [...]
-	colors[ImGuiCol_ModalWindowDarkening] = BG(1.73f);
+	colors[ImGuiCol_ModalWindowDarkening] = ImVec4(0, 0, 0, 0.35);
 	colors[ImGuiCol_Border] = ImVec4(0.539f, 0.479f, 0.255f, 0.162f);
 
 	style->TabRounding = 0.0f;

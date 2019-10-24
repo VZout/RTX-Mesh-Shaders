@@ -6,6 +6,7 @@
 
 namespace ImGui
 {
+	IMGUI_API ImGuiID DockSpaceOverViewport(bool has_main_menu_bar, ImGuiViewport* viewport = NULL, ImGuiDockNodeFlags flags = 0, const ImGuiWindowClass * window_class = NULL);
 
 	IMGUI_API void StyleColorsDarkCodz1(ImGuiStyle* dst = NULL); // https://github.com/codz01
 	IMGUI_API void StyleColorsCherry(ImGuiStyle* dst = NULL); // https://github.com/ocornut/imgui/issues/707
@@ -13,8 +14,8 @@ namespace ImGui
 	IMGUI_API void StyleColorsUE(ImGuiStyle* dst = NULL); // https://github.com/ocornut/imgui/issues/707
 	IMGUI_API void StyleCorporateGrey(ImGuiStyle* dst = NULL); // https://github.com/ocornut/imgui/issues/707
 
-	IMGUI_API void InfoText(std::string const& label, std::string const& value);
-	IMGUI_API void InfoText(std::string const& label, int value);
+	IMGUI_API void InfoText(std::string const& label, std::string const& value, bool right_aligned = true);
+	IMGUI_API void InfoText(std::string const& label, int value, bool right_aligned = true);
 
 	inline void ToggleButton(const char* str_id, bool* v)
 	{

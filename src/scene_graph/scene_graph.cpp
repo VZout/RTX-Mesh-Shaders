@@ -127,9 +127,11 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 		glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3(0, 1, 0)));
 		glm::vec3 up = glm::normalize(glm::cross(right, forward));
 
+		float aspect_ratio = m_camera_aspect_ratios[node.m_camera_component].m_value;
+
 		cb::Camera data;
 		data.m_view = glm::lookAt(cam_pos, cam_pos + forward, up);
-		data.m_proj = glm::perspective(glm::radians(45.0f), (float) 1280 / (float) 720, 0.01f, 1000.0f);
+		data.m_proj = glm::perspective(glm::radians(45.0f), aspect_ratio, 0.01f, 1000.0f);
 		data.m_proj[1][1] *= -1;
 
 		// TODO: In theory right now the cb handle and the mesh component will always have the same value.
@@ -205,6 +207,11 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 
 		m_num_lights[frame_idx] = m_light_node_handles.size();
 	}
+}
+
+sg::Node sg::SceneGraph::GetActiveCamera()
+{
+	return m_nodes[m_camera_node_handles[0]];
 }
 
 ConstantBufferPool* sg::SceneGraph::GetPOConstantBufferPool()

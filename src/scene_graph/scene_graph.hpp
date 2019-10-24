@@ -180,6 +180,11 @@ namespace sg
 				handle
 			));
 
+			m_camera_aspect_ratios.emplace_back(ComponentData<float>(
+				1280.f / 720.f,
+				handle
+			));
+
 			m_requires_camera_buffer_update.emplace_back(ComponentData<std::vector<bool>>(
 				std::vector<bool>(gfx::settings::num_back_buffers, true),
 				handle
@@ -216,6 +221,8 @@ namespace sg
 
 		void Update(std::uint32_t frame_idx);
 
+		Node GetActiveCamera();
+
 		ConstantBufferPool* GetPOConstantBufferPool();
 		ConstantBufferPool* GetCameraConstantBufferPool();
 		ConstantBufferPool* GetLightConstantBufferPool();
@@ -236,6 +243,7 @@ namespace sg
 
 		// Camera Component
 		std::vector<ComponentData<ConstantBufferHandle>> m_camera_cb_handles;
+		std::vector<ComponentData<float>> m_camera_aspect_ratios;
 		std::vector<ComponentData<std::vector<bool>>> m_requires_camera_buffer_update;
 
 		// Light Component
@@ -318,6 +326,12 @@ namespace sg
 			sg->m_requires_update[transform_handle] = true;
 		}
 
+		inline void SetAspectRatio(SceneGraph* sg, NodeHandle handle, float ratio)
+		{
+			auto camera_handle = sg->GetNode(handle).m_camera_component;
+			sg->m_camera_aspect_ratios[camera_handle].m_value = ratio;
+			sg->m_requires_camera_buffer_update[camera_handle] = { true, true, true };
+		}
 
 	} /* helper */
 

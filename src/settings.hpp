@@ -13,6 +13,7 @@ namespace settings
 {
 
 	static const bool use_imgui = true;
+	static const char* imgui_ini_filename = "editor_config.ini";
 	static const std::optional<std::string> m_imgui_font = "fonts/DroidSans.ttf";
 	static const std::optional<float> m_imgui_font_size = 13;
 	static const bool use_multithreading = false;

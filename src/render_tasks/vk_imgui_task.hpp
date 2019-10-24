@@ -15,6 +15,7 @@
 #include "../renderer.hpp"
 #include "../imgui/imgui_impl_glfw.hpp"
 #include "../imgui/imgui_impl_vulkan.hpp"
+#include "../imgui/imgui_gizmo.h"
 
 #define IMGUI
 
@@ -26,24 +27,41 @@ namespace tasks
 #ifdef IMGUI
 		ImGuiImpl* m_imgui_impl;
 		bool m_temp;
-		util::Delegate<void()> m_render_func;
+		util::Delegate<void(ImTextureID)> m_render_func;
+		gfx::DescriptorHeap* m_heap;
+		ImTextureID m_texture;
 #endif
 	};
 
 	namespace internal
 	{
 
+		template<typename T>
 		inline void SetupImGuiTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize, decltype(ImGuiTaskData::m_render_func) render_func)
 		{
 #ifdef IMGUI
+			auto& data = fg.GetData<ImGuiTaskData>(handle);
+
 			if (resize)
 			{
+				// TODO: Duplicate code.
+				gfx::DescriptorHeap::Desc desc;
+				desc.m_versions = 1;
+				desc.m_num_descriptors = 1;
+				data.m_heap = new gfx::DescriptorHeap(rs.GetContext(), desc);
+				auto predecessor_rt = fg.GetPredecessorRenderTarget<T>();
+				auto texture_desc_set_id = data.m_heap->CreateSRVSetFromRT(predecessor_rt, data.m_imgui_impl->descriptorSetLayout, 0, 0, false);
+				data.m_texture = data.m_heap->GetDescriptorSet(0, texture_desc_set_id);
+
 				return;
 			}
-
-			auto& data = fg.GetData<ImGuiTaskData>(handle);
 			auto render_window = fg.GetRenderTarget<gfx::RenderWindow>(handle);
 			auto app = rs.GetApp();
+
+			gfx::DescriptorHeap::Desc desc;
+			desc.m_versions = 1;
+			desc.m_num_descriptors = 1;
+			data.m_heap = new gfx::DescriptorHeap(rs.GetContext(), desc);
 
 			data.m_render_func = std::move(render_func);
 
@@ -52,10 +70,16 @@ namespace tasks
 
 			data.m_imgui_impl = new ImGuiImpl();
 			data.m_imgui_impl->InitImGuiResources(rs.GetContext(), render_window, rs.GetDirectQueue());
+
+			auto predecessor_rt = fg.GetPredecessorRenderTarget<T>();
+			auto texture_desc_set_id = data.m_heap->CreateSRVSetFromRT(predecessor_rt, data.m_imgui_impl->descriptorSetLayout, 0, 0, false);
+			data.m_texture = data.m_heap->GetDescriptorSet(0, texture_desc_set_id);
+
 			LOG("Finished Initializing ImGui");
 #endif
 		}
 
+		template<typename T>
 		inline void ExecuteImGuiTask(Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, fg::RenderTaskHandle handle)
 		{
 #ifdef IMGUI
@@ -66,14 +90,21 @@ namespace tasks
 			// imgui itself code
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
+			ImGuizmo::BeginFrame();
 
-			data.m_render_func();
+			data.m_render_func(data.m_texture);
 
 			// Render to generate draw buffers
 			ImGui::Render();
 
 			data.m_imgui_impl->UpdateBuffers(frame_idx);
+
+			auto predecessor_rt = fg.GetPredecessorRenderTarget<T>();
+			cmd_list->TransitionRenderTarget(predecessor_rt, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			cmd_list->BindRenderTargetVersioned(rs.GetRenderWindow());
 			data.m_imgui_impl->Draw(cmd_list, frame_idx);
+			cmd_list->UnbindRenderTarget();
+			cmd_list->TransitionRenderTarget(predecessor_rt, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 #endif
 		}
 
@@ -81,11 +112,9 @@ namespace tasks
 		{
 			auto& data = fg.GetData<ImGuiTaskData>(handle);
 
-			if (resize)
-			{
+			delete data.m_heap;
 
-			}
-			else
+			if (!resize)
 			{
 				delete data.m_imgui_impl;
 			}
@@ -93,6 +122,7 @@ namespace tasks
 
 	} /* internal */
 
+	template<typename T>
 	inline void AddImGuiTask(fg::FrameGraph& fg, decltype(ImGuiTaskData::m_render_func) const & imgui_render_func)
 	{
 		RenderTargetProperties rt_properties
@@ -105,17 +135,22 @@ namespace tasks
 			.m_state_execute = std::nullopt,
 			.m_state_finished = std::nullopt,
 			.m_clear = false,
-			.m_clear_depth = false
+			.m_clear_depth = false,
+			.m_allow_direct_access = false,
+			.m_is_cube_map = false,
+			.m_mip_levels = 1,
+			.m_resolution_scale = 1,
+			.m_bind_by_default = false // dont bind by default so we can easily transition
 		};
 
 		fg::RenderTaskDesc desc;
 		desc.m_setup_func = [imgui_render_func](Renderer& rs, fg::FrameGraph& fg, ::fg::RenderTaskHandle handle, bool resize)
 		{
-			internal::SetupImGuiTask(rs, fg, handle, resize, imgui_render_func);
+			internal::SetupImGuiTask<T>(rs, fg, handle, resize, imgui_render_func);
 		};
 		desc.m_execute_func = [](Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, ::fg::RenderTaskHandle handle)
 		{
-			internal::ExecuteImGuiTask(rs, fg, sg, handle);
+			internal::ExecuteImGuiTask<T>(rs, fg, sg, handle);
 		};
 		desc.m_destroy_func = [](fg::FrameGraph& fg, ::fg::RenderTaskHandle handle, bool resize)
 		{

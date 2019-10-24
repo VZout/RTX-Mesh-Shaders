@@ -5,8 +5,8 @@
  */
 
 #include "editor.hpp"
+#include "imgui/imgui_style.hpp"
 
-#include <imgui.h>
 #include <util/log.hpp>
 
 Editor::Editor()
@@ -99,6 +99,9 @@ void Editor::Render()
 		ImGui::EndMainMenuBar();
 	}
 
+	// Prefer docking
+	ImGui::DockSpaceOverViewport(true, ImGui::GetMainViewport());
+
 	// Render the windows
 	for (auto& cat_desc : m_category_descs)
 	{
@@ -106,7 +109,12 @@ void Editor::Render()
 		{
 			if (window_desc.m_open)
 			{
-				ImGui::Begin(window_desc.m_name.c_str(), &window_desc.m_open);
+#ifdef IMGUI_SHOW_ICONS_IN_MENU_TITLES
+				std::string window_name = fmt::format(window_desc.m_icon.has_value() ? "{0}  {1}" : "{1}", window_desc.m_icon.value_or("[erroricon]"), window_desc.m_name);
+#else
+				std::string window_name = window_desc.m_name;
+#endif
+				ImGui::Begin(window_name.c_str(), &window_desc.m_open);
 
 				window_desc.m_function();
 
@@ -114,5 +122,14 @@ void Editor::Render()
 			}
 		}
 	}
+}
 
+void Editor::SetTexture(ImTextureID texture)
+{
+	m_texture = texture;
+}
+
+ImTextureID Editor::GetTexture()
+{
+	return m_texture;
 }
