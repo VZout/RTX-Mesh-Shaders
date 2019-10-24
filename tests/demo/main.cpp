@@ -386,7 +386,8 @@ protected:
 		tasks::AddGenerateIrradianceMapTask(*m_frame_graph);
 		tasks::AddGenerateEnvironmentMapTask(*m_frame_graph);
 		tasks::AddGenerateBRDFLutTask(*m_frame_graph);
-		tasks::AddDeferredMainTask(*m_frame_graph);
+		//tasks::AddDeferredMainTask(*m_frame_graph);
+		tasks::AddDeferredMainMeshTask(*m_frame_graph);
 		tasks::AddDeferredCompositionTask(*m_frame_graph);
 		tasks::AddPostProcessingTask<tasks::DeferredCompositionData>(*m_frame_graph);
 		tasks::AddCopyToBackBufferTask<tasks::PostProcessingData>(*m_frame_graph);
@@ -399,10 +400,10 @@ protected:
 		auto texture_pool = m_renderer->GetTexturePool();
 		m_material_pool = m_renderer->GetMaterialPool();
 		m_robot_model_handle = model_pool->LoadWithMaterials<Vertex>("robot/scene.gltf", m_material_pool, texture_pool, true);
-		auto sphere_model_handle = model_pool->LoadWithMaterials<Vertex>("sphere.fbx", m_material_pool, texture_pool, true);
+		auto sphere_model_handle = model_pool->LoadWithMaterials<Vertex>("cube.fbx", m_material_pool, texture_pool, true);
 
-		float num_spheres_x = 11;
-		float num_spheres_y = 11;
+		float num_spheres_x = 1;
+		float num_spheres_y = 1;
 		m_sphere_materials.resize(num_spheres_x * num_spheres_y);
 		m_sphere_material_handles.resize(num_spheres_x * num_spheres_y);
 
@@ -437,10 +438,10 @@ protected:
 		sg::helper::SetPosition(m_scene_graph, m_camera_node, glm::vec3(0, 0, 2.5));
 		sg::helper::SetRotation(m_scene_graph, m_camera_node, glm::vec3(0, -90._deg, 0));
 
-		m_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_robot_model_handle);
+		/*m_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_robot_model_handle);
 		sg::helper::SetPosition(m_scene_graph, m_node, glm::vec3(-0.75, -1, 0));
 		sg::helper::SetScale(m_scene_graph, m_node, glm::vec3(0.01, 0.01, 0.01));
-		sg::helper::SetRotation(m_scene_graph, m_node, glm::vec3(-90._deg, 0, 0));
+		sg::helper::SetRotation(m_scene_graph, m_node, glm::vec3(-90._deg, 0, 0));*/
 
 		// second node
 		{
@@ -604,7 +605,6 @@ protected:
 
 			m_z_axis = glm::vec3(0);
 		}
-
 	}
 
 	void KeyCallback(int key, int action) final

@@ -57,7 +57,7 @@ void main()
 	vec3 anisotropic_t = normalize(TBN * vec3(material.anisotropy_dir, 0));
 
 	out_color = vec4(albedo.rgb, roughness);
-    out_normal = vec4(obj_normal, metallic);
+    out_normal = vec4(normal, metallic);
     out_pos = vec4(g_frag_pos, ao);
     out_material = vec4(EncodeMaterialProperties(material.reflectivity, material.anisotropy),
 						EncodeMaterialProperties(material.clear_coat, material.clear_coat_roughness),

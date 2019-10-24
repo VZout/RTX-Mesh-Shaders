@@ -25,6 +25,7 @@ struct shaders
 	static RegistryHandle generate_irradiancemap_cs;
 	static RegistryHandle generate_environmentmap_cs;
 	static RegistryHandle generate_brdf_lut_cs;
+	static RegistryHandle basic_mesh;
 
 }; /* shaders */
 
@@ -32,6 +33,7 @@ struct root_signatures
 {
 
 	static RegistryHandle basic;
+	static RegistryHandle basic_mesh;
 	static RegistryHandle composition;
 	static RegistryHandle post_processing;
 	static RegistryHandle generate_cubemap; // Also used by `generate_irradiance`.
@@ -44,6 +46,7 @@ struct pipelines
 {
 
 	static RegistryHandle basic;
+	static RegistryHandle basic_mesh;
 	static RegistryHandle composition;
 	static RegistryHandle post_processing;
 	static RegistryHandle generate_cubemap;

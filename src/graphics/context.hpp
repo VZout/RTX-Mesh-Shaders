@@ -71,6 +71,8 @@ namespace gfx
 		inline static PFN_vkCmdDebugMarkerEndEXT CmdDebugMarkerEnd = VK_NULL_HANDLE;
 		inline static PFN_vkCmdDebugMarkerInsertEXT CmdDebugMarkerInsert = VK_NULL_HANDLE;
 
+		inline static PFN_vkCmdDrawMeshTasksNV CmdDrawMeshTasksNV = VK_NULL_HANDLE;
+
 	private:
 		std::vector<VkExtensionProperties> GetSupportedDeviceExtensions(VkPhysicalDevice device);
 		void CreateSurface();
@@ -82,6 +84,7 @@ namespace gfx
 		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 		void EnableDebugCallback();
 		void SetupDebugMarkerExtension();
+		void SetupMeshShadingExtension();
 		void SetupVMA();
 
 		VkApplicationInfo m_app_info = {};
@@ -91,7 +94,7 @@ namespace gfx
 		VkDebugUtilsMessengerEXT m_debug_messenger;
 		VkDevice m_logical_device;
 		VkPhysicalDevice m_physical_device;
-		VkPhysicalDeviceFeatures m_physical_device_features;
+		VkPhysicalDeviceFeatures2 m_physical_device_features;
 		VkPhysicalDeviceProperties m_physical_device_properties;
 		VkPhysicalDeviceMemoryProperties m_physical_device_mem_properties;
 		QueueFamilyIndices m_queue_family_indices;

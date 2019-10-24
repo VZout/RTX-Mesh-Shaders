@@ -70,7 +70,6 @@ void AssimpModelLoader::LoadMeshes(ModelData* model, const aiScene* scene, aiNod
 		mesh_data.m_positions.resize(mesh->mNumVertices);
 		mesh_data.m_normals.resize(mesh->mNumVertices);
 		mesh_data.m_uvw.resize(mesh->mNumVertices);
-		mesh_data.m_colors.resize(mesh->mNumVertices);
 		mesh_data.m_tangents.resize(mesh->mNumVertices);
 		mesh_data.m_bitangents.resize(mesh->mNumVertices);
 
@@ -96,14 +95,6 @@ void AssimpModelLoader::LoadMeshes(ModelData* model, const aiScene* scene, aiNod
 		if (mesh->HasTextureCoords(0))
 		{
 			memcpy(mesh_data.m_uvw.data(), mesh->mTextureCoords[0], float3s);
-		}
-
-		if (mesh->HasVertexColors(0))
-		{
-			for (unsigned int j = 0; j < mesh->mNumVertices; ++j)
-			{
-				memcpy(&mesh_data.m_colors[j], &mesh->mColors[0][j], float3);
-			}
 		}
 
 		//Copy indices

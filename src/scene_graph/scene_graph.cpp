@@ -12,8 +12,8 @@ sg::SceneGraph::SceneGraph(Renderer* renderer)
 {
 	m_num_lights.resize(gfx::settings::num_back_buffers, 0);
 
-	m_per_object_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Basic), 200, 1);
-	m_camera_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Camera), 1, 0, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT);
+	m_per_object_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Basic), 200, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_MESH_BIT_NV);
+	m_camera_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Camera), 1, 0, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_MESH_BIT_NV);
 	m_light_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Light) * gfx::settings::max_lights, 1, 3, VK_SHADER_STAGE_COMPUTE_BIT);
 
 	// Initialize the light buffer as empty.

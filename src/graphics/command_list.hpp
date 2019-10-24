@@ -64,6 +64,7 @@ namespace gfx
 		void DrawIndexed(std::uint32_t idx_count, std::uint32_t instance_count,
 				std::uint32_t first_idx = 0, std::uint32_t vertex_offset = 0, std::uint32_t first_instance = 0);
 		void Dispatch(std::uint32_t tg_count_x, std::uint32_t tg_count_y, std::uint32_t tg_count_z);
+		void DrawMesh(std::uint32_t count, std::uint32_t first);
 
 	private:
 		Context* m_context;

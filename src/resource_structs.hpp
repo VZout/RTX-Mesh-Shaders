@@ -46,7 +46,6 @@ struct MaterialData
 struct MeshData
 {
 	std::vector<glm::vec3> m_positions;
-	std::vector<glm::vec3> m_colors;
 	std::vector<glm::vec3> m_normals;
 	std::vector<glm::vec3> m_uvw;
 	std::vector<glm::vec3> m_tangents;

@@ -677,3 +677,8 @@ void gfx::CommandList::Dispatch(std::uint32_t tg_count_x, std::uint32_t tg_count
 {
 	vkCmdDispatch(m_cmd_buffers[m_frame_idx], tg_count_x, tg_count_y, tg_count_z);
 }
+
+void gfx::CommandList::DrawMesh(std::uint32_t count, std::uint32_t first)
+{
+	m_context->CmdDrawMeshTasksNV(m_cmd_buffers[m_frame_idx], count, first);
+}
