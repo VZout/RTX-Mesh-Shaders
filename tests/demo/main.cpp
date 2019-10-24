@@ -17,6 +17,8 @@
 #include "imgui/imgui_gizmo.h"
 #include <gtc/type_ptr.hpp>
 
+#define MESH_SHADING
+
 #ifdef _WIN32
 #include <shellapi.h>
 #endif
@@ -537,8 +539,11 @@ protected:
 		tasks::AddGenerateIrradianceMapTask(*m_frame_graph);
 		tasks::AddGenerateEnvironmentMapTask(*m_frame_graph);
 		tasks::AddGenerateBRDFLutTask(*m_frame_graph);
-		//tasks::AddDeferredMainTask(*m_frame_graph);
+#ifdef MESH_SHADING
 		tasks::AddDeferredMainMeshTask(*m_frame_graph);
+#else
+		tasks::AddDeferredMainTask(*m_frame_graph);
+#endif
 		tasks::AddDeferredCompositionTask(*m_frame_graph);
 		tasks::AddPostProcessingTask<tasks::DeferredCompositionData>(*m_frame_graph);
 		tasks::AddCopyToBackBufferTask<tasks::PostProcessingData>(*m_frame_graph);
@@ -557,8 +562,8 @@ protected:
 		m_robot_model_handle = model_pool->LoadWithMaterials<Vertex>("robot/scene.gltf", m_material_pool, texture_pool, true);
 		auto sphere_model_handle = model_pool->LoadWithMaterials<Vertex>("cube.fbx", m_material_pool, texture_pool, true);
 
-		float num_spheres_x = 1;
-		float num_spheres_y = 1;
+		float num_spheres_x = 8;
+		float num_spheres_y = 8;
 		m_sphere_materials.resize(num_spheres_x * num_spheres_y);
 		m_sphere_material_handles.resize(num_spheres_x * num_spheres_y);
 

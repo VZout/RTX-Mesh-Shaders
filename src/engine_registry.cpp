@@ -69,12 +69,12 @@ REGISTER(root_signatures::basic, RootSignatureRegistry)({
 		params[0].binding = 0; // camera
 		params[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		params[0].descriptorCount = 1;
-		params[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT;
+		params[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_MESH_BIT_NV;
 		params[0].pImmutableSamplers = nullptr;
 		params[1].binding = 1; // root parameter 0
 		params[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		params[1].descriptorCount = 1;
-		params[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		params[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_MESH_BIT_NV;
 		params[1].pImmutableSamplers = nullptr;
 		params[2].binding = 2; // root parameter 1
 		params[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -136,7 +136,7 @@ REGISTER(root_signatures::composition, RootSignatureRegistry)({
 	    params[0].binding = 0; // camera
 	    params[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	    params[0].descriptorCount = 1;
-	    params[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT;
+	    params[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_MESH_BIT_NV;
 	    params[0].pImmutableSamplers = nullptr;
 	    params[1].binding = 1; // root parameter 1
 	    params[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;

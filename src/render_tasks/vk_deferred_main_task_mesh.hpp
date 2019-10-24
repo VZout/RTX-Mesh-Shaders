@@ -104,7 +104,7 @@ namespace tasks
 					//cmd_list->BindIndexBuffer(model_pool->m_index_buffers[mesh_handle.m_id]);
 					//cmd_list->DrawIndexed(mesh_handle.m_num_indices, 1);
 
-					return;
+					//return;
 				}
 			}
 		}

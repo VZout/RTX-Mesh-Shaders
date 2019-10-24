@@ -53,7 +53,16 @@ namespace tasks
 			auto context = rs.GetContext();
 			data.m_root_sig = RootSignatureRegistry::SFind(root_signatures::composition);
 			auto render_target = fg.GetRenderTarget(handle);
-			auto deferred_main_rt = fg.GetPredecessorRenderTarget<DeferredMainMeshData>();
+
+			gfx::RenderTarget* deferred_main_rt;
+			if (fg.HasTask<DeferredMainMeshData>())
+			{
+				deferred_main_rt = fg.GetPredecessorRenderTarget<DeferredMainMeshData>();
+			}
+			else if (fg.HasTask<DeferredMainData>())
+			{
+				deferred_main_rt = fg.GetPredecessorRenderTarget<DeferredMainData>();
+			}
 
 			gfx::SamplerDesc gbuffer_sampler_desc
 			{
@@ -185,7 +194,7 @@ namespace tasks
 		desc.m_type = fg::RenderTaskType::COMPUTE;
 		desc.m_allow_multithreading = true;
 
-		fg.AddTask<DeferredCompositionData>(desc, L"Deferred Composition Task", FG_DEPS<DeferredMainMeshData>());
+		fg.AddTask<DeferredCompositionData>(desc, L"Deferred Composition Task");
 	}
 
 } /* tasks */

@@ -166,7 +166,6 @@ void gfx::GPUBuffer::Unmap_Internal(VmaAllocation& allocation)
 gfx::StagingBuffer::StagingBuffer(Context* context, std::optional<MemoryPool*> pool, std::optional<MemoryPool*> staging_pool, void* data, std::uint64_t size, std::uint64_t stride, enums::BufferUsageFlag usage)
 	: GPUBuffer(context, pool, size * stride), m_staging_buffer(VK_NULL_HANDLE), m_staging_buffer_allocation(VK_NULL_HANDLE)
 {
-	m_size = size * stride;
 	m_stride = stride;
 
 	// Create staging buffer
