@@ -72,6 +72,13 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, RootSignat
 	return CreateSRVFromCB(buffer, root_signature->m_descriptor_set_layouts[handle], handle, frame_idx, uniform);
 }
 
+template<typename T, typename A>
+constexpr inline T SizeAlignAnyAlignment(T size, A alignment)
+{
+	return (size / alignment + (size % alignment > 0)) * alignment;
+}
+
+
 std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx, bool uniform)
 {
 	auto logical_device = m_context->m_logical_device;
@@ -91,7 +98,7 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, VkDescript
 	m_descriptor_sets[frame_idx].push_back(descriptor_set);
 
 	auto buffer_info = new VkDescriptorBufferInfo();
-	// Command list will destroy it later.
+	// FIXME: Command list will destroy it later.
 	buffer_info->buffer = buffer->m_buffer;
 	buffer_info->offset = 0;
 	buffer_info->range = buffer->m_size;

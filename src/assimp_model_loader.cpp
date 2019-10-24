@@ -121,7 +121,6 @@ void AssimpModelLoader::LoadMeshes(ModelData* model, const aiScene* scene, aiNod
 		mesh_data.m_num_indices = count;
 		mesh_data.m_indices_stride = 4;
 
-
 		model->m_meshes.push_back(mesh_data);
 	}
 

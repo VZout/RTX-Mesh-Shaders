@@ -49,7 +49,6 @@ struct Vertex
 	glm::vec3 m_normal;
 	glm::vec3 m_tangent;
 	glm::vec3 m_bitangent;
-	//glm::vec2 padding;
 
 	static gfx::PipelineState::InputLayout GetInputLayout()
 	{
