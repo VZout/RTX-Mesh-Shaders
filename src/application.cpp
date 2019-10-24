@@ -94,6 +94,8 @@ void Application::Create(std::uint32_t width, std::uint32_t height)
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
+		io.IniFilename = nullptr;
+		ImGui::LoadIniSettingsFromDisk(settings::imgui_ini_filename);
 		io.ConfigDockingWithShift = true;
 
 		if (settings::m_imgui_font.has_value())

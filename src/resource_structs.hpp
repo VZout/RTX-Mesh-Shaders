@@ -96,4 +96,6 @@ struct RenderTargetProperties
 	std::uint32_t m_mip_levels = 1;
 
 	float m_resolution_scale = 1;
+
+	bool m_bind_by_default = true;
 };

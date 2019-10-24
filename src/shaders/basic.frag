@@ -1,5 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
+precision mediump int; precision highp float;
 
 layout(set = 2, binding = 2) uniform sampler2D ts_textures[3];
 
