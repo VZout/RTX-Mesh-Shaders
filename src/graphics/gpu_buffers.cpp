@@ -177,8 +177,8 @@ gfx::StagingBuffer::StagingBuffer(Context* context, std::optional<MemoryPool*> p
 	Update(data, m_size);
 	Unmap();
 
-	// Create default buffer
-	CreateBufferAndMemory(staging_pool, m_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | (int)usage, VMA_MEMORY_USAGE_GPU_ONLY,
+	// Create default buffer TODO: remove buffer usage
+	CreateBufferAndMemory(staging_pool, m_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | (int)usage, VMA_MEMORY_USAGE_GPU_ONLY,
 	                      m_buffer, m_buffer_allocation);
 }
 

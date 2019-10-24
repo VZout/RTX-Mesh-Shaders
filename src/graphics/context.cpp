@@ -160,8 +160,17 @@ gfx::Context::Context(Application* app)
 	m_physical_device = FindPhysicalDevice();
 	vkGetPhysicalDeviceProperties(m_physical_device, &m_physical_device_properties);
 	vkGetPhysicalDeviceMemoryProperties(m_physical_device, &m_physical_device_mem_properties);
-	vkGetPhysicalDeviceFeatures(m_physical_device, &m_physical_device_features);
 
+	VkPhysicalDeviceMeshShaderFeaturesNV nv_features = {};
+	nv_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV;
+	nv_features.meshShader = 1;
+	nv_features.taskShader = 1;
+	m_physical_device_features.pNext = &nv_features;
+	m_physical_device_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+
+	vkGetPhysicalDeviceFeatures2(m_physical_device, &m_physical_device_features);
+
+	// Enable mesh shading
 	m_queue_family_indices = FindQueueFamilies(m_physical_device);
 	m_swapchain_support_details = GetSwapChainSupportDetails(m_physical_device);
 
@@ -171,6 +180,8 @@ gfx::Context::Context(Application* app)
 	{
 		SetupDebugMarkerExtension();
 	}
+
+	SetupMeshShadingExtension();
 
 	SetupVMA();
 }
@@ -309,14 +320,16 @@ void gfx::Context::CreateLogicalDevice()
 	queue_create_info.queueCount = 1;
 	queue_create_info.pQueuePriorities = &queue_priority;
 
-	VkPhysicalDeviceFeatures device_features = {};
-	device_features.samplerAnisotropy = VK_TRUE;
-
 	VkDeviceCreateInfo create_info = {};
 	create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	create_info.pQueueCreateInfos = &queue_create_info;
 	create_info.queueCreateInfoCount = 1;
-	create_info.pEnabledFeatures = &device_features;
+	//create_info.pEnabledFeatures = &m_physical_device_features.features;
+	create_info.pEnabledFeatures = nullptr;
+	create_info.pNext = &m_physical_device_features;
+
+	auto x = (VkPhysicalDeviceMeshShaderFeaturesNV*)m_physical_device_features.pNext;
+
 	create_info.enabledExtensionCount = gfx::settings::device_extensions.size();
 	create_info.ppEnabledExtensionNames = gfx::settings::device_extensions.data();
 	create_info.ppEnabledLayerNames = gfx::settings::validation_layers.data();
@@ -488,6 +501,11 @@ void gfx::Context::SetupDebugMarkerExtension()
 	CmdDebugMarkerBegin = reinterpret_cast<PFN_vkCmdDebugMarkerBeginEXT>(vkGetDeviceProcAddr(m_logical_device, "vkCmdDebugMarkerBeginEXT"));
 	CmdDebugMarkerEnd = reinterpret_cast<PFN_vkCmdDebugMarkerEndEXT>(vkGetDeviceProcAddr(m_logical_device, "vkCmdDebugMarkerEndEXT"));
 	CmdDebugMarkerInsert = reinterpret_cast<PFN_vkCmdDebugMarkerInsertEXT>(vkGetDeviceProcAddr(m_logical_device, "vkCmdDebugMarkerInsertEXT"));
+}
+
+void gfx::Context::SetupMeshShadingExtension()
+{
+	CmdDrawMeshTasksNV = reinterpret_cast<PFN_vkCmdDrawMeshTasksNV>(vkGetDeviceProcAddr(m_logical_device, "vkCmdDrawMeshTasksNV"));
 }
 
 void gfx::Context::SetupVMA()

@@ -23,6 +23,11 @@ REGISTER(shaders::basic_ps, ShaderRegistry)({
 	.m_type = gfx::enums::ShaderType::PIXEL,
 });
 
+REGISTER(shaders::basic_mesh, ShaderRegistry)({
+	.m_path = "shaders/basic_mesh.comp.spv",
+	.m_type = gfx::enums::ShaderType::MESH,
+});
+
 REGISTER(shaders::composition_cs, ShaderRegistry)({
     .m_path = "shaders/composition.comp.spv",
     .m_type = gfx::enums::ShaderType::COMPUTE,
@@ -84,6 +89,45 @@ REGISTER(root_signatures::basic, RootSignatureRegistry)({
 		return params;
 	}(),
 });
+
+REGISTER(root_signatures::basic_mesh, RootSignatureRegistry)({
+	.m_parameters = []() -> decltype(RootSignatureDesc::m_parameters)
+	{
+		decltype(RootSignatureDesc::m_parameters) params(6);
+		params[0].binding = 0; // camera
+		params[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		params[0].descriptorCount = 1;
+		params[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_MESH_BIT_NV;
+		params[0].pImmutableSamplers = nullptr;
+		params[1].binding = 1; // root parameter 0
+		params[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		params[1].descriptorCount = 1;
+		params[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_MESH_BIT_NV;
+		params[1].pImmutableSamplers = nullptr;
+		params[2].binding = 2; // root parameter 1
+		params[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		params[2].descriptorCount = 3;
+		params[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		params[2].pImmutableSamplers = nullptr;
+		params[3].binding = 3; // root parameter 0
+		params[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		params[3].descriptorCount = 1;
+		params[3].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		params[3].pImmutableSamplers = nullptr;
+		params[4].binding = 4; // root parameter 0
+		params[4].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		params[4].descriptorCount = 1;
+		params[4].stageFlags = VK_SHADER_STAGE_MESH_BIT_NV;
+		params[4].pImmutableSamplers = nullptr;
+		params[5].binding = 5; // root parameter 0
+		params[5].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		params[5].descriptorCount = 1;
+		params[5].stageFlags = VK_SHADER_STAGE_MESH_BIT_NV;
+		params[5].pImmutableSamplers = nullptr;
+		return params;
+	}(),
+	});
+
 
 REGISTER(root_signatures::composition, RootSignatureRegistry)({
     .m_parameters = []() -> decltype(RootSignatureDesc::m_parameters)
@@ -220,6 +264,18 @@ REGISTER(pipelines::basic, PipelineRegistry)({
 	.m_type = gfx::enums::PipelineType::GRAPHICS_PIPE,
 	.m_rtv_formats = { VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT },
     .m_depth_format = VK_FORMAT_D32_SFLOAT,
+	.m_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+	.m_counter_clockwise = true
+});
+
+REGISTER(pipelines::basic_mesh, PipelineRegistry)({
+	.m_root_signature_handle = root_signatures::basic_mesh,
+	.m_shader_handles = { shaders::basic_mesh, shaders::basic_ps },
+	.m_input_layout = std::nullopt, // mesh shading
+
+	.m_type = gfx::enums::PipelineType::GRAPHICS_PIPE,
+	.m_rtv_formats = { VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT },
+	.m_depth_format = VK_FORMAT_D32_SFLOAT,
 	.m_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 	.m_counter_clockwise = true
 });

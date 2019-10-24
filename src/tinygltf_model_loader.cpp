@@ -226,7 +226,6 @@ inline void LoadMesh(ModelData* model, tinygltf::Model const & tg_model, tinyglt
 			if (attrib.first == "POSITION")
 			{
 				mesh_data.m_positions.resize(position_buffer_offset + count);
-				mesh_data.m_colors.resize(position_buffer_offset + count);
 
 				memcpy(mesh_data.m_positions.data() + position_buffer_offset, data_address, count * byte_stride);
 				position_buffer_offset += count * byte_stride;
