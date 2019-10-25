@@ -1,12 +1,16 @@
 #version 450
 #pragma shader_stage(mesh)
 
+#define SHOW_MESHLETS
+
 #define USE_NATIVE   1
 #extension GL_NV_mesh_shader : enable
 
 #define GROUP_SIZE 32
 #define NVMESHLET_VERTEX_COUNT      64
 #define NVMESHLET_PRIMITIVE_COUNT   126	
+#define NVMESHLET_PRIM_ALIGNMENT        32
+#define NVMESHLET_VERTEX_ALIGNMENT      16
 
 #define NVMSH_INDEX_BITS      8
 #define NVMSH_PACKED4X8_GET(packed, idx)   (((packed) >> (NVMSH_INDEX_BITS * (idx))) & 255)
@@ -20,6 +24,9 @@ layout(location = 1) out vec3 g_normal[];
 layout(location = 2) out vec3 g_frag_pos[];
 layout(location = 3) out vec3 g_tangent[];
 layout(location = 4) out vec3 g_bitangent[];
+#ifdef SHOW_MESHLETS
+layout(location = 5) out flat int g_meshlet_id[];
+#endif
 
 struct Vertex
 {
@@ -57,25 +64,77 @@ layout(set = 4, binding = 4) buffer VertexBufferObj {
 } vb;
 
 layout(set = 5, binding = 5) buffer IndexBufferObj {
-	uint indices[36];
+	uint indices[];
 } ib;
+
+layout(set = 6, binding = 6) buffer MeshletBufferObj {
+	uvec4 meshlet_descs[];
+} mb;
+
+void DecodeMeshlet(uvec4 meshlet_desc, out uint vert_max, out uint prim_max, out uint vert_begin, out uint prim_begin)
+{
+	vert_begin = (meshlet_desc.z & 0xFFFFF) * NVMESHLET_VERTEX_ALIGNMENT;
+	prim_begin = (meshlet_desc.w & 0xFFFFF) /** NVMESHLET_PRIM_ALIGNMENT*/;
+	vert_max   = (meshlet_desc.x >> 24);
+	prim_max   = (meshlet_desc.y >> 24);
+}
 
 void main()
 {
 	int meshlet_id = int(gl_WorkGroupID.x);
 
-	gl_PrimitiveCountNV = 36 / 3;
+	uvec4 meshlet_desc = mb.meshlet_descs[meshlet_id];
+	uint vert_max;
+	uint prim_max;
+	uint vert_begin;
+	uint prim_begin;
+	DecodeMeshlet(meshlet_desc, vert_max, prim_max, vert_begin, prim_begin);
+	vert_max += 1;
+	prim_max += 1;
+
+	gl_PrimitiveCountNV = prim_max;
+
 
 	// primitives
-	for (int i = 0; i < 36; i += 3)
+	for (uint i = prim_begin * 3; i < (prim_begin + prim_max) * 3; i += 3)
 	{
-		gl_PrimitiveIndicesNV[i] = ib.indices[i];
-		gl_PrimitiveIndicesNV[i+1] = ib.indices[i+1];
-		gl_PrimitiveIndicesNV[i+2] = ib.indices[i+2];
+		/*
+		uint k = i - (prim_begin * 3);
+		gl_PrimitiveIndicesNV[k] = ib.indices[i];
+		gl_PrimitiveIndicesNV[k+1] = ib.indices[i+1];
+		gl_PrimitiveIndicesNV[k+2] = ib.indices[i+2];
+		*/
+
+		uint k = i - (prim_begin * 3);
+		gl_PrimitiveIndicesNV[k] = k;
+		gl_PrimitiveIndicesNV[k+1] = k+1;
+		gl_PrimitiveIndicesNV[k+2] = k+2;
+
+		for (uint l = 0; l < 3; l++)
+		{
+			Vertex vertex = vb.vertices[ib.indices[i + l]];
+			vec3 pos = vec3(vertex.x, vertex.y, vertex.z);
+			vec2 uv = vec2(vertex.u, vertex.v);
+			vec3 normal = vec3(vertex.nx, vertex.ny, vertex.nz);
+			vec3 tangent = vec3(vertex.tx, vertex.ty, vertex.tz);
+			vec3 bitangent = vec3(vertex.bx, vertex.by, vertex.bz);
+
+			g_frag_pos[k+l] = vec3(ubo.model * vec4(pos, 1.0));
+			g_normal[k+l] = normalize(ubo.model * vec4(normal, 0)).xyz;
+			g_tangent[k+l] = normalize(ubo.model * vec4(tangent, 0)).xyz;
+			g_bitangent[k+l] = normalize(ubo.model * vec4(bitangent, 0)).xyz;
+			g_uv[k+l] = uv;
+#ifdef SHOW_MESHLETS
+			g_meshlet_id[k+l] = meshlet_id;
+#endif
+
+			gl_MeshVerticesNV[k+l].gl_Position = camera.proj * camera.view * ubo.model * vec4(pos, 1.0);
+		}
 	}
 
 	// vertices
-	for (int i = 0; i < 24; i++)
+	/*
+	for (int i = 0; i < vert_max; i++)
 	{
 		Vertex vertex = vb.vertices[i];
 		vec3 pos = vec3(vertex.x, vertex.y, vertex.z);
@@ -89,7 +148,11 @@ void main()
 		g_tangent[i] = normalize(ubo.model * vec4(tangent, 0)).xyz;
 		g_bitangent[i] = normalize(ubo.model * vec4(bitangent, 0)).xyz;
 		g_uv[i] = uv;
+#ifdef SHOW_MESHLETS
+		g_meshlet_id[i] = meshlet_id;
+#endif
 
 		gl_MeshVerticesNV[i].gl_Position = camera.proj * camera.view * ubo.model * vec4(pos, 1.0);
 	}
+	*/
 }
