@@ -33,7 +33,7 @@ namespace tasks
 
 		gfx::RootSignature* m_root_sig;
 		gfx::DescriptorHeap* m_heap;
-		std::optional<int> m_idx;
+		std::array<std::optional<std::pair<int, int>>, 6> m_idx;
 	};
 
 	namespace internal
@@ -82,11 +82,14 @@ namespace tasks
 				{
 					auto mesh_handle = model_handle.m_mesh_handles[i];
 
-					if (!data.m_idx.has_value())
+					if (!data.m_idx[i].has_value())
 					{
-						data.m_idx = data.m_heap->CreateSRVFromCB(model_pool->m_vertex_buffers[mesh_handle.m_id], data.m_root_sig, 4, 0, false);
-						data.m_heap->CreateSRVFromCB(model_pool->m_index_buffers[mesh_handle.m_id], data.m_root_sig, 5, 0, false);
+						auto vbi = data.m_heap->CreateSRVFromCB(model_pool->m_vertex_buffers[mesh_handle.m_id], data.m_root_sig, 4, 0, false);
+						auto ibi = data.m_heap->CreateSRVFromCB(model_pool->m_index_buffers[mesh_handle.m_id], data.m_root_sig, 5, 0, false);
+						data.m_idx[i] = { vbi, ibi };
 					}
+
+					auto meshlets_info = model_pool->m_meshlet_desc_infos[mesh_handle.m_id];
 
 					std::vector<std::pair<gfx::DescriptorHeap*, std::uint32_t>> sets
 					{
@@ -94,18 +97,15 @@ namespace tasks
 						{ per_obj_pool->GetDescriptorHeap(), cb_handle.m_cb_set_id }, // TODO: Shitty naming of set_id. just use a vector in the handle instead probably.
 						{ material_pool->GetDescriptorHeap(), material_pool->GetDescriptorSetID(mat_vec[i]) },
 						{ material_pool->GetDescriptorHeap(), material_pool->GetCBDescriptorSetID(mat_vec[i]) },
-						{ data.m_heap, 0 },
-						{ data.m_heap, 1 }
+						{ data.m_heap, data.m_idx[i].value().first },
+						{ data.m_heap, data.m_idx[i].value().second },
+						{ model_pool->GetDescriptorHeap(), meshlets_info.first }
 					};
 
 					cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
-					cmd_list->DrawMesh(1, 0);
-					//cmd_list->BindVertexBuffer(model_pool->m_vertex_buffers[mesh_handle.m_id]);
-					//cmd_list->BindIndexBuffer(model_pool->m_index_buffers[mesh_handle.m_id]);
-					//cmd_list->DrawIndexed(mesh_handle.m_num_indices, 1);
-
-					//return;
+					cmd_list->DrawMesh(meshlets_info.second, 0);
 				}
+
 			}
 		}
 

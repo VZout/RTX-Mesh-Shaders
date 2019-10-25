@@ -1,5 +1,8 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
+
+//#define SHOW_MESHLETS
+
 precision mediump int; precision highp float;
 
 layout(set = 2, binding = 2) uniform sampler2D ts_textures[3];
@@ -9,6 +12,9 @@ layout(location = 1) in vec3 g_normal;
 layout(location = 2) in vec3 g_frag_pos;
 layout(location = 3) in vec3 g_tangent;
 layout(location = 4) in vec3 g_bitangent;
+#ifdef SHOW_MESHLETS
+layout(location = 5) in flat int g_meshlet_id;
+#endif
 
 layout(location = 0) out vec4 out_color;
 layout(location = 1) out vec4 out_normal;
@@ -35,6 +41,28 @@ highp int EncodeMaterialProperties(float x, float y)
 	return i_x | (i_y << 8);
 }
 
+vec3 meshlet_colors[6] = {
+	vec3(1, 0, 0),
+	vec3(0, 1, 0),
+	vec3(0, 0, 1),
+	vec3(1, 1, 0),
+	vec3(1, 0, 1),
+	vec3(0, 1, 1)
+};
+
+float random (vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+}
+
+vec3 random_color(uint id)
+{
+	float r = random(vec2(id, 0));
+	float g = random(vec2(id, 1));
+	float b = random(vec2(id, 2));
+
+	return vec3(r, g, b);
+}
+
 void main()
 {
     vec3 compressed_mra = texture(ts_textures[2], g_uv).rgb;
@@ -57,8 +85,13 @@ void main()
 
 	vec3 anisotropic_t = normalize(TBN * vec3(material.anisotropy_dir, 0));
 
+#ifdef SHOW_MESHLETS
+	out_color = vec4(random_color(g_meshlet_id), 1);
+	out_normal = vec4(obj_normal, 0);
+#else
 	out_color = vec4(albedo.rgb, roughness);
-    out_normal = vec4(normal, metallic);
+	out_normal = vec4(obj_normal, metallic);
+#endif
     out_pos = vec4(g_frag_pos, ao);
     out_material = vec4(EncodeMaterialProperties(material.reflectivity, material.anisotropy),
 						EncodeMaterialProperties(material.clear_coat, material.clear_coat_roughness),

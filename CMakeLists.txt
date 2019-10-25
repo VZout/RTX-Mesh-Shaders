@@ -166,7 +166,7 @@ FetchContent_Declare(
   tinygltf
   GIT_REPOSITORY https://github.com/syoyo/tinygltf.git
   GIT_TAG        83bb1a48d79729f2688d9c63e2754ce976a65f72
-  GIT_SHALLOW true
+  #GIT_SHALLOW true
 )
 FetchContent_Declare(
   vulkan

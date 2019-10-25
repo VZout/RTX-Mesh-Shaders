@@ -6,12 +6,14 @@
 
 #pragma once
 
+#include <algorithm>
 #include <unordered_map>
 
 #include "resource_loader.hpp"
 #include "resource_structs.hpp"
 #include "material_pool.hpp"
 #include "texture_pool.hpp"
+#include "meshlet_builder.hpp"
 
 #include "util/log.hpp"
 
@@ -98,7 +100,7 @@ public:
 	std::unordered_map<ModelHandle, ModelData*> m_loaded_data; // TODO: Make private
 protected:
 	virtual void AllocateMesh(void* vertex_data, std::uint32_t num_vertices, std::uint32_t vertex_stride,
-			void* index_data, std::uint32_t num_indices, std::uint32_t index_stride) = 0;
+			void* index_data, std::uint32_t num_indices, std::uint32_t index_stride, void* meshlet_data, std::uint32_t num_meshlets) = 0;
 
 	std::uint32_t m_next_id;
 
@@ -218,7 +220,39 @@ ModelHandle ModelPool::LoadWithMaterials(ModelData* data,
 			if constexpr (HasBitangent<V_T>::value) { vertices[i].m_bitangent = mesh.m_bitangents[i]; }
 		}
 
-		AllocateMesh(vertices.data(), num_vertices, sizeof(V_T), indices.data(), num_indices, index_stide);
+		// Generate meshlets
+		std::vector<MeshletDesc> meshlet_data;
+		int max_meshlet_indices = 63;
+
+		for (auto indices_start = 0; indices_start < mesh.m_num_indices; indices_start += max_meshlet_indices)
+		{
+			MeshletDesc meshlet = {};
+
+			auto num_indices_in_meshlet = std::min((int)mesh.m_num_indices - indices_start, max_meshlet_indices);
+			std::vector<int> used_vertex_indices;
+
+			for (auto i = indices_start; i < indices_start + num_indices_in_meshlet; i += 3)
+			{
+				glm::ivec3 triangle;
+				memcpy(&triangle, &mesh.m_indices[i * mesh.m_indices_stride], mesh.m_indices_stride * 3);
+
+				for (auto k = 0; k < 3; k++)
+				{
+					if (std::find(used_vertex_indices.begin(), used_vertex_indices.end(), triangle[k]) == used_vertex_indices.end())
+					{
+						used_vertex_indices.push_back(triangle[k]);
+					}
+				}
+			}
+
+			meshlet.SetNumVertices(24);
+			meshlet.SetNumPrims(num_indices_in_meshlet / 3);
+			meshlet.SetPrimBegin(indices_start / 3);
+
+			meshlet_data.push_back(meshlet);
+		}
+
+		AllocateMesh(vertices.data(), num_vertices, sizeof(V_T), indices.data(), num_indices, index_stide, meshlet_data.data(), meshlet_data.size());
 		model_handle.m_mesh_handles.emplace_back(ModelHandle::MeshHandle{
 			.m_id = m_next_id,
 			.m_num_indices = static_cast<std::uint32_t>(num_indices),

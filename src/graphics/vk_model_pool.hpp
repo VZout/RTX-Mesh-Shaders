@@ -13,6 +13,7 @@ namespace gfx
 
 	class Context;
 	class StagingBuffer;
+	class DescriptorHeap;
 
 	class VkModelPool : public ModelPool
 	{
@@ -21,10 +22,12 @@ namespace gfx
 		~VkModelPool() final;
 
 		void AllocateMesh(void* vertex_data, std::uint32_t num_vertices, std::uint32_t vertex_stride,
-				void* index_data, std::uint32_t num_indices, std::uint32_t index_stride) final;
+				void* index_data, std::uint32_t num_indices, std::uint32_t index_stride, void* meshlet_data, std::uint32_t num_meshlets) final;
 
 		void Stage(CommandList* command_list) final;
 		void PostStage() final;
+
+		gfx::DescriptorHeap* GetDescriptorHeap();
 
 	protected:
 		Context* m_context;
@@ -32,6 +35,9 @@ namespace gfx
 	public:
 		std::vector<StagingBuffer*> m_vertex_buffers;
 		std::vector<StagingBuffer*> m_index_buffers;
+		std::vector<StagingBuffer*> m_meshlet_buffers;
+		std::vector<std::pair<std::uint32_t, std::uint32_t>> m_meshlet_desc_infos;
+		gfx::DescriptorHeap* m_heap;
 	};
 
 } /* gfx */

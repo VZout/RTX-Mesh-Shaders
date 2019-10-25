@@ -17,7 +17,6 @@ REGISTER(shaders::basic_vs, ShaderRegistry)({
 	.m_type = gfx::enums::ShaderType::VERTEX,
 });
 
-
 REGISTER(shaders::basic_ps, ShaderRegistry)({
 	.m_path = "shaders/basic.frag.spv",
 	.m_type = gfx::enums::ShaderType::PIXEL,
@@ -93,7 +92,7 @@ REGISTER(root_signatures::basic, RootSignatureRegistry)({
 REGISTER(root_signatures::basic_mesh, RootSignatureRegistry)({
 	.m_parameters = []() -> decltype(RootSignatureDesc::m_parameters)
 	{
-		decltype(RootSignatureDesc::m_parameters) params(6);
+		decltype(RootSignatureDesc::m_parameters) params(7);
 		params[0].binding = 0; // camera
 		params[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		params[0].descriptorCount = 1;
@@ -109,24 +108,29 @@ REGISTER(root_signatures::basic_mesh, RootSignatureRegistry)({
 		params[2].descriptorCount = 3;
 		params[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 		params[2].pImmutableSamplers = nullptr;
-		params[3].binding = 3; // root parameter 0
+		params[3].binding = 3; // root parameter 2
 		params[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		params[3].descriptorCount = 1;
 		params[3].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 		params[3].pImmutableSamplers = nullptr;
-		params[4].binding = 4; // root parameter 0
+		params[4].binding = 4; // root parameter 3
 		params[4].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		params[4].descriptorCount = 1;
 		params[4].stageFlags = VK_SHADER_STAGE_MESH_BIT_NV;
 		params[4].pImmutableSamplers = nullptr;
-		params[5].binding = 5; // root parameter 0
+		params[5].binding = 5; // root parameter 4
 		params[5].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		params[5].descriptorCount = 1;
 		params[5].stageFlags = VK_SHADER_STAGE_MESH_BIT_NV;
 		params[5].pImmutableSamplers = nullptr;
+		params[6].binding = 6; // root parameter 5
+		params[6].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		params[6].descriptorCount = 1;
+		params[6].stageFlags = VK_SHADER_STAGE_MESH_BIT_NV;
+		params[6].pImmutableSamplers = nullptr;
 		return params;
 	}(),
-	});
+});
 
 
 REGISTER(root_signatures::composition, RootSignatureRegistry)({
