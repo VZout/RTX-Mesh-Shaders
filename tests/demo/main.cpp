@@ -560,7 +560,7 @@ protected:
 		auto texture_pool = m_renderer->GetTexturePool();
 		m_material_pool = m_renderer->GetMaterialPool();
 		m_robot_model_handle = model_pool->LoadWithMaterials<Vertex>("robot/scene.gltf", m_material_pool, texture_pool, true);
-		auto sphere_model_handle = model_pool->LoadWithMaterials<Vertex>("cube.fbx", m_material_pool, texture_pool, true);
+		auto sphere_model_handle = m_robot_model_handle = model_pool->LoadWithMaterials<Vertex>("sphere.fbx", m_material_pool, texture_pool, true);
 
 		float num_spheres_x = 8;
 		float num_spheres_y = 8;

@@ -114,7 +114,9 @@ void main()
     #else
     float roughness = settings.roughness;
     #endif
-    vec3 R = normalize(direction.xyz);
+    vec3 R = -normalize(direction.xyz);
+	R.x = -R.x;
+
     vec3 N = R;
     vec3 V = R;
 
