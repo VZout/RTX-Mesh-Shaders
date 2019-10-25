@@ -251,6 +251,13 @@ vec3 GetEnvReflection(vec3 R, float roughness)
     return textureLod(t_environment, R, lod).rgb;
 }
 
+vec3 GetEnvReflectionOffset(vec3 R, float roughness, float lod_offset)
+{
+    const float MAX_REFLECTION_LOD = 8.0;
+    float lod = roughness * MAX_REFLECTION_LOD;
+    return textureLod(t_environment, R, lod + lod_offset).rgb;
+}
+
 void EvaluateClearCoatIBL(float clear_coat, float cc_roughness, float NdotV, vec3 R, float spec_ao, inout vec3 diff, inout vec3 spec)
 {
     float cc_NdotV = NdotV;
@@ -262,6 +269,14 @@ void EvaluateClearCoatIBL(float clear_coat, float cc_roughness, float NdotV, vec
     diff *= cc_attenuation;
     spec *= cc_attenuation;
     spec += GetEnvReflection(cc_R, cc_roughness) * (spec_ao * Fc);
+}
+
+void EvaluateSubsurfaceIBL(vec3 V, vec3 diffuseIrradiance, float perceptual_roughness, vec3 subsurface_color, float thickness, inout vec3 Fd, inout vec3 Fr) {
+	float roughness = PerceptualRoughnessToRoughness(perceptual_roughness);
+    vec3 viewIndependent = diffuseIrradiance;
+    vec3 viewDependent = GetEnvReflectionOffset(-V, roughness, 1.0 + thickness);
+    float attenuation = (1.0 - thickness) / (2.0 * M_PI);
+    Fd += subsurface_color * (viewIndependent + viewDependent) * attenuation;
 }
 #endif
 
@@ -328,4 +343,44 @@ vec3 BRDF(vec3 L, vec3 V, vec3 N, vec3 geometric_normal, float metallic, float p
 #endif
 
     return (color * radiance) * (NdotL * occlusion * attenuation);
+}
+
+vec3 SS_BRDF(vec3 L, vec3 V, vec3 N, vec3 geometric_normal, float metallic, float perceptual_roughness, vec3 diffuse_color, vec3 radiance, vec3 F0, vec3 energy_compensation, float attenuation, float occlusion,
+		float thickness, vec3 subsurface_color, float subsurface_power)
+{
+	float roughness = PerceptualRoughnessToRoughness(perceptual_roughness);
+
+    // Precalculate vectors and dot products
+    vec3 H = normalize(V + L);
+    float NdotL = clamp(dot(N, L), 0.0, 1.0);
+    float NdotH = clamp(dot(N, H), 0.0, 1.0);
+    float LdotH = clamp(dot(L, H), 0.0, 1.0);
+	float NdotV = max(dot(N, V), MIN_N_DOT_V);
+
+    float F90 = clamp(dot(F0, vec3(50.0 * 0.33)), 0.f, 1.f);
+
+	vec3 spec = vec3(0); 
+	if (NdotL > 0.0) {
+		float D = D_GGX(NdotH, roughness);
+		float G = G_SchlicksmithGGX(NdotL, NdotV, roughness);
+		vec3 F = F_Schlick(F0, F90, LdotH);
+        spec = (D * G) * F * energy_compensation;
+	}
+
+	vec3 diff = diffuse_color * Fd_Burley(roughness, NdotV, NdotL, LdotH);
+
+	// NoL does not apply to transmitted light
+    vec3 color = (diff + spec) * (NdotL * occlusion);
+
+	 // subsurface scattering
+    // Use a spherical gaussian approximation of pow() for forwardScattering
+    // We could include distortion by adding shading_normal * distortion to light.l
+    float scatterVoH = clamp(dot(V, -L), 0, 1);
+    float forwardScatter = exp2(scatterVoH * subsurface_power - subsurface_power);
+    float backScatter = clamp(NdotL * thickness + (1.0 - thickness), 0, 1) * 0.5;
+    float subsurface = mix(backScatter, 1.0, forwardScatter) * (1.0 - thickness);
+    //color += subsurface_color * (subsurface * Fd_Lambert());
+	color += subsurface_color * (subsurface * Fd_Burley(roughness, NdotV, NdotL, LdotH));
+
+	return (color * radiance) * attenuation;
 }

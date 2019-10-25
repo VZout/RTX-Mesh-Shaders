@@ -49,10 +49,8 @@ vec3 GetReflectionVec(vec3 N, vec3 V, float roughness, float anisotropy, vec3 an
     float bend_factor = abs(anisotropy) * clamp(5.0 * roughness, 0, 1);
     vec3 bend_normal = normalize(mix(N, anisotropic_N, bend_factor));
     vec3 R = reflect(-V, bend_normal);
-	R.y = R.y * -1;
 #else
 	vec3 R = reflect(-V, N);
-	R.y = R.y * -1;
 #endif
 
 	return R;
@@ -94,6 +92,11 @@ void main()
 	const vec2 decoded_cc_ccr = DecodeMaterialProperties(reflectivity_anisotropy.g);
 	float clear_coat = decoded_cc_ccr.x;
 	float cc_roughness = clamp(decoded_cc_ccr.y, MIN_PERCEPTUAL_ROUGHNESS, 1.0);
+
+	// Subsurface
+	vec3 subsurface_color = vec3(1, 0, 0);
+	float subsurface_power = 1;
+	float thickness = 0.2;
 
     #ifdef PBR_PLUS
     float roughness = clamp(albedo_roughness.a, MIN_PERCEPTUAL_ROUGHNESS, 1.f);
@@ -145,8 +148,15 @@ void main()
     vec3 diff_irradiance = irradiance;
     vec3 diff = diffuse_color * diff_irradiance * (1.0 - E) * diff_brdf;
 
+#ifdef CLEAR_COAT
     // clear coat layer
     EvaluateClearCoatIBL(clear_coat, cc_roughness, NdotV, R, spec_ao, diff, spec);
+#endif
+
+#ifdef SCATTER
+	// subsurface layer
+	EvaluateSubsurfaceIBL(V, diff_irradiance, roughness, subsurface_color, thickness, diff, spec);
+#endif
 
     // extra ambient occlusion term
     MultiBounceAO(diff_ao, diffuse_color, diff);
@@ -187,13 +197,19 @@ void main()
 		}
 
         float NdotL = clamp(dot(N, L), 0.0, 1.0); // TODO: Duplicate ndotl
+#ifndef SCATTER
         if (NdotL > 0.0)
+#endif
         {
-            lighting += BRDF(L, V, N, geometric_normal, metallic, roughness, diffuse_color, light_color, F0, energy_compensation, attenuation, 1.0f, anisotropy, anisotropic_t, anisotropic_b, clear_coat, cc_roughness);
-        }
-        #else
+#ifdef SCATTER
+			lighting += SS_BRDF(L, V, N, geometric_normal, metallic, roughness, diffuse_color, light_color, F0, energy_compensation, attenuation, 1.0f, thickness, subsurface_color, subsurface_power);
+#else
+			lighting += BRDF(L, V, N, geometric_normal, metallic, roughness, diffuse_color, light_color, F0, energy_compensation, attenuation, 1.0f, anisotropy, anisotropic_t, anisotropic_b, clear_coat, cc_roughness);
+#endif
+		}
+#else
         lighting += BRDF(L, V, N, metallic, roughness, albedo, light_color);
-        #endif
+#endif
     }
 
     #ifdef PBR_PLUS
