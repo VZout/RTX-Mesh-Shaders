@@ -372,10 +372,12 @@ vec3 SS_BRDF(vec3 L, vec3 V, vec3 N, vec3 geometric_normal, float metallic, floa
 	// NoL does not apply to transmitted light
     vec3 color = (diff + spec) * (NdotL * occlusion);
 
+
 	 // subsurface scattering
     // Use a spherical gaussian approximation of pow() for forwardScattering
     // We could include distortion by adding shading_normal * distortion to light.l
-    float scatterVoH = clamp(dot(V, -L), 0, 1);
+	float sss_scale = 1;
+    float scatterVoH = clamp(dot(V, -L), 0, 1) * sss_scale;
     float forwardScatter = exp2(scatterVoH * subsurface_power - subsurface_power);
     float backScatter = clamp(NdotL * thickness + (1.0 - thickness), 0, 1) * 0.5;
     float subsurface = mix(backScatter, 1.0, forwardScatter) * (1.0 - thickness);
