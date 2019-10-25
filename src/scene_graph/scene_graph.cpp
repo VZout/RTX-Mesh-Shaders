@@ -165,6 +165,7 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 		{
 			light.m_type &= 0x3; // Keep id
 			light.m_type |= std::uint32_t(m_light_node_handles.size() + 1) << 2; // Set number of lights
+			m_num_lights[frame_idx] = m_light_node_handles.size(); // no need to update the size twice.
 		}
 		light.m_color = color;
 
@@ -197,11 +198,12 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 			light.m_type = (uint32_t)type;
 			light.m_inner_angle = angles.first;
 			light.m_outer_angle = angles.second;
+			light.m_color = color;
 
 			light.m_type = (std::uint32_t)cb::LightType::POINT;
 		}
 		light.m_type &= 0x3; // Keep id
-		light.m_type |= std::uint32_t(m_light_node_handles.size() + 1) << 2; // Set number of lights
+		light.m_type |= std::uint32_t(m_light_node_handles.size()) << 2; // Set number of lights
 
 		m_light_buffer_pool->Update(m_light_buffer_handle, sizeof(cb::Light), &light, frame_idx, 0);
 

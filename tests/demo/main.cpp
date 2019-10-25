@@ -562,8 +562,8 @@ protected:
 		m_robot_model_handle = model_pool->LoadWithMaterials<Vertex>("robot/scene.gltf", m_material_pool, texture_pool, true);
 		auto sphere_model_handle = m_robot_model_handle = model_pool->LoadWithMaterials<Vertex>("sphere.fbx", m_material_pool, texture_pool, true);
 
-		float num_spheres_x = 8;
-		float num_spheres_y = 8;
+		float num_spheres_x = 9;
+		float num_spheres_y = 9;
 		m_sphere_materials.resize(num_spheres_x * num_spheres_y);
 		m_sphere_material_handles.resize(num_spheres_x * num_spheres_y);
 
@@ -595,7 +595,7 @@ protected:
 		m_scene_graph = new sg::SceneGraph(m_renderer);
 
 		m_camera_node = m_scene_graph->CreateNode<sg::CameraComponent>();
-		sg::helper::SetPosition(m_scene_graph, m_camera_node, glm::vec3(0, 0, 2.5));
+		sg::helper::SetPosition(m_scene_graph, m_camera_node, glm::vec3(0, 0, 8.2f));
 		sg::helper::SetRotation(m_scene_graph, m_camera_node, glm::vec3(0, -90._deg, 0));
 
 		/*m_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_robot_model_handle);
@@ -625,10 +625,9 @@ protected:
 		}
 
 		// light node
-		{
-			auto node = m_scene_graph->CreateNode<sg::LightComponent>(cb::LightType::POINT);
-			sg::helper::SetPosition(m_scene_graph, node, glm::vec3(4.805, -2.800, -1.200));
-		}
+		m_light_node = m_scene_graph->CreateNode<sg::LightComponent>(cb::LightType::POINT, glm::vec3(20, 20, 20));
+		sg::helper::SetPosition(m_scene_graph, m_light_node, glm::vec3(0, 0, 2));
+		sg::helper::SetRadius(m_scene_graph, m_light_node, 4);
 
 		m_last = std::chrono::high_resolution_clock::now();
 	}
@@ -639,6 +638,11 @@ protected:
 		auto diff = now - m_last; 
 		m_delta = (float)diff.count() / 1000000000.f; // milliseconds
 		m_last = now;
+
+		// animate light
+		float light_x = sin(m_time * 2) * 2;
+		float light_y = cos(m_time * 2) * 2;
+		sg::helper::SetPosition(m_scene_graph, m_light_node, glm::vec3(light_x, light_y, 2));
 
 		m_scene_graph->Update(m_renderer->GetFrameIdx());
 		m_renderer->Render(*m_scene_graph, *m_frame_graph);
@@ -671,6 +675,8 @@ protected:
 		sg::helper::Translate(m_scene_graph, m_camera_node, (m_z_axis.z * speed) * forward_right.first);
 		sg::helper::Translate(m_scene_graph, m_camera_node, (m_z_axis.y * speed) * glm::vec3(0, 1, 0));
 		sg::helper::Translate(m_scene_graph, m_camera_node, (m_z_axis.x * speed) * forward_right.second);
+
+		m_time += m_delta;
 	}
 
 	void ResizeCallback(std::uint32_t width, std::uint32_t height) final
@@ -837,6 +843,7 @@ protected:
 
 	sg::NodeHandle m_node;
 	sg::NodeHandle m_camera_node;
+	sg::NodeHandle m_light_node;
 
 	MaterialPool* m_material_pool;
 	ModelHandle m_robot_model_handle;
@@ -857,6 +864,7 @@ protected:
 	std::vector<MaterialData> m_sphere_materials;
 
 	float m_delta;
+	float m_time = 0;
 
 	// Camera Movement
 	float m_move_speed = 5;
