@@ -213,7 +213,6 @@ namespace sg
 			m_colors.emplace_back(ComponentData<glm::vec3>{color, handle});
 			m_light_types.emplace_back(ComponentData<cb::LightType>{type, handle});
 			m_radius.emplace_back(ComponentData<float>{0, handle});
-			m_colors.emplace_back(ComponentData<glm::vec3>{color, handle});
 			m_light_angles.emplace_back(ComponentData<std::pair<float, float>>{ {glm::radians(40.f), glm::radians(50.f)}, handle});
 
 			m_light_node_handles.push_back(handle);
@@ -324,6 +323,13 @@ namespace sg
 			auto transform_handle = sg->GetNode(handle).m_transform_component;
 			sg->m_rotations[transform_handle].m_value += euler;
 			sg->m_requires_update[transform_handle] = true;
+		}
+
+		inline void SetRadius(SceneGraph* sg, NodeHandle handle, float radius)
+		{
+			auto light_handle = sg->GetNode(handle).m_light_component;
+			sg->m_radius[light_handle].m_value = radius;
+			sg->m_requires_light_buffer_update[light_handle] = { true, true, true };
 		}
 
 		inline void SetAspectRatio(SceneGraph* sg, NodeHandle handle, float ratio)
