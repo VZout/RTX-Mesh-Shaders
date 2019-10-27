@@ -14,6 +14,7 @@
 #include "material_pool.hpp"
 #include "texture_pool.hpp"
 #include "meshlet_builder.hpp"
+#include "stb_image_loader.hpp"
 
 #include "util/log.hpp"
 
@@ -82,13 +83,15 @@ public:
 	ModelHandle LoadWithMaterials(std::string const & path,
 		MaterialPool* material_pool,
 		TexturePool* texture_pool,
-		bool store_data = false);
+		bool store_data = false,
+		std::optional<ExtraMaterialData> extra = std::nullopt);
 	template<typename V_T>
 	ModelHandle Load(ModelData* data);
 	template<typename V_T>
 	ModelHandle LoadWithMaterials(ModelData* data,
 		MaterialPool* material_pool,
-		TexturePool* texture_pool);
+		TexturePool* texture_pool,
+		std::optional<ExtraMaterialData> extra = std::nullopt);
 	ModelData* GetRawData(ModelHandle handle);
 
 	virtual void Stage(gfx::CommandList* command_list) = 0;
@@ -138,7 +141,8 @@ template<typename V_T>
 ModelHandle ModelPool::LoadWithMaterials(std::string const & path,
 	MaterialPool* material_pool,
 	TexturePool* texture_pool,
-	bool store_data)
+	bool store_data,
+	std::optional<ExtraMaterialData> extra)
 {
 	auto extension = path.substr(path.find_last_of('.') + 1);
 
@@ -148,7 +152,7 @@ ModelHandle ModelPool::LoadWithMaterials(std::string const & path,
 		{
 			auto model_data = loader->Load(path);
 
-			auto handle = LoadWithMaterials<V_T>(model_data, material_pool, texture_pool);
+			auto handle = LoadWithMaterials<V_T>(model_data, material_pool, texture_pool, extra);
 
 			if (store_data)
 			{
@@ -177,11 +181,24 @@ ModelHandle ModelPool::Load(ModelData* data)
 template<typename V_T>
 ModelHandle ModelPool::LoadWithMaterials(ModelData* data,
 	MaterialPool* material_pool,
-	TexturePool* texture_pool)
+	TexturePool* texture_pool,
+	std::optional<ExtraMaterialData> extra)
 {
 	ModelHandle model_handle;
 
 	bool mat_and_texture_pool_available = material_pool && texture_pool;
+
+	// Apply extra material data
+	if (extra.has_value())
+	{
+		auto image_loader = new STBImageLoader();
+
+		const auto& thickness_paths = extra.value().m_thickness_texture_paths;
+		for (std::size_t i = 0; i < std::min(data->m_materials.size(), thickness_paths.size()); i++)
+		{
+			data->m_materials[i].m_thickness_texture = *image_loader->LoadFromDisc(thickness_paths[i]).get();
+		}
+	}
 
 	std::unordered_map<std::uint32_t, MaterialHandle> loaded_materials;
 

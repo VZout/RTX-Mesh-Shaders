@@ -326,7 +326,7 @@ TinyGLTFModelLoader::AnonResource TinyGLTFModelLoader::LoadFromDisc(std::string 
 			}
 			if (!scale.empty())
 			{
-				scale_mat = glm::translate(scale_mat,
+				scale_mat = glm::scale(scale_mat,
 						glm::vec3{(float)scale[0], (float)scale[1], (float)scale[2]});
 			}
 
@@ -367,6 +367,8 @@ TinyGLTFModelLoader::AnonResource TinyGLTFModelLoader::LoadFromDisc(std::string 
 			recursive_func(child_id, parent_transform);
 		}
 	};
+
+	//tg_model.
 
 	glm::mat4 parent_transform(1);
 	for (auto node_id : tg_model.scenes[tg_model.defaultScene].nodes)

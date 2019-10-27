@@ -77,7 +77,7 @@ REGISTER(root_signatures::basic, RootSignatureRegistry)({
 		params[1].pImmutableSamplers = nullptr;
 		params[2].binding = 2; // root parameter 1
 		params[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		params[2].descriptorCount = 3;
+		params[2].descriptorCount = 4; // textures
 		params[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 		params[2].pImmutableSamplers = nullptr;
 		params[3].binding = 3; // root parameter 0
@@ -105,7 +105,7 @@ REGISTER(root_signatures::basic_mesh, RootSignatureRegistry)({
 		params[1].pImmutableSamplers = nullptr;
 		params[2].binding = 2; // root parameter 1
 		params[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		params[2].descriptorCount = 3;
+		params[2].descriptorCount = 4; // textures
 		params[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 		params[2].pImmutableSamplers = nullptr;
 		params[3].binding = 3; // root parameter 2

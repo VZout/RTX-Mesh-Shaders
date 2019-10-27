@@ -5,7 +5,7 @@
 
 precision mediump int; precision highp float;
 
-layout(set = 2, binding = 2) uniform sampler2D ts_textures[3];
+layout(set = 2, binding = 2) uniform sampler2D ts_textures[4];
 
 layout(location = 0) in vec2 g_uv;
 layout(location = 1) in vec3 g_normal;
@@ -72,13 +72,14 @@ void main()
     vec3 normal_t = normalize(texture(ts_textures[1], g_uv).xyz * 2.0f - 1.0f);
 
     vec4 albedo = material.color.x > -1 ? vec4(material.color, 1) : texture(ts_textures[0], g_uv);
+	float thickness = texture(ts_textures[3], g_uv).r;
     vec3 obj_normal = normalize(TBN * (normal_t * material.normal_strength));
     float roughness = material.roughness > -1 ? material.roughness : compressed_mra.g;
     float metallic = material.metallic > -1 ? material.metallic : compressed_mra.b;
     float ao = compressed_mra.r;
 
-	if (albedo.a < 0.5)
-		discard;
+	//if (albedo.a < 0.5)
+		//discard;
 
     // disable normal mapping
     obj_normal = material.normal_strength > -1 ? obj_normal : normal;
@@ -92,7 +93,7 @@ void main()
 	out_color = vec4(albedo.rgb, roughness);
 	out_normal = vec4(obj_normal, metallic);
 #endif
-    out_pos = vec4(g_frag_pos, ao);
+    out_pos = vec4(g_frag_pos, EncodeMaterialProperties(ao, thickness));
     out_material = vec4(EncodeMaterialProperties(material.reflectivity, material.anisotropy),
 						EncodeMaterialProperties(material.clear_coat, material.clear_coat_roughness),
 						anisotropic_t.rg);

@@ -29,6 +29,7 @@ struct MaterialData
 	TextureData m_ambient_occlusion_texture;
 	TextureData m_normal_map_texture;
 	TextureData m_emissive_texture;
+	TextureData m_thickness_texture;
 
 	float m_base_color[3] = { -1, -1, -1 };
 	float m_base_metallic = -1;
@@ -41,6 +42,11 @@ struct MaterialData
 	glm::vec2 m_base_anisotropy_dir = { 1, 0 };
 	float m_base_clear_coat = 0;
 	float m_base_clear_coat_roughness = 0;
+};
+
+struct ExtraMaterialData
+{
+	std::vector<const char*> m_thickness_texture_paths;
 };
 
 struct MeshData
