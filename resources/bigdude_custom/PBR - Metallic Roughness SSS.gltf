@@ -1,0 +1,389 @@
+{
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5125,
+      "count": 336954,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 66053,
+      "max": [
+        0.652222633361816,
+        0.999978423118591,
+        0.303340584039688
+      ],
+      "min": [
+        -0.652222633361816,
+        -1.0,
+        -0.303340554237366
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 66053,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5126,
+      "count": 66053,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 4,
+      "componentType": 5125,
+      "count": 220188,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 5,
+      "componentType": 5126,
+      "count": 47952,
+      "max": [
+        0.652222633361816,
+        1.0,
+        0.303340584039688
+      ],
+      "min": [
+        -0.652222633361816,
+        -0.998812615871429,
+        -0.303340554237366
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 6,
+      "componentType": 5126,
+      "count": 47952,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 7,
+      "componentType": 5126,
+      "count": 47952,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 8,
+      "componentType": 5125,
+      "count": 63264,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 9,
+      "componentType": 5126,
+      "count": 11041,
+      "max": [
+        0.266031920909882,
+        0.119324646890163,
+        0.248514205217361
+      ],
+      "min": [
+        -0.267023652791977,
+        -0.221043989062309,
+        -0.211266592144966
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 10,
+      "componentType": 5126,
+      "count": 11041,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 11,
+      "componentType": 5126,
+      "count": 11041,
+      "type": "VEC2"
+    }
+  ],
+  "asset": {
+    "generator": "Substance Painter 2019.2.3",
+    "version": "2.0"
+  },
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 1347816,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 792636,
+      "byteOffset": 1347816,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 792636,
+      "byteOffset": 2140452,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 528424,
+      "byteOffset": 2933088,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 880752,
+      "byteOffset": 3461512,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 575424,
+      "byteOffset": 4342264,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 575424,
+      "byteOffset": 4917688,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 383616,
+      "byteOffset": 5493112,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 253056,
+      "byteOffset": 5876728,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 132492,
+      "byteOffset": 6129784,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 132492,
+      "byteOffset": 6262276,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 88328,
+      "byteOffset": 6394768,
+      "target": 34962
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 6483096,
+      "uri": "PBR - Metallic Roughness SSS.bin"
+    }
+  ],
+  "images": [
+    {
+      "uri": "blinn1SG_baseColor.png"
+    },
+    {
+      "uri": "blinn1SG_occlusionRoughnessMetallic.png"
+    },
+    {
+      "uri": "blinn1SG_normal.png"
+    },
+    {
+      "uri": "temp_ldefault1_baseColor.png"
+    },
+    {
+      "uri": "temp_ldefault1_occlusionRoughnessMetallic.png"
+    },
+    {
+      "uri": "temp_ldefault1_normal.png"
+    }
+  ],
+  "materials": [
+    {
+      "alphaMode": "OPAQUE",
+      "name": "blinn1SG",
+      "normalTexture": {
+        "index": 2
+      },
+      "occlusionTexture": {
+        "index": 1
+      },
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 0
+        },
+        "metallicRoughnessTexture": {
+          "index": 1
+        }
+      }
+    },
+    {
+      "alphaMode": "OPAQUE",
+      "name": "temp_ldefault1",
+      "normalTexture": {
+        "index": 5
+      },
+      "occlusionTexture": {
+        "index": 4
+      },
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 3
+        },
+        "metallicRoughnessTexture": {
+          "index": 4
+        }
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "meshes_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 2,
+            "POSITION": 1,
+            "TEXCOORD_0": 3
+          },
+          "indices": 0,
+          "material": 0,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "meshes_1",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 6,
+            "POSITION": 5,
+            "TEXCOORD_0": 7
+          },
+          "indices": 4,
+          "material": 0,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "meshes_2",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 10,
+            "POSITION": 9,
+            "TEXCOORD_0": 11
+          },
+          "indices": 8,
+          "material": 1,
+          "mode": 4
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "children": [
+        1
+      ],
+      "name": "RootNode (gltf orientation matrix)"
+    },
+    {
+      "children": [
+        2
+      ],
+      "name": "RootNode (model correction matrix)"
+    },
+    {
+      "children": [
+        3,
+        5,
+        7
+      ],
+      "name": "temp_l.OBJ.cleaner.gles"
+    },
+    {
+      "children": [
+        4
+      ],
+      "name": "nodes_3"
+    },
+    {
+      "mesh": 0,
+      "name": "meshes_0"
+    },
+    {
+      "children": [
+        6
+      ],
+      "name": "nodes_4"
+    },
+    {
+      "mesh": 1,
+      "name": "meshes_1"
+    },
+    {
+      "children": [
+        8
+      ],
+      "name": "nodes_5"
+    },
+    {
+      "mesh": 2,
+      "name": "meshes_2"
+    }
+  ],
+  "samplers": [
+    {
+      "magFilter": 9729,
+      "minFilter": 9985,
+      "wrapS": 10497,
+      "wrapT": 10497
+    }
+  ],
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "Scene",
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "sampler": 0,
+      "source": 0
+    },
+    {
+      "sampler": 0,
+      "source": 1
+    },
+    {
+      "sampler": 0,
+      "source": 2
+    },
+    {
+      "sampler": 0,
+      "source": 3
+    },
+    {
+      "sampler": 0,
+      "source": 4
+    },
+    {
+      "sampler": 0,
+      "source": 5
+    }
+  ]
+}

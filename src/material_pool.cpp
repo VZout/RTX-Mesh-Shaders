@@ -21,16 +21,18 @@ MaterialHandle MaterialPool::Load(MaterialData const & data, TexturePool* textur
 	if (!m_loaded_defaults)
 	{
 		m_loaded_defaults = true;
-		m_default_albedo_texture = texture_pool->Load("white.png", true);
-		m_default_normal_texture = texture_pool->Load("flat_normal.png", true);
-		m_default_roughness_metallic_texture = texture_pool->Load("rough1metal0ao1.png", true);
+		m_default_albedo_texture = texture_pool->Load("white.png", false);
+		m_default_normal_texture = texture_pool->Load("flat_normal.png", false);
+		m_default_roughness_metallic_texture = texture_pool->Load("rough1metal0ao1.png", false);
+		m_default_thickness_texture = texture_pool->Load("white.png", false);
 	}
 
 	MaterialHandle handle;
 	handle.m_material_id = new_id;
-	handle.m_albedo_texture_handle = data.m_albedo_texture.m_pixels ? texture_pool->Load(data.m_albedo_texture, true) : m_default_albedo_texture;
+	handle.m_albedo_texture_handle = data.m_albedo_texture.m_pixels ? texture_pool->Load(data.m_albedo_texture, true, true) : m_default_albedo_texture;
 	handle.m_normal_texture_handle = data.m_normal_map_texture.m_pixels ? texture_pool->Load(data.m_normal_map_texture, true) : m_default_normal_texture;
 	handle.m_roughness_texture_handle = data.m_roughness_texture.m_pixels ? texture_pool->Load(data.m_roughness_texture, true) : m_default_roughness_metallic_texture;
+	handle.m_thickness_texture_handle = data.m_thickness_texture.m_pixels ? texture_pool->Load(data.m_thickness_texture, true) : m_default_thickness_texture;
 
 	Load_Impl(handle, data, texture_pool);
 

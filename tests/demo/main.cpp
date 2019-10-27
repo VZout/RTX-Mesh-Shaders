@@ -17,7 +17,7 @@
 #include "imgui/imgui_gizmo.h"
 #include <gtc/type_ptr.hpp>
 
-#define MESH_SHADING
+//#define MESH_SHADING
 
 #ifdef _WIN32
 #include <shellapi.h>
@@ -556,11 +556,16 @@ protected:
 		m_renderer = new Renderer();
 		m_renderer->Init(this);
 
+		ExtraMaterialData extra_material_data;
+		extra_material_data.m_thickness_texture_paths = {
+			"bigdude_custom/RGB.png",
+		};
+
 		auto model_pool = m_renderer->GetModelPool();
 		auto texture_pool = m_renderer->GetTexturePool();
 		m_material_pool = m_renderer->GetMaterialPool();
-		m_robot_model_handle = model_pool->LoadWithMaterials<Vertex>("robot/scene.gltf", m_material_pool, texture_pool, true);
-		auto sphere_model_handle = m_robot_model_handle = model_pool->LoadWithMaterials<Vertex>("sphere.fbx", m_material_pool, texture_pool, true);
+		m_robot_model_handle = model_pool->LoadWithMaterials<Vertex>("bigdude_custom/PBR - Metallic Roughness SSS.gltf", m_material_pool, texture_pool, false, extra_material_data);
+		auto sphere_model_handle = model_pool->LoadWithMaterials<Vertex>("sphere.fbx", m_material_pool, texture_pool, false);
 
 		float num_spheres_x = 9;
 		float num_spheres_y = 9;
@@ -598,10 +603,10 @@ protected:
 		sg::helper::SetPosition(m_scene_graph, m_camera_node, glm::vec3(0, 0, 8.2f));
 		sg::helper::SetRotation(m_scene_graph, m_camera_node, glm::vec3(0, -90._deg, 0));
 
-		/*m_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_robot_model_handle);
+		m_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_robot_model_handle);
 		sg::helper::SetPosition(m_scene_graph, m_node, glm::vec3(-0.75, -1, 0));
 		sg::helper::SetScale(m_scene_graph, m_node, glm::vec3(0.01, 0.01, 0.01));
-		sg::helper::SetRotation(m_scene_graph, m_node, glm::vec3(-90._deg, 0, 0));*/
+		sg::helper::SetRotation(m_scene_graph, m_node, glm::vec3(-90._deg, 0, 0));
 
 		// second node
 		{
@@ -642,7 +647,7 @@ protected:
 		// animate light
 		float light_x = sin(m_time * 2) * 2;
 		float light_y = cos(m_time * 2) * 2;
-		sg::helper::SetPosition(m_scene_graph, m_light_node, glm::vec3(light_x, light_y, 2));
+		//sg::helper::SetPosition(m_scene_graph, m_light_node, glm::vec3(light_x, light_y, 2));
 
 		m_scene_graph->Update(m_renderer->GetFrameIdx());
 		m_renderer->Render(*m_scene_graph, *m_frame_graph);

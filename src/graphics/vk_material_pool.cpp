@@ -29,7 +29,7 @@ gfx::VkMaterialPool::VkMaterialPool(gfx::Context* context)
 	std::vector<VkDescriptorSetLayoutBinding> parameters(1);
 	parameters[0].binding = 2; // root parameter 1
 	parameters[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	parameters[0].descriptorCount = 3;
+	parameters[0].descriptorCount = 4;
 	parameters[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	parameters[0].pImmutableSamplers = nullptr;
 
@@ -159,7 +159,7 @@ void gfx::VkMaterialPool::Load_Impl(MaterialHandle& handle, MaterialData const &
 	m_constant_buffers.insert({ handle.m_material_id, buffer });
 
 	// Textures
-	auto textures = texture_pool->GetTextures({ handle.m_albedo_texture_handle, handle.m_normal_texture_handle, handle.m_roughness_texture_handle });
+	auto textures = texture_pool->GetTextures({ handle.m_albedo_texture_handle, handle.m_normal_texture_handle, handle.m_roughness_texture_handle, handle.m_thickness_texture_handle });
 	auto descriptor_set_id = m_desc_heap->CreateSRVSetFromTexture(textures, m_material_set_layout, 2, 0, sampler_desc);
 	handle.m_material_set_id = descriptor_set_id;
 	handle.m_material_cb_set_id = descriptor_cb_set_id;
