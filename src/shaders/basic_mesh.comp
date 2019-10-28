@@ -1,7 +1,7 @@
 #version 450
 #pragma shader_stage(mesh)
 
-#define SHOW_MESHLETS
+//#define SHOW_MESHLETS
 
 #define USE_NATIVE   1
 #extension GL_NV_mesh_shader : enable
@@ -124,6 +124,7 @@ void main()
 			g_tangent[k+l] = normalize(ubo.model * vec4(tangent, 0)).xyz;
 			g_bitangent[k+l] = normalize(ubo.model * vec4(bitangent, 0)).xyz;
 			g_uv[k+l] = uv;
+			g_uv[k+l].y *= -1;
 #ifdef SHOW_MESHLETS
 			g_meshlet_id[k+l] = meshlet_id;
 #endif

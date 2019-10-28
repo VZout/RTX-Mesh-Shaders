@@ -36,6 +36,8 @@ public:
 	void RegisterWindow(std::string const & name, std::string const & category, window_func_t window_func, bool default_visibility = false, std::optional<icon_t> icon = std::nullopt);
 	void Render();
 	void SetTexture(ImTextureID texture);
+	void SetEditorVisibility(bool value);
+	bool GetEditorVisibility() const;
 	ImTextureID GetTexture();
 
 private:
@@ -64,6 +66,7 @@ private:
 
 	std::vector<CategoryDesc> m_category_descs;
 	bool m_show_main_menu;
+	bool m_editor_visibility;
 	ImTextureID m_texture;
 
 };

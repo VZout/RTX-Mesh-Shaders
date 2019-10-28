@@ -15,7 +15,7 @@ layout(location = 4) out vec3 g_bitangent;
 
 // Uniforms
 layout(set = 1, binding = 1) uniform UniformBufferObject {
-    mat4 model;
+    mat4 model[100];
 } ubo;
 
 layout(set = 0, binding = 0) uniform UniformBufferCameraObject {
@@ -25,13 +25,13 @@ layout(set = 0, binding = 0) uniform UniformBufferCameraObject {
 
 void main()
 {
-    mat3 model = mat3(ubo.model);
-    g_tangent = normalize(ubo.model * vec4(tangent, 0)).xyz;
-    g_bitangent = normalize(ubo.model * vec4(bitangent, 0)).xyz;
-    g_normal = normalize(ubo.model * vec4(normal, 0)).xyz;
+    mat4 model = ubo.model[gl_InstanceIndex];
+    g_tangent = normalize(model * vec4(tangent, 0)).xyz;
+    g_bitangent = normalize(model * vec4(bitangent, 0)).xyz;
+    g_normal = normalize(model * vec4(normal, 0)).xyz;
 
-    g_frag_pos = vec3(ubo.model * vec4(pos, 1.0));
-    gl_Position = camera.proj * camera.view * ubo.model * vec4(pos, 1.0);
+    g_frag_pos = vec3(model * vec4(pos, 1.0));
+    gl_Position = camera.proj * camera.view * model * vec4(pos, 1.0);
     g_uv = uv;
     g_uv.y *= -1;
 }

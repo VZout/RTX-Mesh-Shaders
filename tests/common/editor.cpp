@@ -10,7 +10,7 @@
 #include <util/log.hpp>
 
 Editor::Editor()
-	: m_show_main_menu(true)
+	: m_show_main_menu(true), m_editor_visibility(true)
 {
 
 }
@@ -64,6 +64,8 @@ void Editor::RegisterWindow(const std::string& name, std::string const & categor
 
 void Editor::Render()
 {
+	if (!m_editor_visibility) return;
+
 	// Render the menu bar
 	if (m_show_main_menu && ImGui::BeginMainMenuBar())
 	{
@@ -127,6 +129,16 @@ void Editor::Render()
 void Editor::SetTexture(ImTextureID texture)
 {
 	m_texture = texture;
+}
+
+void Editor::SetEditorVisibility(bool value)
+{
+	m_editor_visibility = value;
+}
+
+bool Editor::GetEditorVisibility() const
+{
+	return m_editor_visibility;
 }
 
 ImTextureID Editor::GetTexture()

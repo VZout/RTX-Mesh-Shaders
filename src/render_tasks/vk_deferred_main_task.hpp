@@ -45,8 +45,6 @@ namespace tasks
 			auto context = rs.GetContext();
 			auto desc_heap = rs.GetDescHeap();
 			data.m_root_sig = RootSignatureRegistry::SFind(root_signatures::basic);
-
-			data.m_material_sets.resize(gfx::settings::num_back_buffers);
 		}
 
 		inline void ExecuteDeferredMainTask(Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, fg::RenderTaskHandle handle)
@@ -64,7 +62,7 @@ namespace tasks
 
 			auto mesh_node_handles = sg.GetMeshNodeHandles();
 			auto camera_handle = sg.m_camera_cb_handles[0].m_value;
-			for (auto const & handle : mesh_node_handles)
+			/*for (auto const & handle : mesh_node_handles)
 			{
 				auto node = sg.GetNode(handle);
 				auto model_handle = sg.m_model_handles[node.m_mesh_component].m_value;
@@ -87,6 +85,31 @@ namespace tasks
 					cmd_list->BindVertexBuffer(model_pool->m_vertex_buffers[mesh_handle.m_id]);
 					cmd_list->BindIndexBuffer(model_pool->m_index_buffers[mesh_handle.m_id]);
 					cmd_list->DrawIndexed(mesh_handle.m_num_indices, 1);
+				}
+			}*/
+
+			for (auto const & batch : sg.GetRenderBatches())
+			{
+				auto model_handle = batch.m_model_handle;
+				auto cb_handle = batch.m_big_cb;
+				auto const & mat_vec = batch.m_material_handles;
+
+				for (std::size_t i = 0; i < model_handle.m_mesh_handles.size(); i++)
+				{
+					auto mesh_handle = model_handle.m_mesh_handles[i];
+
+					std::vector<std::pair<gfx::DescriptorHeap*, std::uint32_t>> sets
+					{
+						{ camera_pool->GetDescriptorHeap(), camera_handle.m_cb_set_id }, // TODO: Shitty naming of set_id. just use a vector in the handle instead probably.
+						{ per_obj_pool->GetDescriptorHeap(), cb_handle.m_cb_set_id }, // TODO: Shitty naming of set_id. just use a vector in the handle instead probably.
+						{ material_pool->GetDescriptorHeap(), material_pool->GetDescriptorSetID(mat_vec[i]) },
+						{ material_pool->GetDescriptorHeap(), material_pool->GetCBDescriptorSetID(mat_vec[i]) }
+					};
+
+					cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
+					cmd_list->BindVertexBuffer(model_pool->m_vertex_buffers[mesh_handle.m_id]);
+					cmd_list->BindIndexBuffer(model_pool->m_index_buffers[mesh_handle.m_id]);
+					cmd_list->DrawIndexed(mesh_handle.m_num_indices, batch.m_num_meshes);
 				}
 			}
 		}

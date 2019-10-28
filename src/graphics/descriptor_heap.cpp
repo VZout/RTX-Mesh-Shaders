@@ -67,6 +67,52 @@ VkDescriptorSet gfx::DescriptorHeap::GetDescriptorSet(std::uint32_t frame_idx, s
 	return m_descriptor_sets[frame_idx % m_desc.m_versions][handle];
 }
 
+std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromCB(std::vector<GPUBuffer*> buffers, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx, bool uniform)
+{
+	auto logical_device = m_context->m_logical_device;
+
+	// Create the descriptor sets
+	VkDescriptorSetAllocateInfo alloc_info = {};
+	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	alloc_info.descriptorPool = m_descriptor_pools[frame_idx];
+	alloc_info.descriptorSetCount = 1;
+	alloc_info.pSetLayouts = &layout;
+
+	VkDescriptorSet descriptor_set;
+	if (vkAllocateDescriptorSets(logical_device, &alloc_info, &descriptor_set) != VK_SUCCESS)
+	{
+		LOGC("failed to allocate descriptor sets!");
+	}
+	m_descriptor_sets[frame_idx].push_back(descriptor_set);
+	auto descriptor_set_id = m_descriptor_sets[frame_idx].size() - 1;
+
+	std::vector<VkDescriptorBufferInfo> buffer_infos;
+	for (auto const& buffer : buffers)
+	{
+		VkDescriptorBufferInfo buffer_info = {};
+		buffer_info.buffer = buffer->m_buffer;
+		buffer_info.offset = 0;
+		buffer_info.range = buffer->m_size;
+
+		buffer_infos.push_back(buffer_info);
+	}
+
+	VkWriteDescriptorSet descriptor_write = {};
+	descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptor_write.dstSet = m_descriptor_sets[frame_idx][descriptor_set_id];  // TODO: Don't use 0 but get the set that corresponds to the correct descriptor type.
+	descriptor_write.dstBinding = handle;
+	descriptor_write.dstArrayElement = 0;
+	descriptor_write.descriptorType = uniform ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	descriptor_write.descriptorCount = buffer_infos.size();
+	descriptor_write.pBufferInfo = buffer_infos.data();
+	descriptor_write.pImageInfo = nullptr;
+	descriptor_write.pTexelBufferView = nullptr;
+
+	vkUpdateDescriptorSets(logical_device, 1u, &descriptor_write, 0, nullptr);
+
+	return descriptor_set_id;
+}
+
 std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx, bool uniform)
 {
 	return CreateSRVFromCB(buffer, root_signature->m_descriptor_set_layouts[handle], handle, frame_idx, uniform);
@@ -77,7 +123,6 @@ constexpr inline T SizeAlignAnyAlignment(T size, A alignment)
 {
 	return (size / alignment + (size % alignment > 0)) * alignment;
 }
-
 
 std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx, bool uniform)
 {
