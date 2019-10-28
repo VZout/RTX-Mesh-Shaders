@@ -61,6 +61,7 @@ namespace gfx
 
 		VkDescriptorSet GetDescriptorSet(std::uint32_t frame_idx, std::uint32_t handle);
 
+		std::uint32_t CreateSRVSetFromCB(std::vector<GPUBuffer*> buffers, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx, bool uniform = true);
 		std::uint32_t CreateSRVFromCB(GPUBuffer* buffer, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx, bool uniform = true);
 		std::uint32_t CreateSRVFromCB(GPUBuffer* buffer, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx, bool uniform = true);
 		std::uint32_t CreateSRVSetFromTexture(std::vector<StagingTexture*> texture, RootSignature* root_signature,
