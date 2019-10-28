@@ -17,7 +17,7 @@
 #include "imgui/imgui_gizmo.h"
 #include <gtc/type_ptr.hpp>
 
-#define MESH_SHADING
+//#define MESH_SHADING
 
 #ifdef _WIN32
 #include <shellapi.h>
@@ -533,7 +533,6 @@ protected:
 	{
 		SetupEditor();
 
-
 		m_frame_graph = new fg::FrameGraph();
 		tasks::AddGenerateCubemapTask(*m_frame_graph);
 		tasks::AddGenerateIrradianceMapTask(*m_frame_graph);
@@ -605,8 +604,8 @@ protected:
 
 		m_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_robot_model_handle);
 		sg::helper::SetPosition(m_scene_graph, m_node, glm::vec3(-0.75, -1, 0));
-		sg::helper::SetScale(m_scene_graph, m_node, glm::vec3(0.01, 0.01, 0.01));
-		sg::helper::SetRotation(m_scene_graph, m_node, glm::vec3(-90._deg, 0, 0));
+		sg::helper::SetScale(m_scene_graph, m_node, glm::vec3(1, 1, 1));
+		sg::helper::SetRotation(m_scene_graph, m_node, glm::vec3(0._deg, 0, 0));
 
 		// second node
 		{
