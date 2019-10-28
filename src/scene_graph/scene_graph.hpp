@@ -48,6 +48,15 @@ namespace sg
 	{
 	};
 
+	struct RenderBatch
+	{
+		std::uint32_t m_num_meshes;
+		ModelHandle m_model_handle;
+		std::vector<MaterialHandle> m_material_handles;
+		std::vector<NodeHandle> m_nodes;
+		ConstantBufferHandle m_big_cb;
+	};
+
 	struct Node
 	{
 		ComponentHandle m_transform_component;
@@ -100,6 +109,7 @@ namespace sg
 		Node GetNode(NodeHandle handle);
 		std::vector<NodeHandle> const & GetNodeHandles() const;
 		std::vector<NodeHandle> const & GetMeshNodeHandles() const;
+		std::vector<RenderBatch> const& GetRenderBatches() const;
 
 		template<typename A, typename B>
 		using Void_IsComponent = std::enable_if<std::is_same<A, B>::value, void>;
@@ -117,13 +127,6 @@ namespace sg
 
 			m_model_handles.emplace_back(ComponentData<ModelHandle>(
 				model_handle,
-				handle
-			));
-
-			// Allocate constant buffer.
-			auto transform_cb_handle = m_per_object_buffer_pool->Allocate(sizeof(cb::Basic));
-			m_transform_cb_handles.emplace_back(ComponentData<ConstantBufferHandle>(
-				transform_cb_handle,
 				handle
 			));
 
@@ -147,6 +150,7 @@ namespace sg
 			));
 
 			m_mesh_node_handles.push_back(handle);
+			m_meshes_require_batching.push_back(handle);
 		}
 
 		template<typename T>
@@ -237,7 +241,6 @@ namespace sg
 		// Mesh Component
 		std::vector<ComponentData<ModelHandle>> m_model_handles;
 		std::vector<ComponentData<std::vector<MaterialHandle>>> m_model_material_handles;
-		std::vector<ComponentData<ConstantBufferHandle>> m_transform_cb_handles;
 		std::vector<ComponentData<std::vector<bool>>> m_requires_buffer_update;
 
 		// Camera Component
@@ -252,6 +255,11 @@ namespace sg
 		std::vector<ComponentData<float>> m_radius;
 		std::vector<ComponentData<std::pair<float, float>>> m_light_angles;
 		std::vector<std::size_t> m_num_lights;
+
+		// Batching
+		std::vector<NodeHandle> m_meshes_require_batching;
+		std::vector<std::vector<std::pair<std::uint32_t, std::uint32_t>>> m_batch_requires_update;
+		std::vector<RenderBatch> m_render_batches;
 
 	private:
 		std::vector<Node> m_nodes;

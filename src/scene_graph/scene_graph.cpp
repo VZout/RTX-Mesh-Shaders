@@ -10,9 +10,10 @@
 
 sg::SceneGraph::SceneGraph(Renderer* renderer)
 {
+	m_batch_requires_update.resize(gfx::settings::num_back_buffers);
 	m_num_lights.resize(gfx::settings::num_back_buffers, 0);
 
-	m_per_object_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Basic), 200, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_MESH_BIT_NV);
+	m_per_object_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Basic) * gfx::settings::max_render_batch_size, 300, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_MESH_BIT_NV);
 	m_camera_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Camera), 1, 0, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_MESH_BIT_NV);
 	m_light_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Light) * gfx::settings::max_lights, 1, 3, VK_SHADER_STAGE_COMPUTE_BIT);
 
@@ -90,23 +91,6 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 		{
 			m_requires_light_buffer_update[parent_node.m_light_component] = std::vector<bool>(gfx::settings::num_back_buffers, true);
 		}
-	}
-
-	// Update constant bufffers for transformations (Meshes only)
-	for (auto& requires_update : m_requires_buffer_update)
-	{
-		if (!requires_update.m_value[frame_idx]) continue;
-
-		auto node = m_nodes[requires_update.m_node_handle];
-		auto model_mat = m_models[node.m_transform_component].m_value;
-
-		cb::Basic data;
-		data.m_model = model_mat;
-
-		// TODO: In theory right now the cb handle and the mesh component will always have the same value.
-		m_per_object_buffer_pool->Update(m_transform_cb_handles[node.m_mesh_component], sizeof(cb::Basic), &data, frame_idx);
-
-		m_requires_buffer_update[node.m_mesh_component].m_value[frame_idx] = false;
 	}
 
 	// Update constant bufffers for cameras
@@ -209,6 +193,123 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 
 		m_num_lights[frame_idx] = m_light_node_handles.size();
 	}
+
+	// Generate Batches
+	for (auto& node_handle : m_meshes_require_batching)
+	{
+		auto node = m_nodes[node_handle];
+		auto model_handle = m_model_handles[node.m_mesh_component].m_value;
+		auto material_handles = m_model_material_handles[node.m_mesh_component].m_value;
+
+		bool batch_available = false;
+		std::size_t batch_idx = 0;
+		for (auto& batch : m_render_batches)
+		{
+			if (batch.m_model_handle == model_handle)
+			{
+				batch_available = true;
+				batch.m_num_meshes++;
+				batch.m_nodes.push_back(node_handle);
+
+				for (auto idx = 0; idx < gfx::settings::num_back_buffers; idx++)
+				{
+					m_batch_requires_update[idx].push_back({ batch_idx, node_handle });
+				}
+
+				break;
+			}
+
+			batch_idx++;
+		}
+
+		if (!batch_available)
+		{
+			RenderBatch new_batch;
+			new_batch.m_model_handle = model_handle;
+			new_batch.m_material_handles = material_handles;
+			new_batch.m_num_meshes = 1;
+			new_batch.m_nodes.push_back(node_handle);
+			new_batch.m_big_cb = m_per_object_buffer_pool->Allocate(sizeof(cb::Basic) * gfx::settings::max_render_batch_size);
+
+			m_render_batches.push_back(new_batch);
+
+			for (auto idx = 0; idx < gfx::settings::num_back_buffers; idx++)
+			{
+				m_batch_requires_update[idx].push_back({ m_render_batches.size() - 1, node_handle });
+			}
+		}
+	}
+	m_meshes_require_batching.clear();
+
+	// Efficient batch update. (new/delete)
+	for (auto& batch_handle_pair : m_batch_requires_update[frame_idx])
+	{
+		auto node = m_nodes[batch_handle_pair.second];
+		auto batch = m_render_batches[batch_handle_pair.first];
+
+		cb::Basic data;
+		data.m_model = m_models[node.m_transform_component].m_value;
+
+		// Find the position of the mesh that requires a update inside of the constant buffer.
+		int update_offset = 0;
+		for (auto batch_node_handle : batch.m_nodes)
+		{
+			if (batch_node_handle == batch_handle_pair.second)
+			{
+				break;
+			}
+
+			update_offset++;
+		}
+
+		// TODO: In theory right now the cb handle and the mesh component will always have the same value.
+		m_per_object_buffer_pool->Update(batch.m_big_cb, sizeof(cb::Basic), &data, frame_idx, update_offset * sizeof(cb::Basic));
+	}
+	m_batch_requires_update[frame_idx].clear();
+
+	// Update batch cb in case a mesh was moved
+	for (auto& requires_update : m_requires_buffer_update)
+	{
+		if (!requires_update.m_value[frame_idx]) continue;
+
+		auto node_handle = requires_update.m_node_handle;
+		auto node = m_nodes[node_handle];
+		auto model_mat = m_models[node.m_transform_component].m_value;
+		auto model_handle = m_model_handles[node.m_mesh_component].m_value;
+
+		// find appropriate batch
+		bool updated_batch = false;
+		for (auto& batch : m_render_batches)
+		{
+			if (batch.m_model_handle == model_handle)
+			{
+				// Find the position of the mesh that requires a update inside of the constant buffer.
+				int update_offset = 0;
+				for (auto batch_node_handle : batch.m_nodes)
+				{
+					if (batch_node_handle == node_handle)
+					{
+						break;
+					}
+
+					update_offset++;
+				}
+
+				cb::Basic data;
+				data.m_model = model_mat;
+				m_per_object_buffer_pool->Update(batch.m_big_cb, sizeof(cb::Basic), &data, frame_idx, update_offset * sizeof(cb::Basic));
+
+				updated_batch = true;
+				m_requires_buffer_update[node.m_mesh_component].m_value[frame_idx] = false;
+				return;
+			}
+		}
+
+		if (!updated_batch)
+		{
+			LOGW("Mesh required update but failed to update it...");
+		}
+	}
 }
 
 sg::Node sg::SceneGraph::GetActiveCamera()
@@ -249,4 +350,9 @@ std::vector<sg::NodeHandle> const & sg::SceneGraph::GetNodeHandles() const
 std::vector<sg::NodeHandle> const & sg::SceneGraph::GetMeshNodeHandles() const
 {
 	return m_mesh_node_handles;
+}
+
+std::vector<sg::RenderBatch> const& sg::SceneGraph::GetRenderBatches() const
+{
+	return m_render_batches;
 }
