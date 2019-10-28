@@ -42,6 +42,7 @@ namespace tasks
 		gfx::DescriptorHeap* m_gbuffer_heap;
 
 		gfx::RootSignature* m_root_sig;
+		gfx::PipelineState* m_pipeline;
 	};
 
 	namespace internal
@@ -120,13 +121,14 @@ namespace tasks
 				auto brdf_rt = fg.GetPredecessorRenderTarget<GenerateBRDFLutData>();
 				data.m_brdf_set = data.m_gbuffer_heap->CreateSRVSetFromRT(brdf_rt, data.m_root_sig, 7, 0, false, lut_sampler_desc);
 			}
+
+			data.m_pipeline = PipelineRegistry::SFind(pipelines::composition);;
 		}
 
 		inline void ExecuteDeferredCompositionTask(Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, fg::RenderTaskHandle handle)
 		{
 			auto& data = fg.GetData<DeferredCompositionData>(handle);
 			auto cmd_list = fg.GetCommandList(handle);
-			auto pipeline = PipelineRegistry::SFind(pipelines::composition);
 			auto render_target = fg.GetRenderTarget(handle);
 			auto light_pool = static_cast<gfx::VkConstantBufferPool*>(sg.GetLightConstantBufferPool());
 			auto camera_pool = static_cast<gfx::VkConstantBufferPool*>(sg.GetCameraConstantBufferPool());
@@ -148,9 +150,9 @@ namespace tasks
 				{ data.m_gbuffer_heap, data.m_brdf_set },
 			};
 
-			cmd_list->BindComputePipelineState(pipeline);
+			cmd_list->BindComputePipelineState(data.m_pipeline);
 			cmd_list->BindComputeDescriptorHeap(data.m_root_sig, sets);
-			cmd_list->Dispatch(render_target->GetWidth() / 16, render_target->GetHeight() / 16, 1);
+			cmd_list->Dispatch(render_target->GetWidth() / 32, render_target->GetHeight() / 32, 1);
 		}
 
 		inline void DestroyDeferredCompositionTask(fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)

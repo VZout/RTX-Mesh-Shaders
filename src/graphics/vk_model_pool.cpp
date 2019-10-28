@@ -51,10 +51,14 @@ void gfx::VkModelPool::AllocateMesh(void* vertex_data, std::uint32_t num_vertice
 	auto rs = rs_reg.Find(root_signatures::basic_mesh);
 	auto descriptor_set_id = m_heap->CreateSRVFromCB(mb, rs, 6, 0, false);
 
+	auto vbi = m_heap->CreateSRVFromCB(vb, rs, 4, 0, false);
+	auto ibi = m_heap->CreateSRVFromCB(ib, rs, 5, 0, false);
+
 	m_vertex_buffers.push_back(vb);
 	m_index_buffers.push_back(ib);
 	m_meshlet_buffers.push_back(mb);
 	m_meshlet_desc_infos.push_back({ descriptor_set_id, num_meshlets });
+	m_mesh_shading_buffer_descriptor_sets.push_back({ vbi, ibi });
 }
 
 void gfx::VkModelPool::Stage(CommandList* command_list)

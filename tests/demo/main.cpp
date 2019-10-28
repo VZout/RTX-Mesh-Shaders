@@ -17,7 +17,7 @@
 #include "imgui/imgui_gizmo.h"
 #include <gtc/type_ptr.hpp>
 
-//#define MESH_SHADING
+#define MESH_SHADING
 
 #ifdef _WIN32
 #include <shellapi.h>
