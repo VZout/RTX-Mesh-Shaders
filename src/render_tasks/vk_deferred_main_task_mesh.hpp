@@ -30,10 +30,9 @@ namespace tasks
 	struct DeferredMainMeshData
 	{
 		std::vector<std::vector<std::uint32_t>> m_material_sets;
-
+		
+		gfx::PipelineState* m_pipeline;
 		gfx::RootSignature* m_root_sig;
-		gfx::DescriptorHeap* m_heap;
-		std::array<std::optional<std::pair<int, int>>, 6> m_idx;
 	};
 
 	namespace internal
@@ -47,13 +46,8 @@ namespace tasks
 			auto context = rs.GetContext();
 			auto desc_heap = rs.GetDescHeap();
 			data.m_root_sig = RootSignatureRegistry::SFind(root_signatures::basic_mesh);
-
+			data.m_pipeline = PipelineRegistry::SFind(pipelines::basic_mesh);
 			data.m_material_sets.resize(gfx::settings::num_back_buffers);
-
-			gfx::DescriptorHeap::Desc desc;
-			desc.m_versions = 1;
-			desc.m_num_descriptors = 1000;
-			data.m_heap = new gfx::DescriptorHeap(context, desc);
 		}
 
 		inline void ExecuteDeferredMainMeshTask(Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, fg::RenderTaskHandle handle)
@@ -61,13 +55,11 @@ namespace tasks
 			auto& data = fg.GetData<DeferredMainMeshData>(handle);
 			auto cmd_list = fg.GetCommandList(handle);
 			auto model_pool = static_cast<gfx::VkModelPool*>(rs.GetModelPool());
-			auto pipeline = PipelineRegistry::SFind(pipelines::basic_mesh);
 			auto material_pool = static_cast<gfx::VkMaterialPool*>(rs.GetMaterialPool());
-
 			auto per_obj_pool = static_cast<gfx::VkConstantBufferPool*>(sg.GetPOConstantBufferPool());
 			auto camera_pool = static_cast<gfx::VkConstantBufferPool*>(sg.GetCameraConstantBufferPool());
 
-			cmd_list->BindPipelineState(pipeline);
+			cmd_list->BindPipelineState(data.m_pipeline);
 
 			auto mesh_node_handles = sg.GetMeshNodeHandles();
 			auto camera_handle = sg.m_camera_cb_handles[0].m_value;
@@ -81,15 +73,8 @@ namespace tasks
 				for (std::size_t i = 0; i < model_handle.m_mesh_handles.size(); i++)
 				{
 					auto mesh_handle = model_handle.m_mesh_handles[i];
-
-					if (!data.m_idx[i].has_value())
-					{
-						auto vbi = data.m_heap->CreateSRVFromCB(model_pool->m_vertex_buffers[mesh_handle.m_id], data.m_root_sig, 4, 0, false);
-						auto ibi = data.m_heap->CreateSRVFromCB(model_pool->m_index_buffers[mesh_handle.m_id], data.m_root_sig, 5, 0, false);
-						data.m_idx[i] = { vbi, ibi };
-					}
-
 					auto meshlets_info = model_pool->m_meshlet_desc_infos[mesh_handle.m_id];
+					auto vb_ib_pair = model_pool->m_mesh_shading_buffer_descriptor_sets[mesh_handle.m_id];
 
 					std::vector<std::pair<gfx::DescriptorHeap*, std::uint32_t>> sets
 					{
@@ -97,8 +82,8 @@ namespace tasks
 						{ per_obj_pool->GetDescriptorHeap(), cb_handle.m_cb_set_id }, // TODO: Shitty naming of set_id. just use a vector in the handle instead probably.
 						{ material_pool->GetDescriptorHeap(), material_pool->GetDescriptorSetID(mat_vec[i]) },
 						{ material_pool->GetDescriptorHeap(), material_pool->GetCBDescriptorSetID(mat_vec[i]) },
-						{ data.m_heap, data.m_idx[i].value().first },
-						{ data.m_heap, data.m_idx[i].value().second },
+						{ model_pool->GetDescriptorHeap(), vb_ib_pair.first },
+						{ model_pool->GetDescriptorHeap(), vb_ib_pair.second },
 						{ model_pool->GetDescriptorHeap(), meshlets_info.first }
 					};
 

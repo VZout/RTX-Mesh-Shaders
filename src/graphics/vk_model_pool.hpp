@@ -37,6 +37,7 @@ namespace gfx
 		std::vector<StagingBuffer*> m_index_buffers;
 		std::vector<StagingBuffer*> m_meshlet_buffers;
 		std::vector<std::pair<std::uint32_t, std::uint32_t>> m_meshlet_desc_infos;
+		std::vector<std::pair<std::uint32_t, std::uint32_t>> m_mesh_shading_buffer_descriptor_sets;
 		gfx::DescriptorHeap* m_heap;
 	};
 
