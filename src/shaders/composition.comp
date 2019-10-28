@@ -6,7 +6,7 @@
 #define DIRECTIONAL_LIGHT 1
 #define SPOT_LIGHT 2
 
-layout (local_size_x = 32, local_size_y = 32) in;
+layout (local_size_x = 16, local_size_y = 16) in;
 
 layout(set = 1, binding = 1, rgba8) uniform readonly image2D ts_gbuffers[5];
 layout(set = 2, binding = 2, rgba8) uniform writeonly image2D t_output;

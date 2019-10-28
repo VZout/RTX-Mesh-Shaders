@@ -64,6 +64,23 @@ gfx::VkConstantBufferPool::~VkConstantBufferPool()
 	delete m_pool;
 }
 
+std::vector<std::uint32_t> gfx::VkConstantBufferPool::CreateConstantBufferSet(std::vector<ConstantBufferHandle> handles)
+{
+	std::vector<std::uint32_t> retval;
+	for (std::uint32_t frame_idx = 0; frame_idx < gfx::settings::num_back_buffers; frame_idx++)
+	{
+		std::vector<GPUBuffer*> buffers;
+		for (auto const& handle : handles)
+		{
+			buffers.push_back(m_buffers[frame_idx][handle.m_cb_id]);
+		}
+
+		retval.emplace_back(m_desc_heap->CreateSRVSetFromCB(buffers, m_cb_set_layout, m_binding, frame_idx));
+	}
+
+	return retval;
+}
+
 void gfx::VkConstantBufferPool::Update(ConstantBufferHandle handle, std::uint64_t size, void* data, std::uint32_t frame_idx, std::uint64_t offset)
 {
 	m_buffers[frame_idx][handle.m_cb_id]->Update(data, size, offset);

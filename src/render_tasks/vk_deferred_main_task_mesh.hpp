@@ -67,7 +67,7 @@ namespace tasks
 			{
 				auto node = sg.GetNode(handle);
 				auto model_handle = sg.m_model_handles[node.m_mesh_component].m_value;
-				auto cb_handle = sg.m_transform_cb_handles[node.m_mesh_component].m_value;
+				auto cb_handle = /*sg.m_transform_cb_handles[node.m_mesh_component].m_value*/ ConstantBufferHandle();
 				auto mat_vec = sg.m_model_material_handles[node.m_mesh_component].m_value;
 
 				for (std::size_t i = 0; i < model_handle.m_mesh_handles.size(); i++)

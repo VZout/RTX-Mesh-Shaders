@@ -28,4 +28,5 @@ namespace gfx::settings
 	static const VkColorSpaceKHR swapchain_color_space = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 	static const VkCullModeFlags cull_mode = VK_CULL_MODE_NONE;
 	static const std::uint32_t max_lights = 50;
+	static const std::uint32_t max_render_batch_size = 100;
 }

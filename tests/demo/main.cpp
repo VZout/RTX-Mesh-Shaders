@@ -68,14 +68,7 @@ protected:
 		data.m_view = glm::lookAt(cam_pos, cam_pos + forward, up);
 		data.m_proj = glm::perspective(glm::radians(45.0f), aspect_ratio, 0.01f, 1000.0f);
 
-		if (m_use_viewport)
-		{
-			ImGuizmo::SetRect(m_viewport_pos.x, m_viewport_pos.y, m_viewport_size.x, m_viewport_size.y);
-		}
-		else
-		{
-			ImGuizmo::SetRect(0, 0, GetWidth(), GetHeight());
-		}
+		ImGuizmo::SetRect(m_viewport_pos.x, m_viewport_pos.y, m_viewport_size.x, m_viewport_size.y);
 		ImGuizmo::Manipulate(glm::value_ptr(data.m_view), glm::value_ptr(data.m_proj), operation, ImGuizmo::MODE::WORLD, &model[0][0], NULL, NULL);
 
 		float new_translation[3], new_rotation[3], new_scale[3];
@@ -688,7 +681,7 @@ protected:
 		m_renderer->Resize(width, height);
 		m_frame_graph->Resize(width, height);
 
-		if (!m_use_viewport)
+		if (!editor.GetEditorVisibility())
 		{
 			sg::helper::SetAspectRatio(m_scene_graph, m_camera_node, (float)width / (float)height);
 		}
@@ -784,17 +777,29 @@ protected:
 
 	void KeyCallback(int key, int action) final
 	{
+		// Editor Visibility
+		if ((key == GLFW_KEY_F3 || key == GLFW_KEY_ESCAPE) && action == GLFW_PRESS)
+		{
+			editor.SetEditorVisibility(!editor.GetEditorVisibility());
+
+			if (!editor.GetEditorVisibility())
+			{
+				sg::helper::SetAspectRatio(m_scene_graph, m_camera_node, (float)GetWidth() / (float)GetHeight());
+				m_viewport_size = ImVec2(1, 1);
+			}
+		}
+
 		if ((!ImGui::GetIO().WantCaptureKeyboard || m_viewport_has_focus) && !m_rmb)
 		{
-			if (key == GLFW_KEY_W)
+			if (key == GLFW_KEY_W && action == GLFW_PRESS)
 			{
 				m_gizmo_operation = ImGuizmo::OPERATION::TRANSLATE;
 			}
-			else if (key == GLFW_KEY_E)
+			else if (key == GLFW_KEY_E && action == GLFW_PRESS)
 			{
 				m_gizmo_operation = ImGuizmo::OPERATION::ROTATE;
 			}
-			else if (key == GLFW_KEY_R)
+			else if (key == GLFW_KEY_R && action == GLFW_PRESS)
 			{
 				m_gizmo_operation = ImGuizmo::OPERATION::SCALE;
 			}
@@ -888,7 +893,6 @@ protected:
 	float m_max_frame_rate = 1;
 	std::optional<sg::NodeHandle> m_selected_node;
 	ImGuiTextFilter m_outliner_filter;
-	bool m_use_viewport = true;
 	bool m_viewport_has_focus = false;
 	ImVec2 m_viewport_pos = { 0, 0 };
 	ImVec2 m_viewport_size = { 1280, 720};

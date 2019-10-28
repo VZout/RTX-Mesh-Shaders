@@ -7,6 +7,7 @@
 #include "engine_registry.hpp"
 
 #include "vertex.hpp"
+#include "graphics/gfx_settings.hpp"
 
 /* ============================================================== */
 /* ===                    Shader Registry                     === */
