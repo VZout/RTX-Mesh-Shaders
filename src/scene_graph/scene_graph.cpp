@@ -205,7 +205,7 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 		std::size_t batch_idx = 0;
 		for (auto& batch : m_render_batches)
 		{
-			if (batch.m_model_handle == model_handle)
+			if (FitsInBatch(batch, node))
 			{
 				batch_available = true;
 				batch.m_num_meshes++;
@@ -281,7 +281,7 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 		bool updated_batch = false;
 		for (auto& batch : m_render_batches)
 		{
-			if (batch.m_model_handle == model_handle)
+			if (FitsInBatch(batch, node))
 			{
 				// Find the position of the mesh that requires a update inside of the constant buffer.
 				int update_offset = 0;

@@ -261,6 +261,15 @@ namespace sg
 		std::vector<std::vector<std::pair<std::uint32_t, std::uint32_t>>> m_batch_requires_update;
 		std::vector<RenderBatch> m_render_batches;
 
+
+		inline bool FitsInBatch(RenderBatch const & batch, Node const & node) const
+		{
+			auto model_handle = m_model_handles[node.m_mesh_component].m_value;
+			auto material_handles = m_model_material_handles[node.m_mesh_component].m_value;
+
+			return batch.m_model_handle == model_handle && batch.m_material_handles == material_handles;
+		}
+
 	private:
 		std::vector<Node> m_nodes;
 		std::vector<NodeHandle> m_node_handles;
