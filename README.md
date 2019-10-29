@@ -5,7 +5,11 @@
 [![License](https://img.shields.io/github/license/VZout/RTX-Mesh-Shaders)]()
 [![Stars](https://img.shields.io/github/stars/VZout/RTX-Mesh-Shaders)]()
 
-This is a demo repository for a few techniques made possible by NVIDIA's Turing Architecture (RTX). This repository is used for research and learning purposes. I'm writing a paper on the topic of mesh shaders where I compare the different techniques and determine which techniques would be the most beneficial to implement.
+---
+
+**This is a demo repository for a few techniques made possible by NVIDIA's Turing Architecture (RTX). This repository is used for research and learning purposes. I'm writing a paper on the topic of mesh shaders where I compare the different techniques and determine which techniques would be the most beneficial to implement.**
+
+---
 
 ## [Research Paper](example.com)
 
