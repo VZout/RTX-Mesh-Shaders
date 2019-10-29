@@ -1,4 +1,4 @@
-<h1 align="center">RTX (Turing) Mesh Shaders</h1>
+<img src="https://i.imgur.com/zFLWgmX.png">
 
 <p align="center">
   <img alt="Release" src="https://img.shields.io/github/release/VZout/RTX-Mesh-Shaders?style=flat-square">
