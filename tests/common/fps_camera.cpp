@@ -117,9 +117,13 @@ void FPSCamera::HandleMousePosition(float delta, float x, float y)
 	auto rotation = sg::helper::GetRotation(m_settings.m_scene_graph, m_settings.m_camera_handle);
 
 	if (glm::degrees(rotation.x) > 89.0f)
+	{
 		rotation.x = glm::radians(89.0f);
-	if (glm::degrees(rotation.x) < -89.0f)
+	}
+	else if (glm::degrees(rotation.x) < -89.0f)
+	{
 		rotation.x = -glm::radians(89.0f);
+	}
 
 	sg::helper::SetRotation(m_settings.m_scene_graph, m_settings.m_camera_handle, rotation);
 
