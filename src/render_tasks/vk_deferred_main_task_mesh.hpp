@@ -63,11 +63,11 @@ namespace tasks
 
 			auto mesh_node_handles = sg.GetMeshNodeHandles();
 			auto camera_handle = sg.m_camera_cb_handles[0].m_value;
-			for (auto const & handle : mesh_node_handles)
+			/*for (auto const & handle : mesh_node_handles)
 			{
 				auto node = sg.GetNode(handle);
 				auto model_handle = sg.m_model_handles[node.m_mesh_component].m_value;
-				auto cb_handle = /*sg.m_transform_cb_handles[node.m_mesh_component].m_value*/ ConstantBufferHandle();
+				auto cb_handle = sg.m_transform_cb_handles[node.m_mesh_component].m_value
 				auto mat_vec = sg.m_model_material_handles[node.m_mesh_component].m_value;
 
 				for (std::size_t i = 0; i < model_handle.m_mesh_handles.size(); i++)
@@ -91,6 +91,34 @@ namespace tasks
 					cmd_list->DrawMesh(meshlets_info.second, 0);
 				}
 
+			}*/
+
+			for (auto const& batch : sg.GetRenderBatches())
+			{
+				auto model_handle = batch.m_model_handle;
+				auto cb_handle = batch.m_big_cb;
+				auto const& mat_vec = batch.m_material_handles;
+
+				for (std::size_t i = 0; i < model_handle.m_mesh_handles.size(); i++)
+				{
+					auto mesh_handle = model_handle.m_mesh_handles[i];
+					auto meshlets_info = model_pool->m_meshlet_desc_infos[mesh_handle.m_id];
+					auto vb_ib_pair = model_pool->m_mesh_shading_buffer_descriptor_sets[mesh_handle.m_id];
+
+					std::vector<std::pair<gfx::DescriptorHeap*, std::uint32_t>> sets
+					{
+						{ camera_pool->GetDescriptorHeap(), camera_handle.m_cb_set_id }, // TODO: Shitty naming of set_id. just use a vector in the handle instead probably.
+						{ per_obj_pool->GetDescriptorHeap(), cb_handle.m_cb_set_id }, // TODO: Shitty naming of set_id. just use a vector in the handle instead probably.
+						{ material_pool->GetDescriptorHeap(), material_pool->GetDescriptorSetID(mat_vec[i]) },
+						{ material_pool->GetDescriptorHeap(), material_pool->GetCBDescriptorSetID(mat_vec[i]) },
+						{ model_pool->GetDescriptorHeap(), vb_ib_pair.first },
+						{ model_pool->GetDescriptorHeap(), vb_ib_pair.second },
+						{ model_pool->GetDescriptorHeap(), meshlets_info.first }
+					};
+
+					cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
+					cmd_list->DrawMesh(meshlets_info.second, 0);
+				}
 			}
 		}
 

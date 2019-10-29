@@ -98,6 +98,14 @@ void Editor::Render()
 			}
 		}
 
+		if (m_main_menu_bar_text.has_value())
+		{
+			ImGui::SameLine(ImGuiCol_Text, 15);
+			ImGui::PushStyleColor(0, ImVec4(0.860f, 0.930f, 0.890f, 0.5f));
+			ImGui::Text(m_main_menu_bar_text.value().c_str());
+			ImGui::PopStyleColor();
+		}
+
 		ImGui::EndMainMenuBar();
 	}
 
@@ -129,6 +137,11 @@ void Editor::Render()
 void Editor::SetTexture(ImTextureID texture)
 {
 	m_texture = texture;
+}
+
+void Editor::SetMainMenuBarText(std::string const& string)
+{
+	m_main_menu_bar_text = string;
 }
 
 void Editor::SetEditorVisibility(bool value)
