@@ -326,6 +326,12 @@ namespace sg
 			sg->m_requires_update[transform_handle] = true;
 		}
 
+		inline glm::vec3 GetRotation(SceneGraph* sg, NodeHandle handle)
+		{
+			auto transform_handle = sg->GetNode(handle).m_transform_component;
+			return sg->m_rotations[transform_handle].m_value;
+		}
+
 		inline void Rotate(SceneGraph* sg, NodeHandle handle, glm::vec3 euler)
 		{
 			auto transform_handle = sg->GetNode(handle).m_transform_component;
