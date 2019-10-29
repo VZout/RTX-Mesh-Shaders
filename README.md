@@ -1,10 +1,10 @@
 <img src="https://i.imgur.com/r6gKEvC.png">
 
 <p align="center">
-  <img alt="Release" src="https://img.shields.io/github/release/VZout/RTX-Mesh-Shaders?style=flat-square">
-    <img alt="Issues" src="https://img.shields.io/github/issues/VZout/RTX-Mesh-Shaders?style=flat-square">
-    <img alt="License" src="https://img.shields.io/github/license/VZout/RTX-Mesh-Shaders?style=flat-square">
-    <img alt="Stars" src="https://img.shields.io/github/stars/VZout/RTX-Mesh-Shaders?style=flat-square">
+  <img alt="Release" src="https://img.shields.io/github/release/VZout/RTX-Mesh-Shaders?style=for-the-badge">
+    <img alt="Issues" src="https://img.shields.io/github/issues/VZout/RTX-Mesh-Shaders?style=for-the-badge">
+    <img alt="License" src="https://img.shields.io/github/license/VZout/RTX-Mesh-Shaders?style=for-the-badge">
+    <img alt="Stars" src="https://img.shields.io/github/stars/VZout/RTX-Mesh-Shaders?style=for-the-badge">
 </p>
 
 <p align="center">
