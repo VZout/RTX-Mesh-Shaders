@@ -9,6 +9,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <string>
+#include <glm.hpp>
 
 class Application
 {
@@ -21,6 +22,7 @@ public:
 	void Close();
 	[[nodiscard]] std::uint32_t GetWidth() const;
 	[[nodiscard]] std::uint32_t GetHeight() const;
+	[[nodiscard]] glm::vec2 GetMousePos() const;
 	bool IsFullscreen() const;
 	void SetFullscreen(bool value);
 	void SetVisibility(bool value);
