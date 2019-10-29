@@ -46,7 +46,9 @@ cmake -G "[configuration]" ..
 
 ## Screenshots
 
-![](http://upload.vzout.com/wispvk/img0.png)
+<img src="http://upload.vzout.com/wispvk/img0.png" width="80%"><br>
+<img src="https://i.imgur.com/ezUFj1A.png" width="300"> 
+<img src="https://i.imgur.com/hyiK8kp.png" width="300"> 
 
 ## [License (GNU Affero General Public License 3)](https://opensource.org/licenses/AGPL-3.0)
 
