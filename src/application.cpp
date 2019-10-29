@@ -155,6 +155,13 @@ std::uint32_t Application::GetHeight() const
 	return static_cast<std::uint32_t>(height);
 }
 
+glm::vec2 Application::GetMousePos() const
+{
+	double x, y;
+	glfwGetCursorPos(m_window, &x, &y);
+	return glm::vec2(static_cast<float>(x), static_cast<float>(y));
+}
+
 bool Application::IsFullscreen() const
 {
 	return glfwGetWindowMonitor(m_window) != nullptr;
