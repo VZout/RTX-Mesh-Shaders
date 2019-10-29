@@ -38,7 +38,7 @@ namespace fg_manager
 		// PBR Generic
 		[](Renderer* rs, decltype(tasks::ImGuiTaskData::m_render_func) imgui_func)
 		{
-			auto fg = new fg::FrameGraph(7);
+			auto fg = new fg::FrameGraph(9);
 			tasks::AddGenerateCubemapTask(*fg);
 			tasks::AddGenerateIrradianceMapTask(*fg);
 			tasks::AddGenerateEnvironmentMapTask(*fg);
@@ -56,7 +56,7 @@ namespace fg_manager
 		// PBR Mesh Shading
 		[](Renderer* rs, decltype(tasks::ImGuiTaskData::m_render_func) imgui_func)
 		{
-			auto fg = new fg::FrameGraph(7);
+			auto fg = new fg::FrameGraph(9);
 			tasks::AddGenerateCubemapTask(*fg);
 			tasks::AddGenerateIrradianceMapTask(*fg);
 			tasks::AddGenerateEnvironmentMapTask(*fg);
