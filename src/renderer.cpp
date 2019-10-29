@@ -184,7 +184,6 @@ MaterialPool* Renderer::GetMaterialPool()
 	return m_material_pool;
 }
 
-
 void Renderer::PrepareShaderRegistry()
 {
 	auto& registry = ShaderRegistry::Get();

@@ -105,6 +105,34 @@ void SetupEditor()
 			if (m_selected_node.has_value())
 			{
 				auto node = m_scene_graph->GetNode(m_selected_node.value());
+				bool enable_gizmo = true;
+
+				if (node.m_light_component > -1)
+				{
+					if (m_gizmo_operation == ImGuizmo::OPERATION::SCALE)
+					{
+						enable_gizmo = false;
+					}
+
+					switch (m_scene_graph->m_light_types[node.m_light_component])
+					{
+					case cb::LightType::POINT:
+						if (m_gizmo_operation == ImGuizmo::OPERATION::ROTATE)
+						{
+							enable_gizmo = false;
+						}
+					break;
+					case cb::LightType::DIRECTIONAL:
+						if (m_gizmo_operation == ImGuizmo::OPERATION::TRANSLATE)
+						{
+							enable_gizmo = false;
+						}
+					break;
+					}
+				}
+
+				ImGuizmo::Enable(enable_gizmo);
+
 				if (node.m_camera_component == -1)
 				{
 					ImGui_ManipulateNode(node, m_gizmo_operation);
@@ -368,8 +396,11 @@ void SetupEditor()
 			}
 		}, false, reinterpret_cast<const char*>(ICON_FA_MEMORY));
 
+	m_viewport_has_focus = false;
 	editor.RegisterWindow("Viewport", "Debug", [&]()
 		{
+			m_viewport_has_focus = ImGui::IsWindowFocused();
+
 			if (m_fps_camera.IsControlled())
 			{
 				ImGui::SetWindowFocus();
