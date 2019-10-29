@@ -753,6 +753,15 @@ protected:
 
 		sg::helper::Rotate(m_scene_graph, m_camera_node, glm::vec3(y_movement * sensitivity, x_movement * sensitivity, 0));
 
+		auto rotation = sg::helper::GetRotation(m_scene_graph, m_camera_node);
+
+		if (glm::degrees(rotation.x) > 89.0f)
+			rotation.x = glm::radians(89.0f);
+		if (glm::degrees(rotation.x) < -89.0f)
+			rotation.x = -glm::radians(89.0f);
+
+		sg::helper::SetRotation(m_scene_graph, m_camera_node, rotation);
+
 		SetMousePos(GetWidth() / 2.f, GetHeight() / 2.f);
 	}
 
