@@ -52,7 +52,6 @@ Renderer::~Renderer()
 	{
 		delete fence;
 	}
-	delete m_desc_heap;
 	delete m_texture_pool;
 	delete m_model_pool;
 	delete m_material_pool;
@@ -101,11 +100,6 @@ void Renderer::Init(Application* app)
 	{
 		fence = new gfx::Fence(m_context);
 	}
-
-	gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
-	descriptor_heap_desc.m_versions = gfx::settings::num_back_buffers;
-	descriptor_heap_desc.m_num_descriptors = 100;
-	m_desc_heap = new gfx::DescriptorHeap(m_context, descriptor_heap_desc);
 
 	m_model_pool = new gfx::VkModelPool(m_context);
 	m_texture_pool = new gfx::VkTexturePool(m_context);
