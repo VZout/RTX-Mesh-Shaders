@@ -36,6 +36,7 @@ public:
 	void RegisterWindow(std::string const & name, std::string const & category, window_func_t window_func, bool default_visibility = false, std::optional<icon_t> icon = std::nullopt);
 	void Render();
 	void SetTexture(ImTextureID texture);
+	void SetMainMenuBarText(std::string const & string);
 	void SetEditorVisibility(bool value);
 	bool GetEditorVisibility() const;
 	ImTextureID GetTexture();
@@ -68,5 +69,6 @@ private:
 	bool m_show_main_menu;
 	bool m_editor_visibility;
 	ImTextureID m_texture;
+	std::optional<std::string> m_main_menu_bar_text;
 
 };
