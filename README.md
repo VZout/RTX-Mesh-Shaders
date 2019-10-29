@@ -15,7 +15,7 @@
 
 ---
 
-**This is a demo repository for a few techniques made possible by NVIDIA's Turing Architecture (RTX) and is used for research and learning purposes. This repo accompanies my reasearch paper on the topic of mesh shaders where I compare the different techniques and determine which techniques would be the most beneficial to implement.**
+**This repository demo's a mesh shading made possible by NVIDIA's Turing Architecture and is used for research purposes. This repo accompanies my research paper on the topic of mesh shaders where I compare traditional techniques with their mesh shading equivalent.**
 
 ---
 
