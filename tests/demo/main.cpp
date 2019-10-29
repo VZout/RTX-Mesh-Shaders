@@ -9,6 +9,8 @@
 #include "frame_graph/frame_graph.hpp"
 #include "application.hpp"
 #include "../common/editor.hpp"
+#include "../common/fps_camera.hpp"
+#include "../common/frame_graphs.hpp"
 #include "util/version.hpp"
 #include "util/user_literals.hpp"
 #include "render_tasks/vulkan_tasks.hpp"
@@ -17,7 +19,7 @@
 #include "imgui/imgui_gizmo.h"
 #include <gtc/type_ptr.hpp>
 
-//#define MESH_SHADING
+#define MESH_SHADING
 
 #ifdef _WIN32
 #include <shellapi.h>
@@ -35,7 +37,8 @@ class Demo : public Application
 public:
 	Demo()
 		: Application("Mesh Shaders Demo"),
-		m_renderer(nullptr)
+		m_renderer(nullptr),
+		m_fps_camera()
 	{
 	}
 
@@ -80,470 +83,12 @@ protected:
 		m_scene_graph->m_requires_update[node.m_transform_component] = true;
 	}
 
-	void SetupEditor()
-	{
-		// Categories
-		editor.RegisterCategory("File", reinterpret_cast<const char*>(ICON_FA_FILE));
-		editor.RegisterCategory("Scene Graph", reinterpret_cast<const char*>(ICON_FA_PROJECT_DIAGRAM));
-		editor.RegisterCategory("Stats", reinterpret_cast<const char*>(ICON_FA_CHART_BAR));
-		editor.RegisterCategory("Debug", reinterpret_cast<const char*>(ICON_FA_BUG));
-		editor.RegisterCategory("Help", reinterpret_cast<const char*>(ICON_FA_INFO_CIRCLE));
-
-		// Actions
-		editor.RegisterAction("Quit", "File", [&](){ Close(); }, reinterpret_cast<const char*>(ICON_FA_POWER_OFF));
-		editor.RegisterAction("Save ImGui Settings", "File", [&]() { ImGui::SaveIniSettingsToDisk(settings::imgui_ini_filename); }, reinterpret_cast<const char*>(ICON_FA_SAVE));
-		editor.RegisterAction("Contribute", "Help", [&](){ OpenURL("https://github.com/VZout/RTX-Mesh-Shaders"); }, reinterpret_cast<const char*>(ICON_FA_HANDS_HELPING));
-		editor.RegisterAction("Report Issue", "Help", [&](){ OpenURL("https://github.com/VZout/RTX-Mesh-Shaders/issues"); }, reinterpret_cast<const char*>(ICON_FA_BUG));
-
-		// Windows
-		editor.RegisterWindow("World Outliner", "Scene Graph", [&]()
-		{
-			auto gizmo_button = [&](auto icon, auto operation, auto tooltip)
-			{
-				bool selected = m_gizmo_operation == operation;
-
-				if (selected)
-				{
-					auto active_color = ImGui::GetStyle().Colors[ImGuiCol_ButtonActive];
-					ImGui::PushStyleColor(ImGuiCol_Button, active_color);
-				}
-
-				if (ImGui::Button(reinterpret_cast<const char*>(icon)))
-				{
-					m_gizmo_operation = operation;
-				}
-				if (ImGui::IsItemHovered())
-				{
-					ImGui::BeginTooltip();
-					ImGui::Text(tooltip);
-					ImGui::EndTooltip();
-				}
-
-				if (selected)
-				{
-					ImGui::PopStyleColor();
-				}
-			};
-
-			gizmo_button(ICON_FA_ARROWS_ALT, ImGuizmo::OPERATION::TRANSLATE, "Translate (W)");
-			ImGui::SameLine();
-			gizmo_button(ICON_FA_SYNC_ALT, ImGuizmo::OPERATION::ROTATE, "Rotate (E)");
-			ImGui::SameLine();
-			gizmo_button(ICON_FA_EXPAND_ARROWS_ALT, ImGuizmo::OPERATION::SCALE, "Scale (R)");
-
-			ImGui::SameLine();
-
-			m_outliner_filter.Draw("##");
-
-			ImVec2 size = ImGui::GetContentRegionAvail();
-			if (ImGui::ListBoxHeader("##", size))
-			{
-				const auto& node_handles = m_scene_graph->GetNodeHandles();
-				for (std::size_t i = 0; i < node_handles.size(); i++)
-				{
-					auto handle = node_handles[i];
-					auto node = m_scene_graph->GetNode(handle);
-
-					std::string name_prefix = "Unknown Node";
-					if (node.m_mesh_component > -1)
-					{
-						name_prefix = fmt::format("{} Mesh Node", reinterpret_cast<const char*>(ICON_FA_CUBE));
-					}
-					else if (node.m_camera_component > -1)
-					{
-						name_prefix = fmt::format("{} Camera Node", reinterpret_cast<const char*>(ICON_FA_VIDEO));
-					}
-					else if (node.m_light_component > -1)
-					{
-						name_prefix = fmt::format("{} ", reinterpret_cast<const char*>(ICON_FA_LIGHTBULB));
-						switch (m_scene_graph->m_light_types[node.m_light_component])
-						{
-						case cb::LightType::POINT: name_prefix += "Point Light Node"; break;
-						case cb::LightType::DIRECTIONAL: name_prefix += "Directional Light Node"; break;
-						case cb::LightType::SPOT: name_prefix += "Spotlight Node"; break;
-						default: name_prefix += "Unknown Light Node"; break;
-						}
-					}
-
-					auto node_name = name_prefix + " (" + std::to_string(i) + ")";
-
-					if (!m_outliner_filter.PassFilter(node_name.c_str())) continue;
-
-					bool pressed = ImGui::Selectable(node_name.c_str(), m_selected_node == handle);
-					if (pressed)
-					{
-						m_selected_node = handle;
-					}
-				}
-				ImGui::ListBoxFooter();
-			}
-
-			if (m_selected_node.has_value())
-			{
-				auto node = m_scene_graph->GetNode(m_selected_node.value());
-				if (node.m_camera_component == -1)
-				{
-					ImGui_ManipulateNode(node, m_gizmo_operation);
-				}
-			}
-		}, true, reinterpret_cast<const char*>(ICON_FA_GLOBE_EUROPE));
-
-		editor.RegisterWindow("Temp Material Settings", "Scene Graph", [&]()
-		{
-			ImGui::DragFloat("Ball Reflectivity", &m_ball_reflectivity, 0.01, -0, 1);
-			ImGui::DragFloat("Ball Anisotropy", &m_ball_anisotropy, 0.01, -1, 1);
-			ImGui::DragFloat3("Ball Anisotropy Dir", reinterpret_cast<float*>(&m_ball_anisotropy_dir), 0.01, -1, 1);
-			ImGui::DragFloat("Ball Clear Coat", &m_ball_clear_coat, 0.01, 0, 1);
-			ImGui::DragFloat("Ball Clear Coat Roughness", &m_ball_clear_coat_roughness, 0.01, 0, 1);
-
-			ImGui::Separator();
-
-			ImGui::ToggleButton("Override Color", &m_imgui_override_color);
-			ImGui::ColorPicker3("Color", m_temp_debug_mat_data.m_base_color, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoAlpha);
-
-			ImGui::Separator();
-
-			ImGui::Checkbox("Disable Normal Mapping", &m_imgui_disable_normal_mapping);
-			ImGui::DragFloat("Normal Strength", &m_temp_debug_mat_data.m_base_normal_strength, 0.01, 0, 10);
-
-			ImGui::Separator();
-
-			ImGui::Checkbox("##0", &m_imgui_override_roughness); ImGui::SameLine();
-			ImGui::DragFloat("Roughness", &m_temp_debug_mat_data.m_base_roughness, 0.01, 0, 1);
-			ImGui::Checkbox("##1", &m_imgui_override_metallic); ImGui::SameLine();
-			ImGui::DragFloat("Metallic", &m_temp_debug_mat_data.m_base_metallic, 0.01, -0, 1);
-			ImGui::Checkbox("##2", &m_imgui_override_reflectivity); ImGui::SameLine();
-			ImGui::DragFloat("Reflectivity", &m_temp_debug_mat_data.m_base_reflectivity, 0.01, -0, 1);
-			ImGui::DragFloat("Anisotropy ", &m_temp_debug_mat_data.m_base_anisotropy, 0.01, -1, 1);
-			ImGui::DragFloat("Clear Coat", &m_temp_debug_mat_data.m_base_clear_coat, 0.01, 0, 1);
-			ImGui::DragFloat("Clear Coat Roughness", &m_temp_debug_mat_data.m_base_clear_coat_roughness, 0.01, 0, 1);
-
-			m_temp_debug_mat_data.m_base_normal_strength = m_imgui_disable_normal_mapping ? -1 : m_temp_debug_mat_data.m_base_normal_strength;
-			m_temp_debug_mat_data.m_base_color[0] = m_imgui_override_color ? m_temp_debug_mat_data.m_base_color[0] : -1;
-			m_temp_debug_mat_data.m_base_roughness = m_imgui_override_roughness ? m_temp_debug_mat_data.m_base_roughness : -1;
-			m_temp_debug_mat_data.m_base_metallic = m_imgui_override_metallic ? m_temp_debug_mat_data.m_base_metallic : -1;
-			m_temp_debug_mat_data.m_base_reflectivity = m_imgui_override_reflectivity ? m_temp_debug_mat_data.m_base_reflectivity : -1;
-
-			int i = 0;
-			for (auto mesh_handle : m_sphere_material_handles)
-			{
-				m_sphere_materials[i].m_base_color[0] = m_imgui_override_color ? m_temp_debug_mat_data.m_base_color[0] : -1;
-				m_sphere_materials[i].m_base_color[1] = m_imgui_override_color ? m_temp_debug_mat_data.m_base_color[1] : -1;
-				m_sphere_materials[i].m_base_color[2] = m_imgui_override_color ? m_temp_debug_mat_data.m_base_color[2] : -1;
-
-				m_sphere_materials[i].m_base_reflectivity = m_ball_reflectivity;
-				m_sphere_materials[i].m_base_anisotropy = m_ball_anisotropy;
-				m_sphere_materials[i].m_base_clear_coat = m_ball_clear_coat;
-				m_sphere_materials[i].m_base_clear_coat_roughness = m_ball_clear_coat_roughness;
-				m_material_pool->Update(mesh_handle, m_sphere_materials[i]);
-				m_sphere_materials[i].m_base_anisotropy_dir = m_ball_anisotropy_dir;
-				i++;
-			}
-
-			for (auto mesh_handle : m_robot_model_handle.m_mesh_handles)
-			{
-				m_material_pool->Update(mesh_handle.m_material_handle.value(), m_temp_debug_mat_data);
-			}
-
-		}, false, reinterpret_cast<const char*>(ICON_FA_PALETTE));
-
-		editor.RegisterWindow("Inspector", "Scene Graph", [&]()
-		{
-			if (!m_selected_node.has_value()) return;
-
-			auto node = m_scene_graph->GetNode(m_selected_node.value());
-
-			if (node.m_transform_component > -1)
-			{
-				if (node.m_light_component == -1 || m_scene_graph->m_light_types[node.m_light_component] != cb::LightType::DIRECTIONAL)
-				{
-					ImGui::DragFloat3("Position", &m_scene_graph->m_positions[node.m_transform_component].m_value[0], 0.1f);
-				}
-
-				if (node.m_light_component == -1 || m_scene_graph->m_light_types[node.m_light_component] != cb::LightType::POINT)
-				{
-					auto euler = glm::degrees(m_scene_graph->m_rotations[node.m_transform_component].m_value);
-					ImGui::DragFloat3("Rotation", &euler[0], 0.1f);
-					m_scene_graph->m_rotations[node.m_transform_component].m_value = glm::radians(euler);
-				}
-
-				if (node.m_camera_component == -1 && node.m_light_component == -1)
-				{
-					constexpr float min = 0.0000000000001f;
-					constexpr float max = std::numeric_limits<float>::max();
-
-					auto& scale = m_scene_graph->m_scales[node.m_transform_component].m_value;
-					ImGui::DragFloat3("Scale", &scale[0], 0.01f, min, max);
-					scale = glm::max(scale, min);
-				}
-			}
-
-			if (node.m_light_component > -1)
-			{
-				const char* types[] = {
-					"Point Light",
-					"Directional Light",
-					"Spotlight"
-				};
-
-				ImGui::Separator();
-				int selected_type = (int)m_scene_graph->m_light_types[node.m_light_component].m_value;
-				ImGui::Combo("Type", &selected_type, types, 3);
-				m_scene_graph->m_light_types[node.m_light_component].m_value = (cb::LightType)selected_type;
-
-				ImGui::DragFloat3("Color", &m_scene_graph->m_colors[node.m_light_component].m_value[0], 0.1f);
-
-				if (m_scene_graph->m_light_types[node.m_light_component] == cb::LightType::POINT)
-				{
-					ImGui::DragFloat("Radius", &m_scene_graph->m_radius[node.m_light_component].m_value, 0.05f);
-				}
-
-				if (m_scene_graph->m_light_types[node.m_light_component] == cb::LightType::SPOT)
-				{
-					auto inner = glm::degrees(m_scene_graph->m_light_angles[node.m_light_component].m_value.first);
-					auto outer = glm::degrees(m_scene_graph->m_light_angles[node.m_light_component].m_value.second);
-
-					ImGui::DragFloat("Inner Angle", &inner);
-					ImGui::DragFloat("Outer Angle", &outer);
-
-					m_scene_graph->m_light_angles[node.m_light_component].m_value.first = glm::radians(inner);
-					m_scene_graph->m_light_angles[node.m_light_component].m_value.second = glm::radians(outer);
-				}
-			}
-
-			m_scene_graph->m_requires_update[node.m_transform_component] = true;
-		}, true, reinterpret_cast<const char*>(ICON_FA_EYE));
-
-		editor.RegisterWindow("Performance", "Stats", [&]()
-		{
-			ImGui::Columns(2);
-			ImGui::SetColumnWidth(0, 100);
-			ImGui::Text("Delta: %.6f", m_delta);
-			ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
-			ImGui::NextColumn();
-			ImGui::InputInt("Max Samples", &m_max_frame_rates);
-			ImGui::SameLine();
-			if (ImGui::Button("Reset Scale"))
-			{
-			  m_max_frame_rate = 1;
-			  m_min_frame_rate = 0;
-			}
-			ImGui::Columns(1);
-
-			ImGui::PlotConfig conf;
-			conf.values.ys = m_frame_rates.data();
-			conf.values.count = m_frame_rates.size();
-			conf.scale.min = m_min_frame_rate;
-			conf.values.color = ImColor(0, 255, 0);
-			conf.scale.max = m_max_frame_rate;
-			conf.tooltip.show = true;
-			conf.tooltip.format = "fps=%.2f";
-			conf.grid_x.show = false;
-			conf.grid_y.show = false;
-			conf.frame_size = ImGui::GetContentRegionAvail();
-			conf.line_thickness = 3.f;
-
-			ImGui::Plot("plot", conf);
-		}, false, reinterpret_cast<const char*>(ICON_FA_CHART_AREA));
-
-		editor.RegisterWindow("GPU Info", "Stats", [&]()
-		{
-			auto context = m_renderer->GetContext();
-			auto device_properties = context->GetPhysicalDeviceProperties();
-			auto device_mem_properties = context->GetPhysicalDeviceMemoryProperties();
-
-			VkDeviceSize vram = 0;
-			for (auto i = 0; i < device_mem_properties->memoryHeapCount; i++)
-			{
-				if (device_mem_properties->memoryHeaps[i].flags == VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
-				{
-					vram = device_mem_properties->memoryHeaps[i].size;
-				}
-			}
-
-			std::string type_str = "Unknown";
-			auto type = device_properties.deviceType;
-			switch (type)
-			{
-			default: break;
-			case VK_PHYSICAL_DEVICE_TYPE_CPU: type_str = "CPU"; break;
-			case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU: type_str = "Discrete GPU"; break;
-			case VK_PHYSICAL_DEVICE_TYPE_OTHER: type_str = "Other"; break;
-			case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: type_str = "Integrated GPU"; break;
-			case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU: type_str = "Virtual GPU"; break;
-			}
-			
-			ImGui::InfoText("Name", std::string(device_properties.deviceName));
-			ImGui::InfoText("Device Type", type_str);
-			ImGui::InfoText("VRAM", std::to_string(vram / 1024.f / 1024.f / 1024.f) + " (GB)");
-			ImGui::InfoText("API Version", device_properties.apiVersion);
-			ImGui::InfoText("Driver Version", device_properties.driverVersion);
-			ImGui::InfoText("Device ID", device_properties.deviceID);
-			ImGui::InfoText("Vendor ID", device_properties.vendorID);
-		}, true, reinterpret_cast<const char*>(ICON_FA_MICROCHIP));
-
-		editor.RegisterWindow("Memory Allocator Stats", "Stats", [&]()
-		{
-			auto context = m_renderer->GetContext();
-			auto stats = context->CalculateVMAStats();
-
-			auto render_vma_stat_info = [](VmaStatInfo& stat_info)
-			{
-				ImGui::InfoText("Used Bytes", stat_info.usedBytes);
-				ImGui::InfoText("Unused Bytes", stat_info.unusedBytes);
-				ImGui::InfoText("Allocation Count", stat_info.allocationCount);
-				ImGui::InfoText("Allocation Size Avg", stat_info.allocationSizeAvg);
-				ImGui::InfoText("Allocation Size Max", stat_info.allocationSizeMax);
-				ImGui::InfoText("Allocation Size Min", stat_info.allocationSizeMin);
-				ImGui::InfoText("Block Count", stat_info.blockCount);
-				ImGui::InfoText("Unused Range Count", stat_info.unusedRangeCount);
-				ImGui::InfoText("Unused Range Size Avg", stat_info.unusedRangeSizeAvg);
-				ImGui::InfoText("Unused Range Size Max", stat_info.unusedRangeSizeMax);
-				ImGui::InfoText("Unused Range Size Min", stat_info.unusedRangeSizeMin);
-			};
-
-			if (ImGui::CollapsingHeader("Total"))
-			{
-				render_vma_stat_info(stats.total);
-			}
-
-			if (ImGui::CollapsingHeader("Memory Heaps"))
-			{
-				for (auto i = 0; i < VK_MAX_MEMORY_HEAPS; i++)
-				{
-					auto device_mem_properties = context->GetPhysicalDeviceMemoryProperties();
-
-					auto stat_info = stats.memoryHeap[i];
-					if (stat_info.allocationCount < 1) continue; // dont show mem info without allocations 
-
-					std::string name = "Heap " + std::to_string(i);
-
-					if (ImGui::TreeNode(name.c_str()))
-					{
-						render_vma_stat_info(stat_info);
-						ImGui::TreePop();
-					}
-				}
-			}
-
-			if (ImGui::CollapsingHeader("Memory Types"))
-			{
-				for (auto i = 0; i < VK_MAX_MEMORY_TYPES; i++)
-				{
-					auto stat_info = stats.memoryType[i];
-					if (stat_info.allocationCount < 1) continue; // dont show mem info without allocations 
-
-					std::string name = "Type " + std::to_string(i);
-
-					if (ImGui::TreeNode(name.c_str()))
-					{
-						render_vma_stat_info(stat_info);
-						ImGui::TreePop();
-					}
-				}
-			}
-		}, false, reinterpret_cast<const char*>(ICON_FA_MEMORY));
-
-		m_viewport_has_focus = false;
-		editor.RegisterWindow("Viewport", "Debug", [&]()
-		{
-			m_viewport_has_focus = ImGui::IsWindowFocused();
-
-			if (m_rmb)
-			{
-				ImGui::SetWindowFocus();
-			}
-
-			ImVec2 size = ImGui::GetContentRegionAvail();
-			m_viewport_pos = ImGui::GetCursorScreenPos();
-
-			// If the size changed...
-			if (size.x != m_viewport_size.x || size.y != m_viewport_size.y)
-			{
-				m_viewport_size = size;
-				sg::helper::SetAspectRatio(m_scene_graph, m_camera_node, (float)size.x / (float)size.y);
-			}
-
-			ImGui::Image(editor.GetTexture(), size);
-		}, true, reinterpret_cast<const char*>(ICON_FA_GAMEPAD));
-
-		editor.RegisterWindow("Input Settings", "Debug", [&]()
-		{
-			ImGui::DragFloat("Movement Speed", &m_move_speed, 1, 0, 100);
-			ImGui::DragFloat("Mouse Sensitivity", &m_mouse_sensitivity, 1, 0, 100);
-			ImGui::DragFloat("Controller Sensitivity", &m_controller_sensitivity, 1, 0, 100);
-			ImGui::ToggleButton("Inverted Controller Y", &m_flip_controller_y);
-
-			if (ImGui::Button("Keyboard Bindings"))
-			{
-				ImGui::OpenPopup("Keyboard Bindings");
-			}
-
-			if (ImGui::BeginPopupModal("Keyboard Bindings", NULL, ImGuiWindowFlags_AlwaysAutoResize
-				| ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove))
-			{
-				ImGui::InfoText("Move Forward", "RMB + W");
-				ImGui::InfoText("Move Backward", "RMB + S");
-				ImGui::InfoText("Move Left", "RMB + A");
-				ImGui::InfoText("Move Right", "RMB + D");
-				ImGui::InfoText("Look Left/Right", "RMB + MouseX");
-				ImGui::InfoText("Look Up/Down", "RMB + MouseY");
-				ImGui::NewLine();
-				ImGui::InfoText("Open Key bindings", "F1");
-				ImGui::InfoText("Toggle Editor", "F3 / ESC");
-				ImGui::InfoText("Toggle Fullscreen", "F11 / Alt + Enter");
-				ImGui::InfoText("Close Application", "Alt + F4");
-				ImGui::NewLine();
-				ImGui::InfoText("Dock ImGui Window", "(hold) Shift");
-				ImGui::InfoText("Cycle Through ImGui Windows", "Ctrl + Tab");
-				ImGui::NewLine();
-				ImGui::InfoText("Switch To Translate Gizmo", "W");
-				ImGui::InfoText("Switch To Rotate Gizmo", "E");
-				ImGui::InfoText("Switch To Scale Gizmo", "R");
-				ImGui::NewLine();
-
-				if (ImGui::Button("OK", ImVec2(ImGui::GetContentRegionAvail().x, 0))) { ImGui::CloseCurrentPopup(); }
-				ImGui::SetItemDefaultFocus();
-
-				ImGui::EndPopup();
-			}
-		}, true, reinterpret_cast<const char*>(ICON_FA_KEYBOARD));
-
-		editor.RegisterWindow("About", "Help", [&]()
-		{
-			ImGui::Text("Turing Mesh Shading");
-			constexpr auto version = util::GetVersion();
-			ImGui::InfoText("Version", util::VersionToString(version), false);
-			ImGui::Separator();
-			ImGui::Text("Copyright 2019 Viktor Zoutman");
-			if (ImGui::Button("License")) OpenURL("https://github.com/VZout/RTX-Mesh-Shaders/blob/master/LICENSE");
-			ImGui::SameLine();
-			if (ImGui::Button("Portfolio")) OpenURL("http://www.vzout.com/");
-		}, false, reinterpret_cast<const char*>(ICON_FA_ADDRESS_CARD));
-	}
+#include "../common/editor_interface.inl"
 
 	void Init() final
 	{
 		SetupEditor();
-
-		m_frame_graph = new fg::FrameGraph();
-		tasks::AddGenerateCubemapTask(*m_frame_graph);
-		tasks::AddGenerateIrradianceMapTask(*m_frame_graph);
-		tasks::AddGenerateEnvironmentMapTask(*m_frame_graph);
-		tasks::AddGenerateBRDFLutTask(*m_frame_graph);
-#ifdef MESH_SHADING
-		tasks::AddDeferredMainMeshTask(*m_frame_graph);
-#else
-		tasks::AddDeferredMainTask(*m_frame_graph);
-#endif
-		tasks::AddDeferredCompositionTask(*m_frame_graph);
-		tasks::AddPostProcessingTask<tasks::DeferredCompositionData>(*m_frame_graph);
-		tasks::AddCopyToBackBufferTask<tasks::PostProcessingData>(*m_frame_graph);
-		tasks::AddImGuiTask<tasks::PostProcessingData>(*m_frame_graph, [this](ImTextureID texture)
-		{ 
-			editor.SetTexture(texture);
-			editor.Render();
-		});
+		editor.SetMainMenuBarText("FrameGraph: " + fg_manager::GetFrameGraphName(m_fg_type));
 
 		m_renderer = new Renderer();
 		m_renderer->Init(this);
@@ -585,7 +130,11 @@ protected:
 			}
 		}
 
-		m_frame_graph->Setup(m_renderer);
+		m_frame_graph = fg_manager::CreateFrameGraph(m_fg_type, m_renderer, [this](ImTextureID texture)
+		{
+			editor.SetTexture(texture);
+			editor.Render();
+		});
 
 		m_renderer->Upload();
 
@@ -627,6 +176,10 @@ protected:
 		sg::helper::SetRadius(m_scene_graph, m_light_node, 4);
 
 		m_last = std::chrono::high_resolution_clock::now();
+
+		m_fps_camera.SetApplication(this);
+		m_fps_camera.SetSceneGraph(m_scene_graph);
+		m_fps_camera.SetCameraHandle(m_camera_node);
 	}
 
 	void Loop() final
@@ -639,7 +192,7 @@ protected:
 		// animate light
 		float light_x = sin(m_time * 2) * 2;
 		float light_y = cos(m_time * 2) * 2;
-		//sg::helper::SetPosition(m_scene_graph, m_light_node, glm::vec3(light_x, light_y, 2));
+		sg::helper::SetPosition(m_scene_graph, m_light_node, glm::vec3(light_x, light_y, 2));
 
 		m_scene_graph->Update(m_renderer->GetFrameIdx());
 		m_renderer->Render(*m_scene_graph, *m_frame_graph);
@@ -667,11 +220,8 @@ protected:
 
 		HandleControllerInput();
 
-		float speed = m_move_speed * m_delta;
-		auto forward_right = sg::helper::GetForwardRight(m_scene_graph, m_camera_node);
-		sg::helper::Translate(m_scene_graph, m_camera_node, (m_z_axis.z * speed) * forward_right.first);
-		sg::helper::Translate(m_scene_graph, m_camera_node, (m_z_axis.y * speed) * glm::vec3(0, 1, 0));
-		sg::helper::Translate(m_scene_graph, m_camera_node, (m_z_axis.x * speed) * forward_right.second);
+		m_fps_camera.HandleControllerInput(m_delta);
+		m_fps_camera.Update(m_delta);
 
 		m_time += m_delta;
 	}
@@ -689,99 +239,17 @@ protected:
 
 	void HandleControllerInput()
 	{
-		GLFWgamepadstate state;
-		if (GetGamepad(GLFW_JOYSTICK_1, &state))
-		{
-			float dead_zone = 0.1;
-			if (!m_rmb)
-			{
-				m_z_axis = { 0, 0, 0 };
-			}
 
-			// rotation
-			{
-				float x_axis = state.axes[GLFW_GAMEPAD_AXIS_RIGHT_X];
-				float y_axis = state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y] * -1;
-				float sensitivity = m_controller_sensitivity * m_delta;
-				if (m_flip_controller_y)
-				{
-					y_axis = y_axis * -1;
-				}
-
-				if (x_axis > dead_zone || y_axis > dead_zone || x_axis < -dead_zone || y_axis < -dead_zone)
-				{
-					sg::helper::Rotate(m_scene_graph, m_camera_node, glm::vec3(y_axis * sensitivity, x_axis * sensitivity, 0));
-				}
-			}
-			// translation
-			{
-				float x_axis = state.axes[GLFW_GAMEPAD_AXIS_LEFT_X];
-				float z_axis = state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y] * -1;
-				float y_plus_axis = (state.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] + 1) / 2;
-				float y_minus_axis = (state.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] + 1) / 2;
-
-				if (x_axis > dead_zone || z_axis > dead_zone || x_axis < -dead_zone || z_axis < -dead_zone)
-				{
-					m_z_axis.x = x_axis;
-					m_z_axis.z = z_axis;
-				}
-
-				if (y_plus_axis > dead_zone || y_plus_axis < -dead_zone)
-				{
-					m_z_axis.y += y_plus_axis;
-				}
-				if (y_minus_axis > dead_zone || y_minus_axis < -dead_zone)
-				{
-					m_z_axis.y -= y_minus_axis;
-				}
-
-				m_z_axis = glm::clamp(m_z_axis, glm::vec3(-1), glm::vec3(1));
-			}
-
-		}
 	}
 
 	void MousePosCallback(float x, float y) final
 	{
-		if (!m_rmb) return;
-
-		glm::vec2 center = glm::vec2(GetWidth() / 2.f, GetHeight() / 2.f);
-
-		float x_movement = x - center.x;
-		float y_movement = center.y - y;
-		float sensitivity = m_mouse_sensitivity * m_delta;
-
-		sg::helper::Rotate(m_scene_graph, m_camera_node, glm::vec3(y_movement * sensitivity, x_movement * sensitivity, 0));
-
-		auto rotation = sg::helper::GetRotation(m_scene_graph, m_camera_node);
-
-		if (glm::degrees(rotation.x) > 89.0f)
-			rotation.x = glm::radians(89.0f);
-		if (glm::degrees(rotation.x) < -89.0f)
-			rotation.x = -glm::radians(89.0f);
-
-		sg::helper::SetRotation(m_scene_graph, m_camera_node, rotation);
-
-		SetMousePos(GetWidth() / 2.f, GetHeight() / 2.f);
+		m_fps_camera.HandleMousePosition(m_delta, x, y);
 	}
 
 	void MouseButtonCallback(int key, int action) final
 	{
-		if (key == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
-		{
-			m_rmb = true;
-			glm::vec2 center = glm::vec2(GetWidth() / 2.f, GetHeight() / 2.f);
-
-			SetMousePos(center.x, center.y);
-			SetMouseVisibility(false);
-		}
-		else if (key == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE)
-		{
-			m_rmb = false;
-			SetMouseVisibility(true);
-
-			m_z_axis = glm::vec3(0);
-		}
+		m_fps_camera.HandleMouseButtons(key, action);
 	}
 
 	void KeyCallback(int key, int action) final
@@ -801,7 +269,7 @@ protected:
 			}
 		}
 
-		if ((!ImGui::GetIO().WantCaptureKeyboard || m_viewport_has_focus) && !m_rmb)
+		if ((!ImGui::GetIO().WantCaptureKeyboard || m_viewport_has_focus) && !m_fps_camera.IsControlled())
 		{
 			if (key == GLFW_KEY_W && action == GLFW_PRESS)
 			{
@@ -817,44 +285,7 @@ protected:
 			}
 		}
 
-		if (!m_rmb) return;
-
-		float axis_mod = 0;
-		if (action == GLFW_PRESS)
-		{
-			axis_mod = 1;
-		}
-		else if (action == GLFW_RELEASE)
-		{
-			axis_mod = -1;
-		}
-
-		if (key == GLFW_KEY_W)
-		{
-			m_z_axis.z += axis_mod;	
-		}
-		else if (key == GLFW_KEY_S)
-		{
-			m_z_axis.z -= axis_mod;
-		}
-		else if (key == GLFW_KEY_A)
-		{
-			m_z_axis.x -= axis_mod;
-		}
-		else if (key == GLFW_KEY_D)
-		{
-			m_z_axis.x += axis_mod;
-		}
-		else if (key == GLFW_KEY_SPACE)
-		{
-			m_z_axis.y += axis_mod;
-		}
-		else if (key == GLFW_KEY_LEFT_CONTROL)
-		{
-			m_z_axis.y -= axis_mod;
-		}
-
-		m_z_axis = glm::clamp(m_z_axis, glm::vec3(-1), glm::vec3(1));
+		m_fps_camera.HandleKeyboardInput(key, action);
 	}
 
 	Editor editor;
@@ -888,12 +319,7 @@ protected:
 	float m_time = 0;
 
 	// Camera Movement
-	float m_move_speed = 5;
-	float m_mouse_sensitivity = 0.4;
-	float m_controller_sensitivity = 2.5;
-	glm::vec3 m_z_axis = glm::vec3(0);
-	bool m_rmb = false;
-	bool m_flip_controller_y = false;
+	FPSCamera m_fps_camera;
 
 	ImGuizmo::OPERATION m_gizmo_operation = ImGuizmo::OPERATION::TRANSLATE;
 
@@ -908,6 +334,12 @@ protected:
 	bool m_viewport_has_focus = false;
 	ImVec2 m_viewport_pos = { 0, 0 };
 	ImVec2 m_viewport_size = { 1280, 720};
+
+#ifdef MESH_SHADING
+	fg_manager::FGType m_fg_type = fg_manager::FGType::PBR_MESH_SHADING;
+#else 
+	fg_manager::FGType m_fg_type = fg_manager::FGType::PBR_GENERIC;
+#endif // MESH SHADING
 };
 
 

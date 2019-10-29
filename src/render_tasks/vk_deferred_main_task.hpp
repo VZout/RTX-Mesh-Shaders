@@ -62,32 +62,6 @@ namespace tasks
 
 			auto mesh_node_handles = sg.GetMeshNodeHandles();
 			auto camera_handle = sg.m_camera_cb_handles[0].m_value;
-			/*for (auto const & handle : mesh_node_handles)
-			{
-				auto node = sg.GetNode(handle);
-				auto model_handle = sg.m_model_handles[node.m_mesh_component].m_value;
-				auto cb_handle = sg.m_transform_cb_handles[node.m_mesh_component].m_value;
-				auto mat_vec = sg.m_model_material_handles[node.m_mesh_component].m_value;
-
-				for (std::size_t i = 0; i < model_handle.m_mesh_handles.size(); i++)
-				{
-					auto mesh_handle = model_handle.m_mesh_handles[i];
-
-					std::vector<std::pair<gfx::DescriptorHeap*, std::uint32_t>> sets
-					{
-						{ camera_pool->GetDescriptorHeap(), camera_handle.m_cb_set_id }, // TODO: Shitty naming of set_id. just use a vector in the handle instead probably.
-						{ per_obj_pool->GetDescriptorHeap(), cb_handle.m_cb_set_id }, // TODO: Shitty naming of set_id. just use a vector in the handle instead probably.
-						{ material_pool->GetDescriptorHeap(), material_pool->GetDescriptorSetID(mat_vec[i]) },
-						{ material_pool->GetDescriptorHeap(), material_pool->GetCBDescriptorSetID(mat_vec[i]) }
-					};
-
-					cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
-					cmd_list->BindVertexBuffer(model_pool->m_vertex_buffers[mesh_handle.m_id]);
-					cmd_list->BindIndexBuffer(model_pool->m_index_buffers[mesh_handle.m_id]);
-					cmd_list->DrawIndexed(mesh_handle.m_num_indices, 1);
-				}
-			}*/
-
 			for (auto const & batch : sg.GetRenderBatches())
 			{
 				auto model_handle = batch.m_model_handle;
