@@ -15,7 +15,7 @@
 
 ---
 
-**This repository demo's a mesh shading made possible by NVIDIA's Turing Architecture and is used for research purposes. This repo accompanies my research paper on the topic of mesh shaders where I compare traditional techniques with their mesh shading equivalent.**
+**This repository demo's mesh shading introduced by NVIDIA's Turing Architecture and is used for research purposes. This repo accompanies my research paper on the topic of mesh shaders where I compare traditional techniques with their mesh shading equivalent.**
 
 ---
 
