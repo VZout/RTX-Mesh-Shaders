@@ -1,17 +1,23 @@
-# RTX (Turing) Mesh Shaders
+<h1 align="center">RTX (Turing) Mesh Shaders</h1>
 
-[![Release](https://img.shields.io/github/release/VZout/RTX-Mesh-Shaders)]()
-[![Issues](https://img.shields.io/github/issues/VZout/RTX-Mesh-Shaders)]()
-[![License](https://img.shields.io/github/license/VZout/RTX-Mesh-Shaders)]()
-[![Stars](https://img.shields.io/github/stars/VZout/RTX-Mesh-Shaders)]()
+<p align="center">
+  <img alt="Release" src="https://img.shields.io/github/release/VZout/RTX-Mesh-Shaders?style=for-the-badge">
+    <img alt="Issues" src="https://img.shields.io/github/issues/VZout/RTX-Mesh-Shaders?style=for-the-badge">
+    <img alt="License" src="https://img.shields.io/github/license/VZout/RTX-Mesh-Shaders?style=for-the-badge">
+    <img alt="Stars" src="https://img.shields.io/github/stars/VZout/RTX-Mesh-Shaders?style=for-the-badge">
+</p>
+
+<p align="center">
+  <strong>
+    Visit <a aria-label="vzout.com/meshshading" href="http://vzout.com/meshshading">vzout.com/meshshading</a> to read the research paper.
+  </strong>
+</p>
 
 ---
 
 **This is a demo repository for a few techniques made possible by NVIDIA's Turing Architecture (RTX). This repository is used for research and learning purposes. I'm writing a paper on the topic of mesh shaders where I compare the different techniques and determine which techniques would be the most beneficial to implement.**
 
 ---
-
-## [Research Paper](example.com)
 
 ## Features
 
