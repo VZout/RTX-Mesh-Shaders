@@ -368,11 +368,8 @@ void SetupEditor()
 			}
 		}, false, reinterpret_cast<const char*>(ICON_FA_MEMORY));
 
-	m_viewport_has_focus = false;
 	editor.RegisterWindow("Viewport", "Debug", [&]()
 		{
-			m_viewport_has_focus = ImGui::IsWindowFocused();
-
 			if (m_fps_camera.IsControlled())
 			{
 				ImGui::SetWindowFocus();
