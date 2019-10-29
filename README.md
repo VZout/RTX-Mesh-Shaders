@@ -9,6 +9,19 @@ This is a demo repository for a few techniques made possible by NVIDIA's Turing 
 
 ## [Research Paper](example.com)
 
+## Features
+
+* Mesh Shading Pipeline
+* Cook-Torrance Microfacet Specular BRDF
+* Burley Diffuse BRDF
+* Clear Coat Materials
+* Anisotropic Materials
+* Approximated Subsurface Scattering Materials
+* Deferred Rendering
+* Normal and Ambient Occlusion Mapping
+* High Dynamic Range Tonemapping
+* Image-Based Lighting
+
 ## Building
 
 To build this project you require [**CMake 3.15**](https://cmake.org/) or higher and a **C++20 capable compiler**. To run the application you need a GPU and driver that **supports Vulkan 1.1**. To run the application and make use of mesh shaders you need a **[RTX capable gpu](https://en.wikipedia.org/wiki/Nvidia_RTX)**.
