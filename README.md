@@ -1,4 +1,4 @@
-<img src="https://i.imgur.com/zFLWgmX.png">
+<img src="https://i.imgur.com/r6gKEvC.png">
 
 <p align="center">
   <img alt="Release" src="https://img.shields.io/github/release/VZout/RTX-Mesh-Shaders?style=flat-square">
