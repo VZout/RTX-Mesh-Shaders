@@ -12,7 +12,7 @@
 #include "scene_graph/scene_graph.hpp"
 
 FPSCamera::FPSCamera(Settings settings)
-	: m_settings(settings), m_kb_axis(0), m_rmb(false)
+	: m_settings(settings), m_kb_axis(0), m_rmb(false), m_last_mouse_pos(0)
 {
 }
 
@@ -86,6 +86,7 @@ void FPSCamera::HandleMouseButtons(int key, int action)
 	if (key == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
 	{
 		m_rmb = true;
+		m_last_mouse_pos = m_settings.m_app->GetMousePos();
 		glm::vec2 center = glm::vec2(m_settings.m_app->GetWidth() / 2.f, m_settings.m_app->GetHeight() / 2.f);
 
 		m_settings.m_app->SetMousePos(center.x, center.y);
@@ -95,6 +96,7 @@ void FPSCamera::HandleMouseButtons(int key, int action)
 	{
 		m_rmb = false;
 		m_settings.m_app->SetMouseVisibility(true);
+		m_settings.m_app->SetMousePos(m_last_mouse_pos.x, m_last_mouse_pos.y);
 
 		m_kb_axis = glm::vec3(0);
 	}

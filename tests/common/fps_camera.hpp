@@ -84,4 +84,5 @@ private:
 
 	glm::vec3 m_kb_axis;
 	bool m_rmb;
+	glm::vec2 m_last_mouse_pos;
 };
