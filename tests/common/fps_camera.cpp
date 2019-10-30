@@ -39,8 +39,6 @@ void FPSCamera::HandleKeyboardInput(int key, int action)
 		return;
 	}
 
-	if (m_settings.IsValid())
-
 	if (!m_rmb) return;
 
 	float axis_mod = 0;

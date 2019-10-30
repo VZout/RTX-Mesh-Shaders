@@ -63,6 +63,24 @@ vec3 random_color(uint id)
 	return vec3(r, g, b);
 }
 
+float NormalFiltering(float perceptual_roughness, vec3 normal) {
+    // Tokuyoshi and Kaplanyan 2019, "Improved Geometric Specular Antialiasing"
+
+    vec3 delta_u = dFdx(normal);
+    vec3 delta_v = dFdy(normal);
+
+	float mat_variance = 0.2;
+	float mat_threshold = 0.1;
+
+    float variance = mat_variance * (dot(delta_u, delta_u) + dot(delta_v, delta_v));
+
+    float roughness = perceptual_roughness * perceptual_roughness;
+    float kernel_roughness = min(2.0 * variance, mat_threshold);
+    float square_roughness = clamp(roughness * roughness + kernel_roughness, 0, 1);
+
+    return sqrt(sqrt(square_roughness));
+}
+
 void main()
 {
     vec3 compressed_mra = texture(ts_textures[2], g_uv).rgb;
@@ -77,6 +95,13 @@ void main()
     float roughness = material.roughness > -1 ? material.roughness : compressed_mra.g;
     float metallic = material.metallic > -1 ? material.metallic : compressed_mra.b;
     float ao = compressed_mra.r;
+
+	float cc_roughness = material.clear_coat_roughness;
+
+#ifdef NORMAL_FILTERING
+	roughness = NormalFiltering(roughness, g_normal);
+	cc_roughness = NormalFiltering(cc_roughness, g_normal);
+#endif
 
 	//if (albedo.a < 0.5)
 		//discard;
@@ -95,7 +120,7 @@ void main()
 #endif
     out_pos = vec4(g_frag_pos, EncodeMaterialProperties(ao, thickness));
     out_material = vec4(EncodeMaterialProperties(material.reflectivity, material.anisotropy),
-						EncodeMaterialProperties(material.clear_coat, material.clear_coat_roughness),
+						EncodeMaterialProperties(material.clear_coat, cc_roughness),
 						anisotropic_t.rg);
 	out_anisotropy = vec4(anisotropic_t.b, normal);
 }

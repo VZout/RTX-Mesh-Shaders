@@ -6,6 +6,10 @@
 #define DIRECTIONAL_LIGHT 1
 #define SPOT_LIGHT 2
 
+#ifdef NORMAL_FILTERING
+#extension GL_NV_compute_shader_derivatives : enable
+#endif
+
 layout (local_size_x = 16, local_size_y = 16) in;
 
 layout(set = 1, binding = 1, rgba8) uniform readonly image2D ts_gbuffers[5];
@@ -65,6 +69,20 @@ vec2 DecodeMaterialProperties(float enc)
 	return vec2(x, y);
 }
 
+float NormalFiltering(float perceptual_roughness, vec3 normal, vec3 delta_u, vec3 delta_v) {
+    // Tokuyoshi and Kaplanyan 2019, "Improved Geometric Specular Antialiasing"
+	float mat_variance = 0.2;
+	float mat_threshold = 0.1;
+
+    float variance = mat_variance * (dot(delta_u, delta_u) + dot(delta_v, delta_v));
+
+    float roughness = perceptual_roughness * perceptual_roughness;
+    float kernel_roughness = min(2.0 * variance, mat_threshold);
+    float square_roughness = clamp(roughness * roughness + kernel_roughness, 0, 1);
+
+    return sqrt(sqrt(square_roughness));
+}
+
 void main()
 {
     const ivec2 resolution = imageSize(t_output);
@@ -110,6 +128,13 @@ void main()
     float metallic = normal_metallic.a;
 
     mat4 inv_view = inverse(camera.view);
+
+#ifdef NORMAL_FILTERING
+    vec3 delta_u = dFdx(geometric_normal);
+    vec3 delta_v = dFdy(geometric_normal);
+	roughness = NormalFiltering(roughness, geometric_normal, delta_u, delta_v);
+	cc_roughness = NormalFiltering(cc_roughness, geometric_normal, delta_u, delta_v);
+#endif
 
     // Constants
     const vec3 irradiance = texture(t_irradiance, vec3(N.x, N.y * -1, N.z)).rgb;

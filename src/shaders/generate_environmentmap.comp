@@ -147,7 +147,7 @@ void main()
             // Solid angle of 1 pixel across all cube faces
             float omega_p = (4.0 * M_PI) / (6.0 * resolution * resolution);
             // Biased (+1.0) mip level for better result
-            float mip_level = roughness == 0.0 ? 0.0 : max(0.5 * log2(omega_s / omega_p) + 4, 0.0f);
+            float mip_level = roughness == 0.0 ? 0.0 : max(0.5 * log2(omega_s / omega_p) + 6, 0.0f);
 
             color += textureLod(t_input, L, mip_level).rgb * NdotL;
             total_weight += NdotL;
