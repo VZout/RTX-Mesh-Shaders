@@ -23,6 +23,8 @@ void SetupEditor()
 	// Windows
 	editor.RegisterWindow("World Outliner", "Scene Graph", [&]()
 		{
+			auto scene_graph = m_scene->GetSceneGraph();
+
 			auto gizmo_button = [&](auto icon, auto operation, auto tooltip)
 			{
 				bool selected = m_gizmo_operation == operation;
@@ -63,11 +65,11 @@ void SetupEditor()
 			ImVec2 size = ImGui::GetContentRegionAvail();
 			if (ImGui::ListBoxHeader("##", size))
 			{
-				const auto& node_handles = m_scene_graph->GetNodeHandles();
+				const auto& node_handles = scene_graph->GetNodeHandles();
 				for (std::size_t i = 0; i < node_handles.size(); i++)
 				{
 					auto handle = node_handles[i];
-					auto node = m_scene_graph->GetNode(handle);
+					auto node = scene_graph->GetNode(handle);
 
 					std::string name_prefix = "Unknown Node";
 					if (node.m_mesh_component > -1)
@@ -81,7 +83,7 @@ void SetupEditor()
 					else if (node.m_light_component > -1)
 					{
 						name_prefix = fmt::format("{} ", reinterpret_cast<const char*>(ICON_FA_LIGHTBULB));
-						switch (m_scene_graph->m_light_types[node.m_light_component])
+						switch (scene_graph->m_light_types[node.m_light_component])
 						{
 						case cb::LightType::POINT: name_prefix += "Point Light Node"; break;
 						case cb::LightType::DIRECTIONAL: name_prefix += "Directional Light Node"; break;
@@ -105,7 +107,7 @@ void SetupEditor()
 
 			if (m_selected_node.has_value())
 			{
-				auto node = m_scene_graph->GetNode(m_selected_node.value());
+				auto node = scene_graph->GetNode(m_selected_node.value());
 				bool enable_gizmo = true;
 
 				if (node.m_light_component > -1)
@@ -115,7 +117,7 @@ void SetupEditor()
 						enable_gizmo = false;
 					}
 
-					switch (m_scene_graph->m_light_types[node.m_light_component])
+					switch (scene_graph->m_light_types[node.m_light_component])
 					{
 					case cb::LightType::POINT:
 						if (m_gizmo_operation == ImGuizmo::OPERATION::ROTATE)
@@ -141,7 +143,7 @@ void SetupEditor()
 			}
 		}, true, reinterpret_cast<const char*>(ICON_FA_GLOBE_EUROPE));
 
-	editor.RegisterWindow("Temp Material Settings", "Scene Graph", [&]()
+	/*editor.RegisterWindow("Temp Material Settings", "Scene Graph", [&]()
 		{
 			ImGui::DragFloat("Ball Reflectivity", &m_ball_reflectivity, 0.01, -0, 1);
 			ImGui::DragFloat("Ball Anisotropy", &m_ball_anisotropy, 0.01, -1, 1);
@@ -198,26 +200,28 @@ void SetupEditor()
 				m_material_pool->Update(mesh_handle.m_material_handle.value(), m_temp_debug_mat_data);
 			}
 
-		}, false, reinterpret_cast<const char*>(ICON_FA_PALETTE));
+		}, false, reinterpret_cast<const char*>(ICON_FA_PALETTE));*/
 
 	editor.RegisterWindow("Inspector", "Scene Graph", [&]()
 		{
 			if (!m_selected_node.has_value()) return;
 
-			auto node = m_scene_graph->GetNode(m_selected_node.value());
+			auto scene_graph = m_scene->GetSceneGraph();
+
+			auto node = scene_graph->GetNode(m_selected_node.value());
 
 			if (node.m_transform_component > -1)
 			{
-				if (node.m_light_component == -1 || m_scene_graph->m_light_types[node.m_light_component] != cb::LightType::DIRECTIONAL)
+				if (node.m_light_component == -1 || scene_graph->m_light_types[node.m_light_component] != cb::LightType::DIRECTIONAL)
 				{
-					ImGui::DragFloat3("Position", &m_scene_graph->m_positions[node.m_transform_component].m_value[0], 0.1f);
+					ImGui::DragFloat3("Position", &scene_graph->m_positions[node.m_transform_component].m_value[0], 0.1f);
 				}
 
-				if (node.m_light_component == -1 || m_scene_graph->m_light_types[node.m_light_component] != cb::LightType::POINT)
+				if (node.m_light_component == -1 || scene_graph->m_light_types[node.m_light_component] != cb::LightType::POINT)
 				{
-					auto euler = glm::degrees(m_scene_graph->m_rotations[node.m_transform_component].m_value);
+					auto euler = glm::degrees(scene_graph->m_rotations[node.m_transform_component].m_value);
 					ImGui::DragFloat3("Rotation", &euler[0], 0.1f);
-					m_scene_graph->m_rotations[node.m_transform_component].m_value = glm::radians(euler);
+					scene_graph->m_rotations[node.m_transform_component].m_value = glm::radians(euler);
 				}
 
 				if (node.m_camera_component == -1 && node.m_light_component == -1)
@@ -225,7 +229,7 @@ void SetupEditor()
 					constexpr float min = 0.0000000000001f;
 					constexpr float max = std::numeric_limits<float>::max();
 
-					auto& scale = m_scene_graph->m_scales[node.m_transform_component].m_value;
+					auto& scale = scene_graph->m_scales[node.m_transform_component].m_value;
 					ImGui::DragFloat3("Scale", &scale[0], 0.01f, min, max);
 					scale = glm::max(scale, min);
 				}
@@ -240,31 +244,31 @@ void SetupEditor()
 				};
 
 				ImGui::Separator();
-				int selected_type = (int)m_scene_graph->m_light_types[node.m_light_component].m_value;
+				int selected_type = (int)scene_graph->m_light_types[node.m_light_component].m_value;
 				ImGui::Combo("Type", &selected_type, types, 3);
-				m_scene_graph->m_light_types[node.m_light_component].m_value = (cb::LightType)selected_type;
+				scene_graph->m_light_types[node.m_light_component].m_value = (cb::LightType)selected_type;
 
-				ImGui::DragFloat3("Color", &m_scene_graph->m_colors[node.m_light_component].m_value[0], 0.1f);
+				ImGui::DragFloat3("Color", &scene_graph->m_colors[node.m_light_component].m_value[0], 0.1f);
 
-				if (m_scene_graph->m_light_types[node.m_light_component] == cb::LightType::POINT)
+				if (scene_graph->m_light_types[node.m_light_component] == cb::LightType::POINT)
 				{
-					ImGui::DragFloat("Radius", &m_scene_graph->m_radius[node.m_light_component].m_value, 0.05f);
+					ImGui::DragFloat("Radius", &scene_graph->m_radius[node.m_light_component].m_value, 0.05f);
 				}
 
-				if (m_scene_graph->m_light_types[node.m_light_component] == cb::LightType::SPOT)
+				if (scene_graph->m_light_types[node.m_light_component] == cb::LightType::SPOT)
 				{
-					auto inner = glm::degrees(m_scene_graph->m_light_angles[node.m_light_component].m_value.first);
-					auto outer = glm::degrees(m_scene_graph->m_light_angles[node.m_light_component].m_value.second);
+					auto inner = glm::degrees(scene_graph->m_light_angles[node.m_light_component].m_value.first);
+					auto outer = glm::degrees(scene_graph->m_light_angles[node.m_light_component].m_value.second);
 
 					ImGui::DragFloat("Inner Angle", &inner);
 					ImGui::DragFloat("Outer Angle", &outer);
 
-					m_scene_graph->m_light_angles[node.m_light_component].m_value.first = glm::radians(inner);
-					m_scene_graph->m_light_angles[node.m_light_component].m_value.second = glm::radians(outer);
+					scene_graph->m_light_angles[node.m_light_component].m_value.first = glm::radians(inner);
+					scene_graph->m_light_angles[node.m_light_component].m_value.second = glm::radians(outer);
 				}
 			}
 
-			m_scene_graph->m_requires_update[node.m_transform_component] = true;
+			scene_graph->m_requires_update[node.m_transform_component] = true;
 		}, true, reinterpret_cast<const char*>(ICON_FA_EYE));
 
 	editor.RegisterWindow("Performance", "Stats", [&]()
@@ -413,8 +417,10 @@ void SetupEditor()
 			// If the size changed...
 			if (size.x != m_viewport_size.x || size.y != m_viewport_size.y)
 			{
+				auto scene_graph = m_scene->GetSceneGraph();
+				auto camera_node = m_scene->GetCameraNodeHandle();
 				m_viewport_size = size;
-				sg::helper::SetAspectRatio(m_scene_graph, m_camera_node, (float)size.x / (float)size.y);
+				sg::helper::SetAspectRatio(scene_graph, camera_node, (float)size.x / (float)size.y);
 			}
 
 			ImGui::Image(editor.GetTexture(), size);
