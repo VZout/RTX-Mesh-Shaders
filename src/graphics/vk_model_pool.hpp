@@ -33,6 +33,7 @@ namespace gfx
 		Context* m_context;
 
 	public:
+		std::vector<StagingBuffer*> m_buffers_require_staging;
 		std::vector<StagingBuffer*> m_vertex_buffers;
 		std::vector<StagingBuffer*> m_index_buffers;
 		std::vector<StagingBuffer*> m_meshlet_buffers;

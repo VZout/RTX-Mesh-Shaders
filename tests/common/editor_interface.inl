@@ -18,6 +18,7 @@ void SetupEditor()
 	editor.RegisterAction("Save ImGui Settings", "File", [&]() { ImGui::SaveIniSettingsToDisk(settings::imgui_ini_filename); }, reinterpret_cast<const char*>(ICON_FA_SAVE));
 	editor.RegisterAction("Contribute", "Help", [&]() { OpenURL("https://github.com/VZout/RTX-Mesh-Shaders"); }, reinterpret_cast<const char*>(ICON_FA_HANDS_HELPING));
 	editor.RegisterAction("Report Issue", "Help", [&]() { OpenURL("https://github.com/VZout/RTX-Mesh-Shaders/issues"); }, reinterpret_cast<const char*>(ICON_FA_BUG));
+	editor.RegisterAction("Key Bindings", "Help", [&]() { editor.OpenModal("Key Bindings"); });
 
 	// Windows
 	editor.RegisterWindow("World Outliner", "Scene Graph", [&]()
@@ -430,37 +431,9 @@ void SetupEditor()
 
 			if (ImGui::Button("Keyboard Bindings"))
 			{
-				ImGui::OpenPopup("Keyboard Bindings");
+				editor.OpenModal("Key Bindings");
 			}
 
-			if (ImGui::BeginPopupModal("Keyboard Bindings", NULL, ImGuiWindowFlags_AlwaysAutoResize
-				| ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove))
-			{
-				ImGui::InfoText("Move Forward", "RMB + W");
-				ImGui::InfoText("Move Backward", "RMB + S");
-				ImGui::InfoText("Move Left", "RMB + A");
-				ImGui::InfoText("Move Right", "RMB + D");
-				ImGui::InfoText("Look Left/Right", "RMB + MouseX");
-				ImGui::InfoText("Look Up/Down", "RMB + MouseY");
-				ImGui::NewLine();
-				ImGui::InfoText("Open Key bindings", "F1");
-				ImGui::InfoText("Toggle Editor", "F3 / ESC");
-				ImGui::InfoText("Toggle Fullscreen", "F11 / Alt + Enter");
-				ImGui::InfoText("Close Application", "Alt + F4");
-				ImGui::NewLine();
-				ImGui::InfoText("Dock ImGui Window", "(hold) Shift");
-				ImGui::InfoText("Cycle Through ImGui Windows", "Ctrl + Tab");
-				ImGui::NewLine();
-				ImGui::InfoText("Switch To Translate Gizmo", "W");
-				ImGui::InfoText("Switch To Rotate Gizmo", "E");
-				ImGui::InfoText("Switch To Scale Gizmo", "R");
-				ImGui::NewLine();
-
-				if (ImGui::Button("OK", ImVec2(ImGui::GetContentRegionAvail().x, 0))) { ImGui::CloseCurrentPopup(); }
-				ImGui::SetItemDefaultFocus();
-
-				ImGui::EndPopup();
-			}
 		}, true, reinterpret_cast<const char*>(ICON_FA_KEYBOARD));
 
 	editor.RegisterWindow("About", "Help", [&]()
@@ -474,4 +447,34 @@ void SetupEditor()
 			ImGui::SameLine();
 			if (ImGui::Button("Portfolio")) OpenURL("http://www.vzout.com/");
 		}, false, reinterpret_cast<const char*>(ICON_FA_ADDRESS_CARD));
+
+	// Modals
+	editor.RegisterModal("Key Bindings", [&]()
+	{
+		ImGui::InfoText("Move Forward", "RMB + W");
+		ImGui::InfoText("Move Backward", "RMB + S");
+		ImGui::InfoText("Move Left", "RMB + A");
+		ImGui::InfoText("Move Right", "RMB + D");
+		ImGui::InfoText("Look Left/Right", "RMB + MouseX");
+		ImGui::InfoText("Look Up/Down", "RMB + MouseY");
+		ImGui::NewLine();
+		ImGui::InfoText("Switch To Generic Pipeline", "1");
+		ImGui::InfoText("Switch To Mesh Shading Pipeline", "2");
+		ImGui::NewLine();
+		ImGui::InfoText("Open Key bindings", "F1");
+		ImGui::InfoText("Toggle Editor", "F3 / ESC");
+		ImGui::InfoText("Toggle Fullscreen", "F11 / Alt + Enter");
+		ImGui::InfoText("Close Application", "Alt + F4");
+		ImGui::NewLine();
+		ImGui::InfoText("Dock ImGui Window", "(hold) Shift");
+		ImGui::InfoText("Cycle Through ImGui Windows", "Ctrl + Tab");
+		ImGui::NewLine();
+		ImGui::InfoText("Switch To Translate Gizmo", "W");
+		ImGui::InfoText("Switch To Rotate Gizmo", "E");
+		ImGui::InfoText("Switch To Scale Gizmo", "R");
+		ImGui::NewLine();
+
+		if (ImGui::Button("OK", ImVec2(ImGui::GetContentRegionAvail().x, 0))) { ImGui::CloseCurrentPopup(); }
+		ImGui::SetItemDefaultFocus();
+	});
 }
