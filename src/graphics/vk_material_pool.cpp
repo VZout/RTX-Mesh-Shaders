@@ -152,6 +152,8 @@ void gfx::VkMaterialPool::Load_Impl(MaterialHandle& handle, MaterialData const &
 	material_cb_data.anisotropy = data.m_base_anisotropy;
 	material_cb_data.anisotropy_dir = data.m_base_anisotropy_dir;
 	material_cb_data.normal_strength = data.m_base_normal_strength;
+	material_cb_data.clear_coat = data.m_base_clear_coat;
+	material_cb_data.clear_coat_roughness = data.m_base_clear_coat_roughness;
 
 	buffer->Map();
 	buffer->Update(&material_cb_data, sizeof(cb::BasicMaterial));

@@ -6,18 +6,19 @@
 
 #include <chrono>
 
-#include "frame_graph/frame_graph.hpp"
-#include "application.hpp"
+#include <frame_graph/frame_graph.hpp>
+#include <application.hpp>
+#include <util/version.hpp>
+#include <util/user_literals.hpp>
+#include <render_tasks/vulkan_tasks.hpp>
+#include <imgui/icons_font_awesome5.hpp>
+#include <imgui/imgui_plot.hpp>
+#include <imgui/imgui_gizmo.h>
+#include <gtc/type_ptr.hpp>
 #include "../common/editor.hpp"
 #include "../common/fps_camera.hpp"
 #include "../common/frame_graphs.hpp"
-#include "util/version.hpp"
-#include "util/user_literals.hpp"
-#include "render_tasks/vulkan_tasks.hpp"
-#include "imgui/icons_font_awesome5.hpp"
-#include "imgui/imgui_plot.hpp"
-#include "imgui/imgui_gizmo.h"
-#include <gtc/type_ptr.hpp>
+#include "../common/spheres_scene.hpp"
 
 #ifdef _WIN32
 #include <shellapi.h>
@@ -43,19 +44,19 @@ public:
 	~Demo() final
 	{
 		delete m_frame_graph;
-		delete m_scene_graph;
+		delete m_scene;
 		delete m_renderer;
 	}
 
 protected:
 	void ImGui_ManipulateNode(sg::Node node, ImGuizmo::OPERATION operation)
 	{
-		auto model = m_scene_graph->m_models[node.m_transform_component].m_value;
-		auto cam = m_scene_graph->GetActiveCamera();
+		auto model = m_scene->GetSceneGraph()->m_models[node.m_transform_component].m_value;
+		auto cam = m_scene->GetSceneGraph()->GetActiveCamera();
 
-		glm::vec3 cam_pos = m_scene_graph->m_positions[cam.m_transform_component].m_value;
-		glm::vec3 cam_rot = m_scene_graph->m_rotations[cam.m_transform_component].m_value;
-		auto aspect_ratio = m_scene_graph->m_camera_aspect_ratios[cam.m_transform_component].m_value;
+		glm::vec3 cam_pos = m_scene->GetSceneGraph()->m_positions[cam.m_transform_component].m_value;
+		glm::vec3 cam_rot = m_scene->GetSceneGraph()->m_rotations[cam.m_transform_component].m_value;
+		auto aspect_ratio = m_scene->GetSceneGraph()->m_camera_aspect_ratios[cam.m_transform_component].m_value;
 
 		glm::vec3 forward;
 		forward.x = cos(cam_rot.y) * cos(cam_rot.x);
@@ -75,10 +76,10 @@ protected:
 		float new_translation[3], new_rotation[3], new_scale[3];
 		ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(model), new_translation, new_rotation, new_scale);
 
-		m_scene_graph->m_positions[node.m_transform_component].m_value = glm::vec3(new_translation[0], new_translation[1], new_translation[2]);
-		m_scene_graph->m_rotations[node.m_transform_component].m_value = glm::vec3(glm::radians(new_rotation[0]), glm::radians(new_rotation[1]), glm::radians(new_rotation[2]));
-		m_scene_graph->m_scales[node.m_transform_component].m_value = glm::vec3(new_scale[0], new_scale[1], new_scale[2]);
-		m_scene_graph->m_requires_update[node.m_transform_component] = true;
+		m_scene->GetSceneGraph()->m_positions[node.m_transform_component].m_value = glm::vec3(new_translation[0], new_translation[1], new_translation[2]);
+		m_scene->GetSceneGraph()->m_rotations[node.m_transform_component].m_value = glm::vec3(glm::radians(new_rotation[0]), glm::radians(new_rotation[1]), glm::radians(new_rotation[2]));
+		m_scene->GetSceneGraph()->m_scales[node.m_transform_component].m_value = glm::vec3(new_scale[0], new_scale[1], new_scale[2]);
+		m_scene->GetSceneGraph()->m_requires_update[node.m_transform_component] = true;
 	}
 
 #include "../common/editor_interface.inl"
@@ -96,37 +97,8 @@ protected:
 			"bigdude_custom/RGB.png",
 		};
 
-		auto model_pool = m_renderer->GetModelPool();
-		auto texture_pool = m_renderer->GetTexturePool();
-		m_material_pool = m_renderer->GetMaterialPool();
-		m_robot_model_handle = model_pool->LoadWithMaterials<Vertex>("bigdude_custom/PBR - Metallic Roughness SSS.gltf", m_material_pool, texture_pool, false, extra_material_data);
-		auto sphere_model_handle = model_pool->LoadWithMaterials<Vertex>("sphere.fbx", m_material_pool, texture_pool, false);
-
-		float num_spheres_x = 9;
-		float num_spheres_y = 9;
-		m_sphere_materials.resize(num_spheres_x * num_spheres_y);
-		m_sphere_material_handles.resize(num_spheres_x * num_spheres_y);
-
-		int i = 0;
-		for (auto x = 0; x < num_spheres_x; x++)
-		{
-			for (auto y = 0; y < num_spheres_y; y++)
-			{
-				MaterialData mat{};
-
-				mat.m_base_color[0] = 1.000;
-				mat.m_base_color[1] = 0.766;
-				mat.m_base_color[2] = 0.336;
-				mat.m_base_roughness = x / num_spheres_x;
-				mat.m_base_metallic = y / num_spheres_y;
-				mat.m_base_reflectivity = 0.5f;
-
-				m_sphere_material_handles[i] = m_material_pool->Load(mat, texture_pool);
-				m_sphere_materials[i] = mat;
-
-				i++;
-			}
-		}
+		m_scene = new SpheresScene();
+		m_scene->Init(m_renderer);
 
 		m_frame_graph = fg_manager::CreateFrameGraph(m_fg_type, m_renderer, [this](ImTextureID texture)
 		{
@@ -136,48 +108,11 @@ protected:
 
 		m_renderer->Upload();
 
-		m_scene_graph = new sg::SceneGraph(m_renderer);
-
-		m_camera_node = m_scene_graph->CreateNode<sg::CameraComponent>();
-		sg::helper::SetPosition(m_scene_graph, m_camera_node, glm::vec3(0, 0, 8.2f));
-		sg::helper::SetRotation(m_scene_graph, m_camera_node, glm::vec3(0, -90._deg, 0));
-
-		m_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_robot_model_handle);
-		sg::helper::SetPosition(m_scene_graph, m_node, glm::vec3(-0.75, -1, 0));
-		sg::helper::SetScale(m_scene_graph, m_node, glm::vec3(1, 1, 1));
-		sg::helper::SetRotation(m_scene_graph, m_node, glm::vec3(0._deg, 0, 0));
-
-		// second node
-		{
-			float spacing = 2.1f * 0.4f;
-			int i = 0;
-			for (auto x = 0; x < num_spheres_x; x++)
-			{
-				for (auto y = 0; y < num_spheres_y; y++)
-				{
-					float start_x = -spacing * (num_spheres_x / 2);
-					float start_y = -spacing * (num_spheres_y / 2);
-
-					auto sphere_node = m_scene_graph->CreateNode<sg::MeshComponent>(sphere_model_handle);
-					sg::helper::SetPosition(m_scene_graph, sphere_node, { start_x + (spacing * x), start_y + (spacing * y), 0 });
-					sg::helper::SetScale(m_scene_graph, sphere_node, glm::vec3(0.4, 0.4, 0.4));
-					sg::helper::SetMaterial(m_scene_graph, sphere_node, { m_sphere_material_handles[i] });
-
-					i++;
-				}
-			}
-		}
-
-		// light node
-		m_light_node = m_scene_graph->CreateNode<sg::LightComponent>(cb::LightType::POINT, glm::vec3(20, 20, 20));
-		sg::helper::SetPosition(m_scene_graph, m_light_node, glm::vec3(0, 0, 2));
-		sg::helper::SetRadius(m_scene_graph, m_light_node, 4);
-
 		m_last = std::chrono::high_resolution_clock::now();
 
 		m_fps_camera.SetApplication(this);
-		m_fps_camera.SetSceneGraph(m_scene_graph);
-		m_fps_camera.SetCameraHandle(m_camera_node);
+		m_fps_camera.SetSceneGraph(m_scene->GetSceneGraph());
+		m_fps_camera.SetCameraHandle(m_scene->GetCameraNodeHandle());
 	}
 
 	void Loop() final
@@ -205,13 +140,9 @@ protected:
 		m_delta = (float)diff.count() / 1000000000.f; // milliseconds
 		m_last = now;
 
-		// animate light
-		float light_x = sin(m_time * 2) * 2;
-		float light_y = cos(m_time * 2) * 2;
-		sg::helper::SetPosition(m_scene_graph, m_light_node, glm::vec3(light_x, light_y, 2));
+		m_scene->Update(m_renderer->GetFrameIdx(), m_delta, m_time);
 
-		m_scene_graph->Update(m_renderer->GetFrameIdx());
-		m_renderer->Render(*m_scene_graph, *m_frame_graph);
+		m_renderer->Render(*m_scene->GetSceneGraph(), *m_frame_graph);
 
 		auto append_graph_list = [](auto& list, auto time, auto max, auto& lowest, auto& highest)
 		{
@@ -247,7 +178,7 @@ protected:
 
 		if (!editor.GetEditorVisibility())
 		{
-			sg::helper::SetAspectRatio(m_scene_graph, m_camera_node, (float)width / (float)height);
+			sg::helper::SetAspectRatio(m_scene->GetSceneGraph(), m_scene->GetCameraNodeHandle(), (float)width / (float)height);
 		}
 	}
 
@@ -297,13 +228,16 @@ protected:
 		{
 			editor.SetEditorVisibility(!editor.GetEditorVisibility());
 
+			auto scene_graph = m_scene->GetSceneGraph();
+			auto camera_node = m_scene->GetCameraNodeHandle();
+
 			if (!editor.GetEditorVisibility())
 			{
-				sg::helper::SetAspectRatio(m_scene_graph, m_camera_node, (float)GetWidth() / (float)GetHeight());
+				sg::helper::SetAspectRatio(scene_graph, camera_node, (float)GetWidth() / (float)GetHeight());
 			}
 			else
 			{
-				sg::helper::SetAspectRatio(m_scene_graph, m_camera_node, (float)m_viewport_size.x / (float)m_viewport_size.y);
+				sg::helper::SetAspectRatio(scene_graph, camera_node, (float)m_viewport_size.x / (float)m_viewport_size.y);
 			}
 		}
 
@@ -329,31 +263,10 @@ protected:
 	Editor editor;
 	Renderer* m_renderer;
 	fg::FrameGraph* m_frame_graph;
-	sg::SceneGraph* m_scene_graph;
 
 	bool m_reload_fg = false;
 
-	sg::NodeHandle m_node;
-	sg::NodeHandle m_camera_node;
-	sg::NodeHandle m_light_node;
-
-	MaterialPool* m_material_pool;
-	ModelHandle m_robot_model_handle;
-	MaterialData m_temp_debug_mat_data;
-	bool m_imgui_override_color = false;
-	bool m_imgui_override_roughness = false;
-	bool m_imgui_override_metallic = false;
-	bool m_imgui_override_reflectivity = false;
-	bool m_imgui_disable_normal_mapping = false;
-	float m_ball_reflectivity = 0.5;
-	float m_ball_anisotropy = 0;
-	glm::vec3 m_ball_anisotropy_dir = { 1, 0, 0 };
-	float m_ball_clear_coat = 0;
-	float m_ball_clear_coat_roughness = 0;
-
-	std::vector<sg::NodeHandle> m_sphere_nodes;
-	std::vector<MaterialHandle> m_sphere_material_handles;
-	std::vector<MaterialData> m_sphere_materials;
+	Scene* m_scene;
 
 	float m_delta;
 	float m_time = 0;
