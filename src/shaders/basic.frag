@@ -98,6 +98,7 @@ void main()
 
 	float cc_roughness = material.clear_coat_roughness;
 
+#define NORMAL_FILTERING
 #ifdef NORMAL_FILTERING
 	roughness = NormalFiltering(roughness, g_normal);
 	cc_roughness = NormalFiltering(cc_roughness, g_normal);
