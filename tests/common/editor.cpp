@@ -39,7 +39,7 @@ void Editor::RegisterAction(const std::string& name, std::string const & categor
 		}
 	}
 
-	LOGW("Failed to register action {}. No suitable category found.", name);
+	LOGW("Failed to register action '{}'. No suitable category found.", name);
 }
 
 void Editor::RegisterWindow(const std::string& name, std::string const & category, window_func_t window_func, bool default_visibility, std::optional<icon_t> icon)
@@ -59,7 +59,23 @@ void Editor::RegisterWindow(const std::string& name, std::string const & categor
 		}
 	}
 
-	LOGW("Failed to register window {}. No suitable category found.", name);
+	LOGW("Failed to register window '{}'. No suitable category found.", name);
+}
+
+void Editor::RegisterModal(const std::string& name, modal_func_t modal_func)
+{
+	for (auto& modal_desc : m_modal_descs)
+	{
+		if (modal_desc.m_name == name)
+		{
+			LOGW("The modal '{}' is duplicate", name);
+		}
+	}
+
+	m_modal_descs.emplace_back(ModalDesc{
+		.m_name = name,
+		.m_function = modal_func
+	});
 }
 
 void Editor::Render()
@@ -113,9 +129,9 @@ void Editor::Render()
 	ImGui::DockSpaceOverViewport(true, ImGui::GetMainViewport());
 
 	// Render the windows
-	for (auto& cat_desc : m_category_descs)
+	for (auto & cat_desc : m_category_descs)
 	{
-		for (auto& window_desc : cat_desc.m_window_descs)
+		for (auto & window_desc : cat_desc.m_window_descs)
 		{
 			if (window_desc.m_open)
 			{
@@ -132,6 +148,30 @@ void Editor::Render()
 			}
 		}
 	}
+
+	// Open Modals that require opening
+	for (auto const & name : m_open_modals)
+	{
+		ImGui::OpenPopup(name.c_str());
+	}
+	m_open_modals.clear();
+
+	// Render modals
+	for (auto const& modal_desc : m_modal_descs)
+	{
+		if (ImGui::BeginPopupModal(modal_desc.m_name.c_str(), NULL, ImGuiWindowFlags_AlwaysAutoResize
+			| ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove))
+		{
+			modal_desc.m_function();
+
+			ImGui::EndPopup();
+		}
+	}
+}
+
+void Editor::OpenModal(std::string const& name)
+{
+	m_open_modals.push_back(name);
 }
 
 void Editor::SetTexture(ImTextureID texture)

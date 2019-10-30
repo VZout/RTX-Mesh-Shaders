@@ -19,8 +19,6 @@
 #include "imgui/imgui_gizmo.h"
 #include <gtc/type_ptr.hpp>
 
-#define MESH_SHADING
-
 #ifdef _WIN32
 #include <shellapi.h>
 #endif
@@ -184,6 +182,24 @@ protected:
 
 	void Loop() final
 	{
+		// Change Frame Graph
+		if (m_reload_fg)
+		{
+			m_renderer->WaitForAllPreviousWork();
+
+			delete m_frame_graph;
+
+			m_frame_graph = fg_manager::CreateFrameGraph(m_fg_type, m_renderer, [this](ImTextureID texture)
+			{
+				editor.SetTexture(texture);
+				editor.Render();
+			});
+
+			m_renderer->Upload();
+
+			m_reload_fg = false;
+		}
+
 		auto now = std::chrono::high_resolution_clock::now();
 		auto diff = now - m_last; 
 		m_delta = (float)diff.count() / 1000000000.f; // milliseconds
@@ -218,8 +234,6 @@ protected:
 		append_graph_list(m_frame_rates, ImGui::GetIO().Framerate, m_max_frame_rates, m_min_frame_rate,
 		                  m_max_frame_rate);
 
-		HandleControllerInput();
-
 		m_fps_camera.HandleControllerInput(m_delta);
 		m_fps_camera.Update(m_delta);
 
@@ -237,9 +251,14 @@ protected:
 		}
 	}
 
-	void HandleControllerInput()
+	void SwitchFrameGraph(fg_manager::FGType type)
 	{
-
+		if (m_fg_type != type)
+		{
+			m_fg_type = type;
+			editor.SetMainMenuBarText("FrameGraph: " + fg_manager::GetFrameGraphName(type));
+			m_reload_fg = true;
+		}
 	}
 
 	void MousePosCallback(float x, float y) final
@@ -254,6 +273,25 @@ protected:
 
 	void KeyCallback(int key, int action) final
 	{
+		// Frame graph swithcing
+		if (action == GLFW_PRESS)
+		{
+			if (key == GLFW_KEY_1)
+			{
+				SwitchFrameGraph(fg_manager::FGType::PBR_GENERIC);
+			}
+			else if (key == GLFW_KEY_2)
+			{
+				SwitchFrameGraph(fg_manager::FGType::PBR_MESH_SHADING);
+			}
+		}
+
+		// Key Bindings Modal
+		if (key == GLFW_KEY_F1 && action == GLFW_PRESS)
+		{
+			editor.OpenModal("Key Bindings");
+		}
+
 		// Editor Visibility
 		if ((key == GLFW_KEY_F3 || key == GLFW_KEY_ESCAPE) && action == GLFW_PRESS)
 		{
@@ -292,6 +330,8 @@ protected:
 	Renderer* m_renderer;
 	fg::FrameGraph* m_frame_graph;
 	sg::SceneGraph* m_scene_graph;
+
+	bool m_reload_fg = false;
 
 	sg::NodeHandle m_node;
 	sg::NodeHandle m_camera_node;
@@ -335,11 +375,7 @@ protected:
 	ImVec2 m_viewport_pos = { 0, 0 };
 	ImVec2 m_viewport_size = { 1280, 720};
 
-#ifdef MESH_SHADING
 	fg_manager::FGType m_fg_type = fg_manager::FGType::PBR_MESH_SHADING;
-#else 
-	fg_manager::FGType m_fg_type = fg_manager::FGType::PBR_GENERIC;
-#endif // MESH SHADING
 };
 
 

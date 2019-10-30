@@ -36,6 +36,7 @@ gfx::VkModelPool::~VkModelPool()
 	destroy_func(m_vertex_buffers);
 	destroy_func(m_index_buffers);
 	destroy_func(m_meshlet_buffers);
+	destroy_func(m_buffers_require_staging);
 
 	delete m_heap;
 }
@@ -59,21 +60,19 @@ void gfx::VkModelPool::AllocateMesh(void* vertex_data, std::uint32_t num_vertice
 	m_meshlet_buffers.push_back(mb);
 	m_meshlet_desc_infos.push_back({ descriptor_set_id, num_meshlets });
 	m_mesh_shading_buffer_descriptor_sets.push_back({ vbi, ibi });
+
+	m_buffers_require_staging.push_back(vb);
+	m_buffers_require_staging.push_back(ib);
+	m_buffers_require_staging.push_back(mb);
 }
 
 void gfx::VkModelPool::Stage(CommandList* command_list)
 {
-	auto stage_func = [command_list](auto buffer_list)
+	for (auto& buffer : m_buffers_require_staging)
 	{
-		for (auto& buffer : buffer_list)
-		{
-			command_list->StageBuffer(buffer);
-		}
-	};
-
-	stage_func(m_vertex_buffers);
-	stage_func(m_index_buffers);
-	stage_func(m_meshlet_buffers);
+		command_list->StageBuffer(buffer);
+	}
+	m_buffers_require_staging.clear();
 }
 
 void gfx::VkModelPool::PostStage()
