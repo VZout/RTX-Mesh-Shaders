@@ -65,8 +65,9 @@ void SpheresScene::LoadResources()
 			mat.m_base_color[0] = r;
 			mat.m_base_color[1] = g;
 			mat.m_base_color[2] = b;
-			mat.m_base_roughness = 0.3;
-			mat.m_base_metallic = 1;
+			mat.m_base_roughness = 0.5;
+			mat.m_base_metallic = x % 2;
+
 			mat.m_base_clear_coat_roughness = x / (float)(num_spheres_x - 1);
 			mat.m_base_clear_coat = y / (float)(num_spheres_y_clear_coat - 1);
 			mat.m_base_reflectivity = 0.5f;
