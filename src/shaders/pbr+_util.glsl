@@ -377,12 +377,12 @@ vec3 SS_BRDF(vec3 L, vec3 V, vec3 N, vec3 geometric_normal, float metallic, floa
     // Use a spherical gaussian approximation of pow() for forwardScattering
     // We could include distortion by adding shading_normal * distortion to light.l
 	float sss_scale = 1;
-    float scatterVoH = clamp(dot(V, -L), 0, 1) * sss_scale;
+	float flt_power = 1;
+    float scatterVoH = pow(clamp(dot(V, -L), 0, 1), flt_power) * sss_scale;
     float forwardScatter = exp2(scatterVoH * subsurface_power - subsurface_power);
     float backScatter = clamp(NdotL * thickness + (1.0 - thickness), 0, 1) * 0.5;
     float subsurface = mix(backScatter, 1.0, forwardScatter) * (1.0 - thickness);
-    //color += subsurface_color * (subsurface * Fd_Lambert());
-	color += subsurface_color * (subsurface * Fd_Burley(roughness, NdotV, NdotL, LdotH));
+    color += subsurface_color * (subsurface * Fd_Lambert());
 
 	return (color * radiance) * attenuation;
 }
