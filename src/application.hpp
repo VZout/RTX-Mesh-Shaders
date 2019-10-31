@@ -36,7 +36,7 @@ protected:
 	virtual void Loop() = 0;
 
 	virtual void ResizeCallback([[maybe_unused]] std::uint32_t width, [[maybe_unused]] std::uint32_t height) { /* Do nothing if its not overriden */ };
-	virtual void KeyCallback([[maybe_unused]] int key, [[maybe_unused]] int action) { /* Do nothing if its not overridden */ };
+	virtual void KeyCallback([[maybe_unused]] int key, [[maybe_unused]] int action, [[maybe_unused]] int mods) { /* Do nothing if its not overridden */ };
 	virtual void MouseButtonCallback([[maybe_unused]] int key, [[maybe_unused]] int action) { /* Do nothing if its not overriden */ }
 	virtual void MousePosCallback([[maybe_unused]] float x, [[maybe_unused]] float y) { /* Do nothing if its not overriden */ }
 

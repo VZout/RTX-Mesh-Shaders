@@ -30,7 +30,7 @@ Application::~Application()
 void Application::KeyCallback_Internal(GLFWwindow* window, int key, int scan_code, int action, int mods)
 {
 	ImGui_ImplGlfw_KeyCallback(window, key, scan_code, action, mods);
-	static_cast<Application*>(glfwGetWindowUserPointer(window))->KeyCallback(key, action);
+	static_cast<Application*>(glfwGetWindowUserPointer(window))->KeyCallback(key, action, mods);
 }
 
 void Application::ResizeCallback_Internal(GLFWwindow* window, int width, int height)
