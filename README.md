@@ -1,13 +1,36 @@
-# RTX (Turing) Mesh Shaders
+<a href="#"><img src="https://i.imgur.com/r6gKEvC.png"></a>
 
-[![Release](https://img.shields.io/github/release/VZout/RTX-Mesh-Shaders)]()
-[![Issues](https://img.shields.io/github/issues/VZout/RTX-Mesh-Shaders)]()
-[![License](https://img.shields.io/github/license/VZout/RTX-Mesh-Shaders)]()
-[![Stars](https://img.shields.io/github/stars/VZout/RTX-Mesh-Shaders)]()
+<p align="center">
+  <a href="#"><img alt="Release" src="https://img.shields.io/github/release/VZout/RTX-Mesh-Shaders?style=for-the-badge"></a>
+  <a href="#"><img alt="Issues" src="https://img.shields.io/github/issues/VZout/RTX-Mesh-Shaders?style=for-the-badge"></a>
+  <a href="#"><img alt="License" src="https://img.shields.io/github/license/VZout/RTX-Mesh-Shaders?style=for-the-badge"></a>
+  <a href="#"><img alt="Stars" src="https://img.shields.io/github/stars/VZout/RTX-Mesh-Shaders?style=for-the-badge"></a>
+</p>
 
-This is a demo repository for a few techniques made possible by NVIDIA's Turing Architecture (RTX). This repository is used for research and learning purposes. I'm writing a paper on the topic of mesh shaders where I compare the different techniques and determine which techniques would be the most beneficial to implement.
+<p align="center">
+  <strong>
+    Visit <a aria-label="vzout.com/meshshading" href="http://vzout.com/meshshading">vzout.com/meshshading</a> to read the research paper.
+  </strong>
+</p>
 
-## [Research Paper](example.com)
+---
+
+**This repository demo's mesh shaders introduced by NVIDIA's Turing Architecture and is used for research purposes. To accompany this project I've written a research paper on the topic of mesh shaders where I compare traditional techniques with their mesh shading equivalent.**
+
+---
+
+## Features
+
+* Mesh Shading Pipeline
+* Cook-Torrance Microfacet Specular BRDF
+* Burley Diffuse BRDF
+* Clear Coat Materials
+* Anisotropic Materials
+* Approximated Subsurface Scattering Materials
+* Deferred Rendering
+* Normal and Ambient Occlusion Mapping
+* High Dynamic Range Tonemapping
+* Image-Based Lighting
 
 ## Building
 
@@ -33,7 +56,9 @@ cmake -G "[configuration]" ..
 
 ## Screenshots
 
-![](http://upload.vzout.com/wispvk/img0.png)
+<img src="http://upload.vzout.com/wispvk/img0.png" width="80%"><br>
+<img src="https://i.imgur.com/ezUFj1A.png" width="300"> 
+<img src="https://i.imgur.com/hyiK8kp.png" width="300"> 
 
 ## [License (GNU Affero General Public License 3)](https://opensource.org/licenses/AGPL-3.0)
 
