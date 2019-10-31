@@ -235,10 +235,10 @@ protected:
 		m_fps_camera.HandleMouseButtons(key, action);
 	}
 
-	void KeyCallback(int key, int action) final
+	void KeyCallback(int key, int action, int mods) final
 	{
 		// Frame graph swithcing
-		if (action == GLFW_PRESS)
+		if (action == GLFW_PRESS && mods & GLFW_MOD_CONTROL)
 		{
 			if (key == GLFW_KEY_1)
 			{
