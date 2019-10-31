@@ -157,6 +157,7 @@ void Renderer::Resize(std::uint32_t width, std::uint32_t height)
 	m_render_window->Resize(width, height);
 	// TODO: REMOVE THIS. use dyn viewport instead.
 	PipelineRegistry::SFind(pipelines::basic)->Recompile();
+	PipelineRegistry::SFind(pipelines::basic_mesh)->Recompile();
 }
 
 Application* Renderer::GetApp()
