@@ -15,15 +15,16 @@ Editor::Editor()
 
 }
 
-void Editor::RegisterCategory(std::string const& name, std::optional<icon_t> icon)
+void Editor::RegisterCategory(std::string const& name, std::optional<icon_t> icon, std::optional<std::string> sub_category)
 {
 	m_category_descs.emplace_back(CategoryDesc{
 		.m_name = name,
+		.m_sub_category = sub_category,
 		.m_icon = icon,
 	});
 }
 
-void Editor::RegisterAction(const std::string& name, std::string const & category, action_func_t action_func, std::optional<icon_t> icon)
+void Editor::RegisterAction(const std::string& name, std::string const & category, action_func_t action_func, std::optional<icon_t> icon, std::optional<std::string> sub_category)
 {
 	for (auto& cat_desc : m_category_descs)
 	{
@@ -31,6 +32,7 @@ void Editor::RegisterAction(const std::string& name, std::string const & categor
 		{
 			cat_desc.m_action_descs.emplace_back(ActionDesc{
 				.m_name = name,
+				.m_sub_category = sub_category,
 				.m_icon = icon,
 				.m_function = action_func,
 			});
@@ -92,10 +94,38 @@ void Editor::Render()
 			{
 				for (auto& action_desc : cat_desc.m_action_descs)
 				{
+					if (action_desc.m_sub_category.has_value())
+					{
+						continue;
+					}
+
 					std::string action_name = fmt::format(action_desc.m_icon.has_value() ? "{0}  {1}" : "{1}", action_desc.m_icon.value_or("[erroricon]"), action_desc.m_name);
 					if (ImGui::MenuItem(action_name.c_str(), nullptr))
 					{
 						action_desc.m_function();
+					}
+				}
+
+				// Render the sub categories.
+				if (cat_desc.m_sub_category.has_value())
+				{
+					if (ImGui::BeginMenu(cat_desc.m_sub_category->c_str()))
+					{
+						for (auto& action_desc : cat_desc.m_action_descs)
+						{
+							if (!action_desc.m_sub_category.has_value())
+							{
+								continue;
+							}
+
+							std::string action_name = fmt::format(action_desc.m_icon.has_value() ? "{0}  {1}" : "{1}", action_desc.m_icon.value_or("[erroricon]"), action_desc.m_name);
+							if (ImGui::MenuItem(action_name.c_str(), nullptr))
+							{
+								action_desc.m_function();
+							}
+						}
+
+						ImGui::EndMenu();
 					}
 				}
 

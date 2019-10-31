@@ -304,7 +304,11 @@ namespace sg
 		inline void SetMaterial(SceneGraph* sg, NodeHandle handle, std::vector<MaterialHandle> mats)
 		{
 			auto model_handle = sg->GetNode(handle).m_mesh_component;
-			sg->m_model_material_handles[model_handle] = mats;
+
+			for (auto i = 0; i < mats.size(); i++)
+			{
+				sg->m_model_material_handles[model_handle].m_value[i] = mats[i];
+			}
 		}
 
 		inline void Translate(SceneGraph* sg, NodeHandle handle, glm::vec3 value)

@@ -32,9 +32,13 @@ public:
 	Editor();
 	virtual ~Editor() = default;
 
-	void RegisterCategory(std::string const & name, std::optional<icon_t> icon = std::nullopt);
-	void RegisterAction(std::string const & name, std::string const & category, action_func_t action_func, std::optional<icon_t> icon = std::nullopt);
-	void RegisterWindow(std::string const & name, std::string const & category, window_func_t window_func, bool default_visibility = false, std::optional<icon_t> icon = std::nullopt);
+	void RegisterCategory(std::string const & name, std::optional<icon_t> icon = std::nullopt,
+		std::optional<std::string> sub_category = std::nullopt);
+	void RegisterAction(std::string const & name, std::string const & category, action_func_t action_func,
+		std::optional<icon_t> icon = std::nullopt,
+		std::optional<std::string> sub_category = std::nullopt);
+	void RegisterWindow(std::string const & name, std::string const & category, window_func_t window_func, bool default_visibility = false,
+		std::optional<icon_t> icon = std::nullopt);
 	void RegisterModal(std::string const & name, modal_func_t modal_func);
 	void Render();
 	void OpenModal(std::string const & name);
@@ -48,6 +52,7 @@ private:
 	struct ActionDesc
 	{
 		std::string m_name;
+		std::optional<std::string> m_sub_category;
 		std::optional<icon_t> m_icon;
 		action_func_t m_function;
 	};
@@ -63,6 +68,7 @@ private:
 	struct CategoryDesc
 	{
 		std::string m_name;
+		std::optional<std::string> m_sub_category;
 		std::optional<icon_t> m_icon;
 		std::vector<WindowDesc> m_window_descs;
 		std::vector<ActionDesc> m_action_descs;
