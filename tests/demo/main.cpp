@@ -19,6 +19,7 @@
 #include "../common/fps_camera.hpp"
 #include "../common/frame_graphs.hpp"
 #include "../common/spheres_scene.hpp"
+#include "../common/sss_scene.hpp"
 
 #ifdef _WIN32
 #include <shellapi.h>
@@ -92,12 +93,7 @@ protected:
 		m_renderer = new Renderer();
 		m_renderer->Init(this);
 
-		ExtraMaterialData extra_material_data;
-		extra_material_data.m_thickness_texture_paths = {
-			"bigdude_custom/RGB.png",
-		};
-
-		m_scene = new SpheresScene();
+		m_scene = new SubsurfaceScene();
 		m_scene->Init(m_renderer);
 
 		m_frame_graph = fg_manager::CreateFrameGraph(m_fg_type, m_renderer, [this](ImTextureID texture)
@@ -133,6 +129,36 @@ protected:
 			m_renderer->Upload();
 
 			m_reload_fg = false;
+		}
+
+		if (m_reload_sg)
+		{
+			m_renderer->WaitForAllPreviousWork();
+
+			delete m_scene;
+			m_scene = m_new_scene;
+			m_new_scene = nullptr;
+
+			m_scene->Init(m_renderer);
+
+			auto scene_graph = m_scene->GetSceneGraph();
+			auto camera_node = m_scene->GetCameraNodeHandle();
+
+			m_fps_camera.SetSceneGraph(scene_graph);
+			m_fps_camera.SetCameraHandle(camera_node);
+
+			m_renderer->Upload();
+
+			if (!editor.GetEditorVisibility())
+			{
+				sg::helper::SetAspectRatio(scene_graph, camera_node, (float)GetWidth() / (float)GetHeight());
+			}
+			else
+			{
+				sg::helper::SetAspectRatio(scene_graph, camera_node, (float)m_viewport_size.x / (float)m_viewport_size.y);
+			}
+
+			m_reload_sg = false;
 		}
 
 		auto now = std::chrono::high_resolution_clock::now();
@@ -190,6 +216,13 @@ protected:
 			editor.SetMainMenuBarText("FrameGraph: " + fg_manager::GetFrameGraphName(type));
 			m_reload_fg = true;
 		}
+	}
+
+	template<typename T>
+	void SwitchScene()
+	{
+		m_new_scene = new T();
+		m_reload_sg = true;
 	}
 
 	void MousePosCallback(float x, float y) final
@@ -265,8 +298,10 @@ protected:
 	fg::FrameGraph* m_frame_graph;
 
 	bool m_reload_fg = false;
+	bool m_reload_sg = false;
 
 	Scene* m_scene;
+	Scene* m_new_scene;
 
 	float m_delta;
 	float m_time = 0;
