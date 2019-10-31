@@ -31,6 +31,7 @@ namespace tasks
 	{
 		std::vector<std::vector<std::uint32_t>> m_material_sets;
 
+		gfx::PipelineState* m_pipeline;
 		gfx::RootSignature* m_root_sig;
 	};
 
@@ -45,6 +46,7 @@ namespace tasks
 			auto context = rs.GetContext();
 			auto desc_heap = rs.GetDescHeap();
 			data.m_root_sig = RootSignatureRegistry::SFind(root_signatures::basic);
+			data.m_pipeline = PipelineRegistry::SFind(pipelines::basic);
 		}
 
 		inline void ExecuteDeferredMainTask(Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, fg::RenderTaskHandle handle)
@@ -52,13 +54,12 @@ namespace tasks
 			auto& data = fg.GetData<DeferredMainData>(handle);
 			auto cmd_list = fg.GetCommandList(handle);
 			auto model_pool = static_cast<gfx::VkModelPool*>(rs.GetModelPool());
-			auto pipeline = PipelineRegistry::SFind(pipelines::basic);
 			auto material_pool = static_cast<gfx::VkMaterialPool*>(rs.GetMaterialPool());
 
 			auto per_obj_pool = static_cast<gfx::VkConstantBufferPool*>(sg.GetPOConstantBufferPool());
 			auto camera_pool = static_cast<gfx::VkConstantBufferPool*>(sg.GetCameraConstantBufferPool());
 
-			cmd_list->BindPipelineState(pipeline);
+			cmd_list->BindPipelineState(data.m_pipeline);
 
 			auto mesh_node_handles = sg.GetMeshNodeHandles();
 			auto camera_handle = sg.m_camera_cb_handles[0].m_value;
