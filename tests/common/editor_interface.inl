@@ -8,7 +8,7 @@ void SetupEditor()
 {
 	// Categories
 	editor.RegisterCategory("File", reinterpret_cast<const char*>(ICON_FA_FILE));
-	editor.RegisterCategory("Scene Graph", reinterpret_cast<const char*>(ICON_FA_PROJECT_DIAGRAM));
+	editor.RegisterCategory("Scene Graph", reinterpret_cast<const char*>(ICON_FA_PROJECT_DIAGRAM), "Scenes");
 	editor.RegisterCategory("Stats", reinterpret_cast<const char*>(ICON_FA_CHART_BAR));
 	editor.RegisterCategory("Debug", reinterpret_cast<const char*>(ICON_FA_BUG));
 	editor.RegisterCategory("Help", reinterpret_cast<const char*>(ICON_FA_INFO_CIRCLE));
@@ -19,6 +19,9 @@ void SetupEditor()
 	editor.RegisterAction("Contribute", "Help", [&]() { OpenURL("https://github.com/VZout/RTX-Mesh-Shaders"); }, reinterpret_cast<const char*>(ICON_FA_HANDS_HELPING));
 	editor.RegisterAction("Report Issue", "Help", [&]() { OpenURL("https://github.com/VZout/RTX-Mesh-Shaders/issues"); }, reinterpret_cast<const char*>(ICON_FA_BUG));
 	editor.RegisterAction("Key Bindings", "Help", [&]() { editor.OpenModal("Key Bindings"); });
+
+	editor.RegisterAction("Load Spheres Scene", "Scene Graph", [&]() { SwitchScene<SpheresScene>(); }, std::nullopt, "Scenes");
+	editor.RegisterAction("Load Subsurface Scene", "Scene Graph", [&]() { SwitchScene<SubsurfaceScene>(); }, std::nullopt, "Scenes");
 
 	// Windows
 	editor.RegisterWindow("World Outliner", "Scene Graph", [&]()
