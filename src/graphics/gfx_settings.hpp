@@ -16,11 +16,16 @@ namespace gfx::settings
 	{
 		"VK_LAYER_KHRONOS_validation"
 	};
+	static const std::vector<const char*> instance_extensions =
+	{
+		VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
+	};
 	static const std::vector<const char*> device_extensions =
 	{
-		"VK_KHR_swapchain",
-		//"VK_KHR_get_physical_device_properties2",
-		"VK_NV_mesh_shader"
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+		VK_NV_MESH_SHADER_EXTENSION_NAME,
+		VK_NV_RAY_TRACING_EXTENSION_NAME,
+		
 	};
 	static const std::uint32_t num_back_buffers = 2;
 	static const VkFormat swapchain_format = VK_FORMAT_B8G8R8A8_UNORM;
