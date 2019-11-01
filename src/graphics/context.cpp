@@ -112,11 +112,18 @@ gfx::Context::Context(Application* app)
 	m_surface(VK_NULL_HANDLE),
 	m_app(app)
 {
+
 	std::uint32_t glfw_extension_count;
 	const char** glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
 
 	// TODO: Check if the glfw extensions are supported.
 	std::vector<const char*> extensions(glfw_extensions, glfw_extensions + glfw_extension_count);
+
+	// Add instance extensions
+	for (auto const & ex : settings::instance_extensions)
+	{
+		extensions.push_back(ex);
+	}
 
 	if (gfx::settings::enable_validation_layers)
 	{
@@ -158,7 +165,14 @@ gfx::Context::Context(Application* app)
 
 	// Get the device and its properties.
 	m_physical_device = FindPhysicalDevice();
-	vkGetPhysicalDeviceProperties(m_physical_device, &m_physical_device_properties);
+
+	m_physical_device_raytracing_properties = {};
+	m_physical_device_raytracing_properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
+	m_physical_device_properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+	m_physical_device_properties.pNext = &m_physical_device_raytracing_properties;
+
+	vkGetPhysicalDeviceProperties2(m_physical_device, &m_physical_device_properties);
+
 	vkGetPhysicalDeviceMemoryProperties(m_physical_device, &m_physical_device_mem_properties);
 
 	VkPhysicalDeviceMeshShaderFeaturesNV nv_features = {};
@@ -182,6 +196,7 @@ gfx::Context::Context(Application* app)
 	}
 
 	SetupMeshShadingExtension();
+	SetupRayTracingExtension();
 
 	SetupVMA();
 }
@@ -217,11 +232,14 @@ std::vector<VkExtensionProperties> gfx::Context::GetSupportedDeviceExtensions()
 	return GetSupportedDeviceExtensions(m_physical_device);
 }
 
-VkPhysicalDeviceProperties gfx::Context::GetPhysicalDeviceProperties()
+VkPhysicalDeviceProperties2 gfx::Context::GetPhysicalDeviceProperties()
 {
-	VkPhysicalDeviceProperties properties;
-	vkGetPhysicalDeviceProperties(m_physical_device, &properties);
-	return properties;
+	return m_physical_device_properties;
+}
+
+VkPhysicalDeviceRayTracingPropertiesNV gfx::Context::GetRayTracingDeviceProperties()
+{
+	return m_physical_device_raytracing_properties;
 }
 
 const VkPhysicalDeviceMemoryProperties* gfx::Context::GetPhysicalDeviceMemoryProperties()
@@ -506,6 +524,19 @@ void gfx::Context::SetupDebugMarkerExtension()
 void gfx::Context::SetupMeshShadingExtension()
 {
 	CmdDrawMeshTasksNV = reinterpret_cast<PFN_vkCmdDrawMeshTasksNV>(vkGetDeviceProcAddr(m_logical_device, "vkCmdDrawMeshTasksNV"));
+}
+
+void gfx::Context::SetupRayTracingExtension()
+{
+	vkCreateAccelerationStructureNV = reinterpret_cast<PFN_vkCreateAccelerationStructureNV>(vkGetDeviceProcAddr(m_logical_device, "vkCreateAccelerationStructureNV"));
+	vkDestroyAccelerationStructureNV = reinterpret_cast<PFN_vkDestroyAccelerationStructureNV>(vkGetDeviceProcAddr(m_logical_device, "vkDestroyAccelerationStructureNV"));
+	vkBindAccelerationStructureMemoryNV = reinterpret_cast<PFN_vkBindAccelerationStructureMemoryNV>(vkGetDeviceProcAddr(m_logical_device, "vkBindAccelerationStructureMemoryNV"));
+	vkGetAccelerationStructureHandleNV = reinterpret_cast<PFN_vkGetAccelerationStructureHandleNV>(vkGetDeviceProcAddr(m_logical_device, "vkGetAccelerationStructureHandleNV"));
+	vkGetAccelerationStructureMemoryRequirementsNV = reinterpret_cast<PFN_vkGetAccelerationStructureMemoryRequirementsNV>(vkGetDeviceProcAddr(m_logical_device, "vkGetAccelerationStructureMemoryRequirementsNV"));
+	vkCmdBuildAccelerationStructureNV = reinterpret_cast<PFN_vkCmdBuildAccelerationStructureNV>(vkGetDeviceProcAddr(m_logical_device, "vkCmdBuildAccelerationStructureNV"));
+	vkCreateRayTracingPipelinesNV = reinterpret_cast<PFN_vkCreateRayTracingPipelinesNV>(vkGetDeviceProcAddr(m_logical_device, "vkCreateRayTracingPipelinesNV"));
+	vkGetRayTracingShaderGroupHandlesNV = reinterpret_cast<PFN_vkGetRayTracingShaderGroupHandlesNV>(vkGetDeviceProcAddr(m_logical_device, "vkGetRayTracingShaderGroupHandlesNV"));
+	vkCmdTraceRaysNV = reinterpret_cast<PFN_vkCmdTraceRaysNV>(vkGetDeviceProcAddr(m_logical_device, "vkCmdTraceRaysNV"));
 }
 
 void gfx::Context::SetupVMA()

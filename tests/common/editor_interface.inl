@@ -309,7 +309,7 @@ void SetupEditor()
 	editor.RegisterWindow("GPU Info", "Stats", [&]()
 		{
 			auto context = m_renderer->GetContext();
-			auto device_properties = context->GetPhysicalDeviceProperties();
+			auto device_properties = context->GetPhysicalDeviceProperties().properties;
 			auto device_mem_properties = context->GetPhysicalDeviceMemoryProperties();
 
 			VkDeviceSize vram = 0;
