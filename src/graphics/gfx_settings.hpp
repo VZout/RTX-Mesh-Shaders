@@ -20,6 +20,7 @@ namespace gfx::settings
 	{
 		"VK_KHR_swapchain",
 		//"VK_KHR_get_physical_device_properties2",
+		VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME,
 		"VK_NV_mesh_shader"
 	};
 	static const std::uint32_t num_back_buffers = 2;

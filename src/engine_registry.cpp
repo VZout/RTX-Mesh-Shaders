@@ -28,6 +28,11 @@ REGISTER(shaders::basic_mesh, ShaderRegistry)({
 	.m_type = gfx::enums::ShaderType::MESH,
 });
 
+REGISTER(shaders::instancing_task, ShaderRegistry)({
+   .m_path = "shaders/instancing_task.comp.spv",
+   .m_type = gfx::enums::ShaderType::TASK,
+});
+
 REGISTER(shaders::composition_cs, ShaderRegistry)({
     .m_path = "shaders/composition.comp.spv",
     .m_type = gfx::enums::ShaderType::COMPUTE,
@@ -131,6 +136,14 @@ REGISTER(root_signatures::basic_mesh, RootSignatureRegistry)({
 		params[6].pImmutableSamplers = nullptr;
 		return params;
 	}(),
+	.m_push_constants = []() -> decltype(RootSignatureDesc::m_push_constants)
+	{
+		decltype(RootSignatureDesc::m_push_constants) constants(1);
+		constants[0].offset = 0;
+		constants[0].size = sizeof(unsigned int) * 2; // meshlet offset (instance) and meshlet count
+		constants[0].stageFlags = VK_SHADER_STAGE_TASK_BIT_NV;
+		return constants;
+	}()
 });
 
 
@@ -275,7 +288,7 @@ REGISTER(pipelines::basic, PipelineRegistry)({
 
 REGISTER(pipelines::basic_mesh, PipelineRegistry)({
 	.m_root_signature_handle = root_signatures::basic_mesh,
-	.m_shader_handles = { shaders::basic_mesh, shaders::basic_ps },
+	.m_shader_handles = { shaders::instancing_task, shaders::basic_mesh, shaders::basic_ps },
 	.m_input_layout = std::nullopt, // mesh shading
 
 	.m_type = gfx::enums::PipelineType::GRAPHICS_PIPE,

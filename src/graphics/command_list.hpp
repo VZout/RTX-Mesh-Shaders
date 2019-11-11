@@ -49,6 +49,7 @@ namespace gfx
 		void BindDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets);
 		void BindComputeDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets);
 		void BindComputePushConstants(RootSignature* root_signature, void* data, std::uint32_t size);
+		void BindTaskPushConstants(RootSignature* root_signature, void* data, std::uint32_t size);
 		void StageBuffer(StagingBuffer* staging_buffer);
 		void StageTexture(StagingTexture* texture);
 		void CopyRenderTargetToRenderWindow(RenderTarget* render_target, std::uint32_t rt_idx, RenderWindow* render_window);

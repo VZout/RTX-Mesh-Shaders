@@ -19,7 +19,8 @@ namespace gfx::enums
 		PIXEL,
 		COMPUTE,
 		GEOMETRY,
-		MESH
+		MESH,
+		TASK,
 	};
 
 	enum class TextureFilter

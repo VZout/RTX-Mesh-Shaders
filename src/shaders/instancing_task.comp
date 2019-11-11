@@ -1,0 +1,48 @@
+#version 450
+#pragma shader_stage(task)
+
+#define USE_NATIVE   1
+#extension GL_NV_mesh_shader : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int8 : enable
+#extension GL_KHR_shader_subgroup_basic : require
+#extension GL_KHR_shader_subgroup_ballot : require
+#extension GL_KHR_shader_subgroup_vote : require
+
+#define GROUP_SIZE 32
+
+layout(local_size_x=GROUP_SIZE) in;
+
+layout(push_constant) uniform PushConstants {
+    uint offset;
+    uint count;
+} drawcall_info;
+
+taskNV out Task
+{
+	uint base_id;
+	uint instance_id;
+	uint8_t sub_ids[GROUP_SIZE];
+} OUT;
+
+void main()
+{
+	const uint base_id = gl_WorkGroupID.x * GROUP_SIZE;
+	const uint lane_id = gl_LocalInvocationID.x;
+
+	bool render = !(base_id + lane_id > drawcall_info.count);
+	uvec4 vote  = subgroupBallot(render);
+	uint tasks = subgroupBallotBitCount(vote);
+
+	if (lane_id == 0)
+	{
+		gl_TaskCountNV = tasks;
+		OUT.base_id = base_id;
+		OUT.instance_id = drawcall_info.offset;
+	}
+
+	uint idx_offset = subgroupBallotExclusiveBitCount(vote);
+	if (render)
+	{
+		OUT.sub_ids[idx_offset] = uint8_t(lane_id);
+	}
+}

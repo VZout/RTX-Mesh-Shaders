@@ -5,6 +5,10 @@
 
 #define USE_NATIVE   1
 #extension GL_NV_mesh_shader : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int8 : enable
+#extension GL_KHR_shader_subgroup_basic : require
+#extension GL_KHR_shader_subgroup_ballot : require
+#extension GL_KHR_shader_subgroup_vote : require
 
 #define GROUP_SIZE 32
 #define NVMESHLET_VERTEX_COUNT      64
@@ -51,7 +55,7 @@ struct Vertex
 };
 
 layout(set = 1, binding = 1) uniform UniformBufferObject {
-    mat4 model;
+    mat4 model[100];
 } ubo;
 
 layout(set = 0, binding = 0) uniform UniformBufferCameraObject {
@@ -79,9 +83,16 @@ void DecodeMeshlet(uvec4 meshlet_desc, out uint vert_max, out uint prim_max, out
 	prim_max   = (meshlet_desc.y >> 24);
 }
 
+taskNV in Task {
+	uint base_id;
+	uint instance_id;
+	uint8_t sub_ids[GROUP_SIZE];
+} IN;
+
 void main()
 {
-	int meshlet_id = int(gl_WorkGroupID.x);
+	int meshlet_id = int(IN.base_id + IN.sub_ids[gl_WorkGroupID.x]);
+	//int meshlet_id = int(gl_WorkGroupID.x);
 
 	uvec4 meshlet_desc = mb.meshlet_descs[meshlet_id];
 	uint vert_max;
@@ -119,17 +130,19 @@ void main()
 			vec3 tangent = vec3(vertex.tx, vertex.ty, vertex.tz);
 			vec3 bitangent = vec3(vertex.bx, vertex.by, vertex.bz);
 
-			g_frag_pos[k+l] = vec3(ubo.model * vec4(pos, 1.0));
-			g_normal[k+l] = normalize(ubo.model * vec4(normal, 0)).xyz;
-			g_tangent[k+l] = normalize(ubo.model * vec4(tangent, 0)).xyz;
-			g_bitangent[k+l] = normalize(ubo.model * vec4(bitangent, 0)).xyz;
+			mat4 model = ubo.model[IN.instance_id];
+			
+			g_frag_pos[k+l] = vec3(model * vec4(pos, 1.0));
+			g_normal[k+l] = normalize(model * vec4(normal, 0)).xyz;
+			g_tangent[k+l] = normalize(model * vec4(tangent, 0)).xyz;
+			g_bitangent[k+l] = normalize(model * vec4(bitangent, 0)).xyz;
 			g_uv[k+l] = uv;
 			g_uv[k+l].y *= -1;
 #ifdef SHOW_MESHLETS
 			g_meshlet_id[k+l] = meshlet_id;
 #endif
 
-			gl_MeshVerticesNV[k+l].gl_Position = camera.proj * camera.view * ubo.model * vec4(pos, 1.0);
+			gl_MeshVerticesNV[k+l].gl_Position = camera.proj * camera.view * model * vec4(pos, 1.0);
 		}
 	}
 

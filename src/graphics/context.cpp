@@ -161,12 +161,17 @@ gfx::Context::Context(Application* app)
 	vkGetPhysicalDeviceProperties(m_physical_device, &m_physical_device_properties);
 	vkGetPhysicalDeviceMemoryProperties(m_physical_device, &m_physical_device_mem_properties);
 
+	VkPhysicalDeviceFloat16Int8FeaturesKHR float16int8_features = {};
+	float16int8_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR;
+
 	VkPhysicalDeviceMeshShaderFeaturesNV nv_features = {};
 	nv_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV;
 	nv_features.meshShader = 1;
 	nv_features.taskShader = 1;
-	m_physical_device_features.pNext = &nv_features;
+	nv_features.pNext = &float16int8_features;
+
 	m_physical_device_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+	m_physical_device_features.pNext = &nv_features;
 
 	vkGetPhysicalDeviceFeatures2(m_physical_device, &m_physical_device_features);
 

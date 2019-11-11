@@ -38,6 +38,11 @@ namespace tasks
 	namespace internal
 	{
 
+		inline std::uint32_t ComputeTasksCount(std::uint32_t num_meshlets)
+		{
+			return (num_meshlets + meshlets_per_task - 1) / meshlets_per_task;
+		}
+
 		inline void SetupDeferredMainMeshTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
 		{
 			if (resize) return;
@@ -88,7 +93,22 @@ namespace tasks
 					};
 
 					cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
-					cmd_list->DrawMesh(meshlets_info.second, 0);
+
+					const std::uint32_t num_tasks = ComputeTasksCount(meshlets_info.second);
+
+					for (std::uint32_t i = 0; i < batch.m_num_meshes; i++)
+					{
+						struct PushBlock
+						{
+							unsigned int offset;
+							unsigned int count;
+						} push_data;
+						push_data.offset = i;
+						push_data.count = meshlets_info.second;
+						cmd_list->BindTaskPushConstants(data.m_root_sig, &push_data, sizeof(PushBlock));
+
+						cmd_list->DrawMesh(num_tasks, 0);
+					}
 				}
 			}
 		}

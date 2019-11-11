@@ -26,6 +26,7 @@ struct shaders
 	static RegistryHandle generate_environmentmap_cs;
 	static RegistryHandle generate_brdf_lut_cs;
 	static RegistryHandle basic_mesh;
+	static RegistryHandle instancing_task;
 
 }; /* shaders */
 

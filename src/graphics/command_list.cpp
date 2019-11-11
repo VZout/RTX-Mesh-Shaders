@@ -190,6 +190,11 @@ void gfx::CommandList::BindComputeDescriptorHeap(RootSignature* root_signature, 
 	                        0, descriptor_sets.size(), descriptor_sets.data(), 0, nullptr);
 }
 
+void gfx::CommandList::BindTaskPushConstants(RootSignature* root_signature, void* data, std::uint32_t size)
+{
+	vkCmdPushConstants(m_cmd_buffers[m_frame_idx], root_signature->m_pipeline_layout, VK_SHADER_STAGE_TASK_BIT_NV, 0, size, data);
+}
+
 void gfx::CommandList::BindComputePushConstants(RootSignature* root_signature, void* data, std::uint32_t size)
 {
 	vkCmdPushConstants(m_cmd_buffers[m_frame_idx], root_signature->m_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, size, data);
