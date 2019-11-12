@@ -185,6 +185,12 @@ FetchContent_Declare(
   GIT_TAG        v2.2.0
   GIT_SHALLOW true
 )
+FetchContent_Declare(
+  json
+  GIT_REPOSITORY https://github.com/nlohmann/json.git
+  GIT_TAG        v3.7.2
+  GIT_SHALLOW true
+)
 
 FetchContent_GetProperties(googletest)
 FetchContent_GetProperties(benchmark)
@@ -195,6 +201,7 @@ FetchContent_GetProperties(glm)
 FetchContent_GetProperties(tinygltf)
 FetchContent_GetProperties(assimp)
 FetchContent_GetProperties(vma)
+FetchContent_GetProperties(json)
 # Set external options
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -209,7 +216,7 @@ add_dependency(googletest benchmark glfw assimp) # Libraries build in release mo
 unset(CMAKE_BUILD_TYPE CACHE)
 set(CMAKE_BUILD_TYPE)
 set(ADD_DEP_USE_CMAKELIST FALSE)
-add_dependency(glm glm imgui tinygltf vma) # Header only libraries.
+add_dependency(glm glm imgui tinygltf vma json) # Header only libraries.
 set(ADD_DEP_USE_CMAKELIST TRUE)
 add_dependency(fmt) # Libraries build in debug mode.
 
@@ -381,7 +388,8 @@ target_include_directories(WispVK PUBLIC
 	${vma_SOURCE_DIR}/src
 	${fmt_SOURCE_DIR}/include
 	${assimp_SOURCE_DIR}/include
-	${tinygltf_SOURCE_DIR})
+	${tinygltf_SOURCE_DIR}
+	${json_SOURCE_DIR}/single_include)
 
 # Compile GLSL Shaders Into SPRIV
 if (NOT WIN32)

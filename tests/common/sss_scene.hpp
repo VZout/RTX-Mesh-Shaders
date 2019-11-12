@@ -20,7 +20,10 @@ private:
 
 	ModelHandle m_bodybuilder_model;
 	ModelHandle m_cube_model;
+	ModelHandle m_sphere_model;
+	sg::NodeHandle m_light_sphere_node;
 	sg::NodeHandle m_light_node;
 	MaterialHandle m_bodybuilder_material;
 	MaterialHandle m_cube_material;
+	MaterialHandle m_light_sphere_material;
 };

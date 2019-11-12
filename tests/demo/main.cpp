@@ -10,6 +10,7 @@
 #include <application.hpp>
 #include <util/version.hpp>
 #include <util/user_literals.hpp>
+#include <util/browser.hpp>
 #include <render_tasks/vulkan_tasks.hpp>
 #include <imgui/icons_font_awesome5.hpp>
 #include <imgui/imgui_plot.hpp>
@@ -20,17 +21,6 @@
 #include "../common/frame_graphs.hpp"
 #include "../common/spheres_scene.hpp"
 #include "../common/sss_scene.hpp"
-
-#ifdef _WIN32
-#include <shellapi.h>
-#endif
-
-inline void OpenURL(std::string url)
-{
-#ifdef _WIN32
-	ShellExecuteA(0, 0, url.c_str(), 0, 0 , SW_SHOW );
-#endif
-}
 
 class Demo : public Application
 {

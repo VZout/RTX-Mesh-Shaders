@@ -9,11 +9,12 @@
 #include <scene_graph/scene_graph.hpp>
 #include <renderer.hpp>
 #include <cstdint>
+#include <utility>
 
 class Scene
 {
 public:
-	Scene(std::string const & name);
+	Scene(std::string const & name, std::optional<std::string> const & json_path = std::nullopt);
 	virtual ~Scene();
 
 	virtual void Init(Renderer* renderer);
@@ -21,6 +22,10 @@ public:
 	sg::SceneGraph* GetSceneGraph();
 	sg::NodeHandle GetCameraNodeHandle() const;
 	std::string const & GetName() const;
+
+
+	void LoadSceneFromJSON();
+	void SaveSceneToJSON();
 
 protected:
 	virtual void LoadResources() = 0;
@@ -34,6 +39,8 @@ protected:
 	sg::SceneGraph* m_scene_graph;
 
 	sg::NodeHandle m_camera_node;
+
+	const std::optional<std::string> m_json_path;
 
 	const std::string m_name;
 };

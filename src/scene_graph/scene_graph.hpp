@@ -107,6 +107,7 @@ namespace sg
 		}
 
 		Node GetNode(NodeHandle handle);
+		std::vector<Node> const& GetNodes() const;
 		std::vector<NodeHandle> const & GetNodeHandles() const;
 		std::vector<NodeHandle> const & GetMeshNodeHandles() const;
 		std::vector<RenderBatch> const& GetRenderBatches() const;

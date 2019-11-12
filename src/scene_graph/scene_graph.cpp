@@ -342,6 +342,11 @@ sg::Node sg::SceneGraph::GetNode(sg::NodeHandle handle)
 	return m_nodes[handle];
 }
 
+std::vector<sg::Node> const& sg::SceneGraph::GetNodes() const
+{
+	return m_nodes;
+}
+
 std::vector<sg::NodeHandle> const & sg::SceneGraph::GetNodeHandles() const
 {
 	return m_node_handles;

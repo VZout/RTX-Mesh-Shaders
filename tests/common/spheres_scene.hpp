@@ -22,5 +22,7 @@ private:
 	std::vector<sg::NodeHandle> m_sphere_nodes;
 	std::vector<MaterialHandle> m_sphere_material_handles;
 	std::vector<MaterialData> m_sphere_materials;
+	MaterialHandle m_light_sphere_material;
 	sg::NodeHandle m_light_node;
+	sg::NodeHandle m_light_sphere_node;
 };
