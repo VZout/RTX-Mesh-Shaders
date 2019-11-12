@@ -235,10 +235,10 @@ protected:
 		m_fps_camera.HandleMouseButtons(key, action);
 	}
 
-	void KeyCallback(int key, int action) final
+	void KeyCallback(int key, int action, int mods) final
 	{
 		// Frame graph swithcing
-		if (action == GLFW_PRESS)
+		if (action == GLFW_PRESS && mods & GLFW_MOD_CONTROL)
 		{
 			if (key == GLFW_KEY_1)
 			{
@@ -282,11 +282,11 @@ protected:
 			}
 			else if (key == GLFW_KEY_E && action == GLFW_PRESS)
 			{
-				m_gizmo_operation = ImGuizmo::OPERATION::ROTATE;
+				SwitchFrameGraph(fg_manager::FGType::PBR_GENERIC);
 			}
 			else if (key == GLFW_KEY_R && action == GLFW_PRESS)
 			{
-				m_gizmo_operation = ImGuizmo::OPERATION::SCALE;
+				SwitchFrameGraph(fg_manager::FGType::PBR_MESH_SHADING);
 			}
 		}
 

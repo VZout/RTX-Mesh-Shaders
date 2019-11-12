@@ -40,6 +40,7 @@ namespace gfx
 	{
 		friend class CommandList;
 		friend class DescriptorHeap;
+		friend class ShaderTable;
 		friend class ::ImGuiImpl;
 	public:
 		GPUBuffer(Context* context, std::optional<MemoryPool*> pool, std::uint64_t size);

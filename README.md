@@ -9,7 +9,7 @@
 
 <p align="center">
   <strong>
-    Visit <a aria-label="vzout.com/meshshading" href="http://vzout.com/meshshading">vzout.com/meshshading</a> to read the research paper.
+    Visit <a aria-label="meshshading.vzout.com" href="http://meshshading.vzout.com/">meshshading.vzout.com</a> to read the research paper.
   </strong>
 </p>
 

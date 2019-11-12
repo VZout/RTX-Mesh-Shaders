@@ -56,7 +56,8 @@ namespace gfx
 
 		std::vector<VkExtensionProperties> GetSupportedExtensions();
 		std::vector<VkExtensionProperties> GetSupportedDeviceExtensions();
-		VkPhysicalDeviceProperties GetPhysicalDeviceProperties();
+		VkPhysicalDeviceProperties2 GetPhysicalDeviceProperties();
+		VkPhysicalDeviceRayTracingPropertiesNV GetRayTracingDeviceProperties();
 		const VkPhysicalDeviceMemoryProperties* GetPhysicalDeviceMemoryProperties();
 		
 		bool HasValidationLayerSupport();
@@ -73,6 +74,16 @@ namespace gfx
 
 		inline static PFN_vkCmdDrawMeshTasksNV CmdDrawMeshTasksNV = VK_NULL_HANDLE;
 
+		inline static PFN_vkCreateAccelerationStructureNV vkCreateAccelerationStructureNV;
+		inline static PFN_vkDestroyAccelerationStructureNV vkDestroyAccelerationStructureNV;
+		inline static PFN_vkBindAccelerationStructureMemoryNV vkBindAccelerationStructureMemoryNV;
+		inline static PFN_vkGetAccelerationStructureHandleNV vkGetAccelerationStructureHandleNV;
+		inline static PFN_vkGetAccelerationStructureMemoryRequirementsNV vkGetAccelerationStructureMemoryRequirementsNV;
+		inline static PFN_vkCmdBuildAccelerationStructureNV vkCmdBuildAccelerationStructureNV;
+		inline static PFN_vkCreateRayTracingPipelinesNV vkCreateRayTracingPipelinesNV;
+		inline static PFN_vkGetRayTracingShaderGroupHandlesNV vkGetRayTracingShaderGroupHandlesNV;
+		inline static PFN_vkCmdTraceRaysNV vkCmdTraceRaysNV;
+
 	private:
 		std::vector<VkExtensionProperties> GetSupportedDeviceExtensions(VkPhysicalDevice device);
 		void CreateSurface();
@@ -85,6 +96,7 @@ namespace gfx
 		void EnableDebugCallback();
 		void SetupDebugMarkerExtension();
 		void SetupMeshShadingExtension();
+		void SetupRayTracingExtension();
 		void SetupVMA();
 
 		VkApplicationInfo m_app_info = {};
@@ -95,7 +107,8 @@ namespace gfx
 		VkDevice m_logical_device;
 		VkPhysicalDevice m_physical_device;
 		VkPhysicalDeviceFeatures2 m_physical_device_features;
-		VkPhysicalDeviceProperties m_physical_device_properties;
+		VkPhysicalDeviceProperties2 m_physical_device_properties;
+		VkPhysicalDeviceRayTracingPropertiesNV m_physical_device_raytracing_properties;
 		VkPhysicalDeviceMemoryProperties m_physical_device_mem_properties;
 		QueueFamilyIndices m_queue_family_indices;
 		SwapChainSupportDetails m_swapchain_support_details;

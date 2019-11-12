@@ -309,7 +309,7 @@ void SetupEditor()
 	editor.RegisterWindow("GPU Info", "Stats", [&]()
 		{
 			auto context = m_renderer->GetContext();
-			auto device_properties = context->GetPhysicalDeviceProperties();
+			auto device_properties = context->GetPhysicalDeviceProperties().properties;
 			auto device_mem_properties = context->GetPhysicalDeviceMemoryProperties();
 
 			VkDeviceSize vram = 0;
@@ -467,8 +467,8 @@ void SetupEditor()
 		ImGui::InfoText("Look Left/Right", "RMB + MouseX");
 		ImGui::InfoText("Look Up/Down", "RMB + MouseY");
 		ImGui::NewLine();
-		ImGui::InfoText("Switch To Generic Pipeline", "1");
-		ImGui::InfoText("Switch To Mesh Shading Pipeline", "2");
+		ImGui::InfoText("Switch To Generic Pipeline", "Ctrl + 1");
+		ImGui::InfoText("Switch To Mesh Shading Pipeline", "Ctrl + 2");
 		ImGui::NewLine();
 		ImGui::InfoText("Open Key bindings", "F1");
 		ImGui::InfoText("Toggle Editor", "F3 / ESC");
