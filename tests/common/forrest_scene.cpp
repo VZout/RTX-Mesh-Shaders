@@ -29,10 +29,10 @@ void ForrestScene::LoadResources()
 
 	auto load_texture_func = [&](std::string path) { return image_loader->LoadFromDisc(path); };
 
-	auto albedo_f = std::async(std::launch::async, load_texture_func, "forrest_ground/forrest_ground_01_diff_4k.png");
-	auto roughness_f = std::async(std::launch::async, load_texture_func, "forrest_ground/forrest_ground_01_rough_ao_rough_metallic.png");
-	auto displacement_f = std::async(std::launch::async, load_texture_func, "forrest_ground/forrest_ground_01_disp_4k.png");
-	auto normal_map_f = std::async(std::launch::async, load_texture_func, "forrest_ground/forrest_ground_01_nor_4k.png");
+	auto albedo_f = std::async(std::launch::async, load_texture_func, "forrest_ground/forrest_ground_01_diff_4k.jpg");
+	auto roughness_f = std::async(std::launch::async, load_texture_func, "forrest_ground/forrest_ground_01_rough_ao_rough_metallic.jpg");
+	auto displacement_f = std::async(std::launch::async, load_texture_func, "forrest_ground/forrest_ground_01_disp_4k.jpg");
+	auto normal_map_f = std::async(std::launch::async, load_texture_func, "forrest_ground/forrest_ground_01_nor_4k.jpg");
 
 	ExtraMaterialData data;
 	data.m_thickness_texture_paths = { "black.png", "black.png", "black.png", "black.png", "black.png" };
