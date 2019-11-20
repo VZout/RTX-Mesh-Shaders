@@ -13,6 +13,8 @@
 #define ANISO
 #define CLEAR_COAT
 #define MATERIAL_HAS_NORMAL
+#define SPECULAR_AMBIENT_OCCLUSION 1
+#define MULTI_BOUNCE_AMBIENT_OCCLUSION 0
 
 float pow5(float x)
 {
@@ -39,6 +41,14 @@ vec3 ComputeF0(const vec3 albedo, float metallic, float reflectance) {
 vec3 SpecularDFG(vec3 F0, vec2 dfg)
 {
     return mix(dfg.xxx, dfg.yyy, F0);
+}
+
+float ComputeSpecularAO(float NoV, float visibility, float roughness) {
+#if SPECULAR_AMBIENT_OCCLUSION == 1
+    return clamp(pow(NoV + visibility, exp2(-16.0 * roughness - 1.0)) - 1.0 + visibility, 0, 1);
+#else
+    return 1.0;
+#endif
 }
 
 // TODO: Needs infestigating

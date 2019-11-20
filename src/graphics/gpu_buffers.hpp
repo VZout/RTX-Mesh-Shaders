@@ -42,6 +42,7 @@ namespace gfx
 		friend class DescriptorHeap;
 		friend class ShaderTable;
 		friend class ::ImGuiImpl;
+		friend class VkConstantBufferPool;
 	public:
 		GPUBuffer(Context* context, std::optional<MemoryPool*> pool, std::uint64_t size);
 		GPUBuffer(Context* context, std::optional<MemoryPool*> pool, std::uint64_t size, enums::BufferUsageFlag usage);

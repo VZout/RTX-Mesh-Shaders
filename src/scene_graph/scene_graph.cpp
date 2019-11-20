@@ -10,10 +10,11 @@
 
 sg::SceneGraph::SceneGraph(Renderer* renderer)
 {
+	m_meshes_require_batching.resize(gfx::settings::num_back_buffers);
 	m_batch_requires_update.resize(gfx::settings::num_back_buffers);
 	m_num_lights.resize(gfx::settings::num_back_buffers, 0);
 
-	m_per_object_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Basic) * gfx::settings::max_render_batch_size, 300, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_MESH_BIT_NV);
+	m_per_object_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Basic) * gfx::settings::max_render_batch_size, 100, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_MESH_BIT_NV);
 	m_camera_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Camera), 1, 0, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_MESH_BIT_NV);
 	m_light_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Light) * gfx::settings::max_lights, 1, 3, VK_SHADER_STAGE_COMPUTE_BIT);
 
@@ -195,7 +196,7 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 	}
 
 	// Generate Batches
-	for (auto& node_handle : m_meshes_require_batching)
+	for (auto& node_handle : m_meshes_require_batching[0])
 	{
 		auto node = m_nodes[node_handle];
 		auto model_handle = m_model_handles[node.m_mesh_component].m_value;
@@ -239,7 +240,7 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 			}
 		}
 	}
-	m_meshes_require_batching.clear();
+	m_meshes_require_batching[0].clear();
 
 	// Efficient batch update. (new/delete)
 	for (auto& batch_handle_pair : m_batch_requires_update[frame_idx])
@@ -264,6 +265,8 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 
 		// TODO: In theory right now the cb handle and the mesh component will always have the same value.
 		m_per_object_buffer_pool->Update(batch.m_big_cb, sizeof(cb::Basic), &data, frame_idx, update_offset * sizeof(cb::Basic));
+
+		m_requires_buffer_update[node.m_mesh_component].m_value[frame_idx] = false;
 	}
 	m_batch_requires_update[frame_idx].clear();
 
@@ -300,8 +303,8 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 				m_per_object_buffer_pool->Update(batch.m_big_cb, sizeof(cb::Basic), &data, frame_idx, update_offset * sizeof(cb::Basic));
 
 				updated_batch = true;
-				m_requires_buffer_update[node.m_mesh_component].m_value[frame_idx] = false;
-				return;
+				requires_update.m_value[frame_idx] = false;
+				break;
 			}
 		}
 

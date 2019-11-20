@@ -191,12 +191,18 @@ ModelHandle ModelPool::LoadWithMaterials(ModelData* data,
 	// Apply extra material data
 	if (extra.has_value())
 	{
-		auto image_loader = new STBImageLoader();
+		auto image_loader = new STBImageLoader(); // TODO: Memory leak
 
 		const auto& thickness_paths = extra.value().m_thickness_texture_paths;
 		for (std::size_t i = 0; i < std::min(data->m_materials.size(), thickness_paths.size()); i++)
 		{
 			data->m_materials[i].m_thickness_texture = *image_loader->LoadFromDisc(thickness_paths[i]).get();
+		}
+
+		const auto& displacement_paths = extra.value().m_displacement_texture_paths;
+		for (std::size_t i = 0; i < std::min(data->m_materials.size(), displacement_paths.size()); i++)
+		{
+			data->m_materials[i].m_displacement_texture = *image_loader->LoadFromDisc(displacement_paths[i]).get();
 		}
 	}
 

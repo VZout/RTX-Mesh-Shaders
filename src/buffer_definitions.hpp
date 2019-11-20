@@ -27,6 +27,8 @@ namespace cb
 		glm::vec2 anisotropy_dir = { 1, 0 };
 		float clear_coat;
 		float clear_coat_roughness;
+		glm::vec2 uv_scale;
+		glm::vec2 padding;
 	};
 
 	struct Camera

@@ -3,6 +3,12 @@
 
 //#define SHOW_MESHLETS
 
+#define DISPLACEMENT
+
+#ifdef DISPLACEMENT
+	layout(set = 2, binding = 2) uniform sampler2D ts_textures[5];
+#endif
+
 #define USE_NATIVE   1
 #extension GL_NV_mesh_shader : enable
 #extension GL_EXT_shader_explicit_arithmetic_types_int8 : enable
@@ -54,6 +60,15 @@ struct Vertex
 	float bz;
 };
 
+struct ReadableVertex
+{
+	vec3 pos;
+	vec2 uv;
+	vec3 normal;
+	vec3 tangent;
+	vec3 bitangent;
+};
+
 layout(set = 1, binding = 1) uniform UniformBufferObject {
     mat4 model[100];
 } ubo;
@@ -79,8 +94,8 @@ void DecodeMeshlet(uvec4 meshlet_desc, out uint vert_max, out uint prim_max, out
 {
 	vert_begin = (meshlet_desc.z & 0xFFFFF) * NVMESHLET_VERTEX_ALIGNMENT;
 	prim_begin = (meshlet_desc.w & 0xFFFFF) /** NVMESHLET_PRIM_ALIGNMENT*/;
-	vert_max   = (meshlet_desc.x >> 24);
-	prim_max   = (meshlet_desc.y >> 24);
+	vert_max = (meshlet_desc.x >> 24);
+	prim_max = (meshlet_desc.y >> 24);
 }
 
 taskNV in Task {
@@ -89,10 +104,52 @@ taskNV in Task {
 	uint8_t sub_ids[GROUP_SIZE];
 } IN;
 
+void EmitVertex(uint idx, ReadableVertex vertex)
+{
+	mat4 model = ubo.model[IN.instance_id];
+
+	vec4 world_pos = model * vec4(vertex.pos, 1.0f);
+	vec4 world_normal = normalize(model * vec4(vertex.normal, 0));
+
+	g_frag_pos[idx] = vec3(world_pos);
+	g_normal[idx] = world_normal.xyz;
+	g_tangent[idx] = normalize(model * vec4(vertex.tangent, 0)).xyz;
+	g_bitangent[idx] = normalize(model * vec4(vertex.bitangent, 0)).xyz;
+	g_uv[idx] = vertex.uv;
+	g_uv[idx].y *= -1;
+#ifdef SHOW_MESHLETS
+	g_meshlet_id[idx] = meshlet_id;
+#endif
+
+	gl_MeshVerticesNV[idx].gl_Position = camera.proj * camera.view * world_pos;
+}
+
+void PushTriangle(inout uint start_idx, ReadableVertex a, ReadableVertex b, ReadableVertex c)
+{
+	gl_PrimitiveIndicesNV[start_idx+0] = start_idx+0;
+	gl_PrimitiveIndicesNV[start_idx+1] = start_idx+1;
+	gl_PrimitiveIndicesNV[start_idx+2] = start_idx+2;
+
+	EmitVertex(start_idx+0, a);
+	EmitVertex(start_idx+1, b);
+	EmitVertex(start_idx+2, c);
+}
+
+ReadableVertex VertexToReadable(Vertex vertex)
+{
+	ReadableVertex retval;
+	retval.pos = vec3(vertex.x, vertex.y, vertex.z);
+	retval.uv = vec2(vertex.u, vertex.v);
+	retval.normal = vec3(vertex.nx, vertex.ny, vertex.nz);
+	retval.tangent = vec3(vertex.tx, vertex.ty, vertex.tz);
+	retval.bitangent = vec3(vertex.bx, vertex.by, vertex.bz);
+
+	return retval;
+}
+
 void main()
 {
 	int meshlet_id = int(IN.base_id + IN.sub_ids[gl_WorkGroupID.x]);
-	//int meshlet_id = int(gl_WorkGroupID.x);
 
 	uvec4 meshlet_desc = mb.meshlet_descs[meshlet_id];
 	uint vert_max;
@@ -102,71 +159,19 @@ void main()
 	DecodeMeshlet(meshlet_desc, vert_max, prim_max, vert_begin, prim_begin);
 	vert_max += 1;
 	prim_max += 1;
-
-	gl_PrimitiveCountNV = prim_max;
-
-
+	
 	// primitives
+	uint next_index = 0;
 	for (uint i = prim_begin * 3; i < (prim_begin + prim_max) * 3; i += 3)
 	{
-		/*
 		uint k = i - (prim_begin * 3);
-		gl_PrimitiveIndicesNV[k] = ib.indices[i];
-		gl_PrimitiveIndicesNV[k+1] = ib.indices[i+1];
-		gl_PrimitiveIndicesNV[k+2] = ib.indices[i+2];
-		*/
 
-		uint k = i - (prim_begin * 3);
-		gl_PrimitiveIndicesNV[k] = k;
-		gl_PrimitiveIndicesNV[k+1] = k+1;
-		gl_PrimitiveIndicesNV[k+2] = k+2;
+		ReadableVertex v0 = VertexToReadable(vb.vertices[ib.indices[i + 0]]);
+		ReadableVertex v1 = VertexToReadable(vb.vertices[ib.indices[i + 1]]);
+		ReadableVertex v2 = VertexToReadable(vb.vertices[ib.indices[i + 2]]);
 
-		for (uint l = 0; l < 3; l++)
-		{
-			Vertex vertex = vb.vertices[ib.indices[i + l]];
-			vec3 pos = vec3(vertex.x, vertex.y, vertex.z);
-			vec2 uv = vec2(vertex.u, vertex.v);
-			vec3 normal = vec3(vertex.nx, vertex.ny, vertex.nz);
-			vec3 tangent = vec3(vertex.tx, vertex.ty, vertex.tz);
-			vec3 bitangent = vec3(vertex.bx, vertex.by, vertex.bz);
-
-			mat4 model = ubo.model[IN.instance_id];
-			
-			g_frag_pos[k+l] = vec3(model * vec4(pos, 1.0));
-			g_normal[k+l] = normalize(model * vec4(normal, 0)).xyz;
-			g_tangent[k+l] = normalize(model * vec4(tangent, 0)).xyz;
-			g_bitangent[k+l] = normalize(model * vec4(bitangent, 0)).xyz;
-			g_uv[k+l] = uv;
-			g_uv[k+l].y *= -1;
-#ifdef SHOW_MESHLETS
-			g_meshlet_id[k+l] = meshlet_id;
-#endif
-
-			gl_MeshVerticesNV[k+l].gl_Position = camera.proj * camera.view * model * vec4(pos, 1.0);
-		}
+		PushTriangle(k, v0, v1, v2);
 	}
 
-	// vertices
-	/*
-	for (int i = 0; i < vert_max; i++)
-	{
-		Vertex vertex = vb.vertices[i];
-		vec3 pos = vec3(vertex.x, vertex.y, vertex.z);
-		vec2 uv = vec2(vertex.u, vertex.v);
-		vec3 normal = vec3(vertex.nx, vertex.ny, vertex.nz);
-		vec3 tangent = vec3(vertex.tx, vertex.ty, vertex.tz);
-		vec3 bitangent = vec3(vertex.bx, vertex.by, vertex.bz);
-
-		g_frag_pos[i] = vec3(ubo.model * vec4(pos, 1.0));
-		g_normal[i] = normalize(ubo.model * vec4(normal, 0)).xyz;
-		g_tangent[i] = normalize(ubo.model * vec4(tangent, 0)).xyz;
-		g_bitangent[i] = normalize(ubo.model * vec4(bitangent, 0)).xyz;
-		g_uv[i] = uv;
-#ifdef SHOW_MESHLETS
-		g_meshlet_id[i] = meshlet_id;
-#endif
-
-		gl_MeshVerticesNV[i].gl_Position = camera.proj * camera.view * ubo.model * vec4(pos, 1.0);
-	}
-	*/
+	gl_PrimitiveCountNV = prim_max;
 }

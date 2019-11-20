@@ -21,6 +21,7 @@ layout(set = 7, binding = 7) uniform sampler2D t_brdf_lut;
 
 #define ENV_SAMPLING
 #include "pbr+_util.glsl"
+#include "fog.glsl"
 
 layout(set = 0, binding = 0) uniform UniformBufferCameraObject {
     mat4 view;
@@ -163,7 +164,7 @@ void main()
     //energy_compensation = vec3(1);
 
     float diff_ao = ao;
-    float spec_ao = 1.f; // TODO: Specular ao
+    float spec_ao = ComputeSpecularAO(NdotV, diff_ao, PerceptualRoughnessToRoughness(roughness)); // TODO: Specular ao
 
     // specular layer
 	vec3 R = GetReflectionVec(N, V, roughness, anisotropy, anisotropic_t, anisotropic_b);
@@ -268,6 +269,7 @@ void main()
     color *= ao;
     #endif
 
+
     // Skybox
     if (world_pos.z == 0)
     {
@@ -278,6 +280,12 @@ void main()
 
         color = textureLod(t_skybox, direction.xyz, 0).rgb;
     }
+
+	// fog
+	/*vec3 fog_color = vec3(0.5, 0.5, 0.5);
+	float fog_dist = length((camera.proj * camera.view * vec4(world_pos.xyz, 1)).xyz);
+	float fog_amount = FogFactorLinear(fog_dist, 5, 12);
+	color = mix(color, fog_color, fog_amount);*/
 
 	/*const vec2 buv = (vec2(gl_GlobalInvocationID.xy) / resolution.y);
     if (uv.x < 0.5) {

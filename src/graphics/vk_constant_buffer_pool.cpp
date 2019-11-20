@@ -64,6 +64,16 @@ gfx::VkConstantBufferPool::~VkConstantBufferPool()
 	delete m_pool;
 }
 
+void gfx::VkConstantBufferPool::Flush(std::uint32_t frame_idx)
+{
+	for (auto& buffer : m_buffers[frame_idx])
+	{
+		// Flush to make writes visible to GPU
+		vmaFlushAllocation(m_context->m_vma_allocator, buffer->m_buffer_allocation, 0, VK_WHOLE_SIZE);
+	}
+
+}
+
 std::vector<std::uint32_t> gfx::VkConstantBufferPool::CreateConstantBufferSet(std::vector<ConstantBufferHandle> handles)
 {
 	std::vector<std::uint32_t> retval;

@@ -278,34 +278,23 @@ void SetupEditor()
 
 	editor.RegisterWindow("Performance", "Stats", [&]()
 		{
-			ImGui::Columns(2);
-			ImGui::SetColumnWidth(0, 100);
 			ImGui::Text("Delta: %.6f", m_delta);
 			ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
-			ImGui::NextColumn();
-			ImGui::InputInt("Max Samples", &m_max_frame_rates);
-			ImGui::SameLine();
-			if (ImGui::Button("Reset Scale"))
+
+			ImGui::Separator();
+
+			for (auto const & it : util::CPUProfilerSystem::Get().GetScopes())
 			{
-				m_max_frame_rate = 1;
-				m_min_frame_rate = 0;
+				double total_ms = it.second.m_total / 1000000.0;
+				double average = total_ms / it.second.m_times;
+				double last_ms = it.second.m_last / 1000000.0;
+
+				ImGui::Text(fmt::format("Scope Timer '{}'", it.first).c_str());
+				ImGui::Text(fmt::format("\t Num Samples: {}", it.second.m_times).c_str());
+				ImGui::Text(fmt::format("\t Average: {}", average).c_str());
+				ImGui::Text(fmt::format("\t Last Sample: {}", last_ms).c_str());
+				ImGui::Text(fmt::format("\t Num Samples: {}", it.second.m_times).c_str());
 			}
-			ImGui::Columns(1);
-
-			ImGui::PlotConfig conf;
-			conf.values.ys = m_frame_rates.data();
-			conf.values.count = m_frame_rates.size();
-			conf.scale.min = m_min_frame_rate;
-			conf.values.color = ImColor(0, 255, 0);
-			conf.scale.max = m_max_frame_rate;
-			conf.tooltip.show = true;
-			conf.tooltip.format = "fps=%.2f";
-			conf.grid_x.show = false;
-			conf.grid_y.show = false;
-			conf.frame_size = ImGui::GetContentRegionAvail();
-			conf.line_thickness = 3.f;
-
-			ImGui::Plot("plot", conf);
 		}, false, reinterpret_cast<const char*>(ICON_FA_CHART_AREA));
 
 	editor.RegisterWindow("GPU Info", "Stats", [&]()

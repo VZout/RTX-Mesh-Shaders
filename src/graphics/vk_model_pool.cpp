@@ -16,7 +16,7 @@ gfx::VkModelPool::VkModelPool(Context* context)
 		: ModelPool(), m_context(context)
 {
 	gfx::DescriptorHeap::Desc desc = {};
-	desc.m_num_descriptors = 100;
+	desc.m_num_descriptors = 400;
 	desc.m_versions = 1;
 
 	m_heap = new gfx::DescriptorHeap(context, desc);

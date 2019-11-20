@@ -1,0 +1,6 @@
+# VxScan
+
+newmtl m1
+	illum 1
+	Ns 0.000000
+	map_Kd Wooden Dragon Sculpture.bmp

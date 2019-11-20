@@ -65,6 +65,7 @@ public:
 	void Init(Application* app);
 	void Upload();
 	void Render(sg::SceneGraph& sg, fg::FrameGraph& fg);
+	void AquireNewFrame();
 	void WaitForAllPreviousWork();
 	void Resize(std::uint32_t width, std::uint32_t height);
 	Application* GetApp();

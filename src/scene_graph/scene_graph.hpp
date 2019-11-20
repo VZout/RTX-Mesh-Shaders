@@ -151,7 +151,10 @@ namespace sg
 			));
 
 			m_mesh_node_handles.push_back(handle);
-			m_meshes_require_batching.push_back(handle);
+			for (auto& meshes_require_batching : m_meshes_require_batching)
+			{
+				meshes_require_batching.push_back(handle);
+			}
 		}
 
 		template<typename T>
@@ -258,7 +261,7 @@ namespace sg
 		std::vector<std::size_t> m_num_lights;
 
 		// Batching
-		std::vector<NodeHandle> m_meshes_require_batching;
+		std::vector<std::vector<NodeHandle>> m_meshes_require_batching;
 		std::vector<std::vector<std::pair<std::uint32_t, std::uint32_t>>> m_batch_requires_update;
 		std::vector<RenderBatch> m_render_batches;
 

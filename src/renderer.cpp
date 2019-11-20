@@ -132,15 +132,20 @@ void Renderer::Render(sg::SceneGraph& sg, fg::FrameGraph& fg)
 {
 	auto frame_idx = m_render_window->GetFrameIdx();
 
-	m_present_fences[frame_idx]->Wait();
-	m_render_window->AquireBackBuffer(m_present_fences[frame_idx]);
-
 	fg.Execute(sg);
 
 	auto fg_cmd_lists = fg.GetAllCommandLists<gfx::CommandList>();
 	m_direct_queue->Execute(fg_cmd_lists, m_present_fences[frame_idx], frame_idx);
 
 	m_render_window->Present(m_direct_queue, m_present_fences[frame_idx]);
+}
+
+void Renderer::AquireNewFrame()
+{
+	auto frame_idx = m_render_window->GetFrameIdx();
+
+	m_present_fences[frame_idx]->Wait();
+	m_render_window->AquireBackBuffer(m_present_fences[frame_idx]);
 }
 
 void Renderer::WaitForAllPreviousWork()

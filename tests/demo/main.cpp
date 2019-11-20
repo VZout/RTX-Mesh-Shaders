@@ -21,6 +21,12 @@
 #include "../common/frame_graphs.hpp"
 #include "../common/spheres_scene.hpp"
 #include "../common/sss_scene.hpp"
+#include "../common/forrest_scene.hpp"
+#include "../common/displacement_scene.hpp"
+
+#include <util/cpu_profiler.hpp>
+
+#define DEFAULT_SCENE ForrestScene
 
 class Demo : public Application
 {
@@ -77,13 +83,15 @@ protected:
 
 	void Init() final
 	{
+		TIME_THIS_SCOPE(Init);
+
 		SetupEditor();
 		editor.SetMainMenuBarText("FrameGraph: " + fg_manager::GetFrameGraphName(m_fg_type));
 
 		m_renderer = new Renderer();
 		m_renderer->Init(this);
 
-		m_scene = new SubsurfaceScene();
+		m_scene = new DEFAULT_SCENE();
 		m_scene->Init(m_renderer);
 
 		m_frame_graph = fg_manager::CreateFrameGraph(m_fg_type, m_renderer, [this](ImTextureID texture)
@@ -103,6 +111,8 @@ protected:
 
 	void Loop() final
 	{
+		TIME_THIS_SCOPE(Frame);
+
 		// Change Frame Graph
 		if (m_reload_fg)
 		{
@@ -155,6 +165,8 @@ protected:
 		auto diff = now - m_last; 
 		m_delta = (float)diff.count() / 1000000000.f; // milliseconds
 		m_last = now;
+
+		m_renderer->AquireNewFrame();
 
 		m_scene->Update(m_renderer->GetFrameIdx(), m_delta, m_time);
 
@@ -313,7 +325,7 @@ protected:
 	ImVec2 m_viewport_pos = { 0, 0 };
 	ImVec2 m_viewport_size = { 1280, 720};
 
-	fg_manager::FGType m_fg_type = fg_manager::FGType::PBR_MESH_SHADING;
+	fg_manager::FGType m_fg_type = fg_manager::FGType::PBR_GENERIC;
 };
 
 
