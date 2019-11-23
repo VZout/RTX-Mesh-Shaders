@@ -39,6 +39,7 @@ namespace fg_manager
 		[](Renderer* rs, decltype(tasks::ImGuiTaskData::m_render_func) imgui_func)
 		{
 			auto fg = new fg::FrameGraph(9);
+			tasks::AddBuildASTask(*fg);
 			tasks::AddGenerateCubemapTask(*fg);
 			tasks::AddGenerateIrradianceMapTask(*fg);
 			tasks::AddGenerateEnvironmentMapTask(*fg);
@@ -46,8 +47,9 @@ namespace fg_manager
 			tasks::AddDeferredMainTask(*fg);
 			tasks::AddDeferredCompositionTask(*fg);
 			tasks::AddPostProcessingTask<tasks::DeferredCompositionData>(*fg);
+			tasks::AddRaytracingTask(*fg);
 			tasks::AddCopyToBackBufferTask<tasks::PostProcessingData>(*fg);
-			tasks::AddImGuiTask<tasks::PostProcessingData>(*fg, imgui_func);
+			tasks::AddImGuiTask<tasks::RaytracingData>(*fg, imgui_func);
 
 			fg->Validate();
 			fg->Setup(rs);

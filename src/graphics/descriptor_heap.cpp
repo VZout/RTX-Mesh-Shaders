@@ -6,6 +6,7 @@
 #include "gpu_buffers.hpp"
 #include "render_target.hpp"
 #include "../util/log.hpp"
+#include "acceleration_structure.hpp"
 
 // we always create 1 pool as a heap
 // in the pool we create sets for the different type of descriptors
@@ -116,6 +117,44 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromCB(std::vector<GPUBuffer*> bu
 std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx, bool uniform)
 {
 	return CreateSRVFromCB(buffer, root_signature->m_descriptor_set_layouts[handle], handle, frame_idx, uniform);
+}
+
+std::uint32_t gfx::DescriptorHeap::CreateSRVFromAS(AccelerationStructure* as, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx)
+{
+	auto logical_device = m_context->m_logical_device;
+
+	// Create the descriptor sets
+	VkDescriptorSetAllocateInfo alloc_info = {};
+	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	alloc_info.descriptorPool = m_descriptor_pools[frame_idx];
+	alloc_info.descriptorSetCount = 1;
+	alloc_info.pSetLayouts = &root_signature->m_descriptor_set_layouts[handle];
+
+	VkDescriptorSet descriptor_set;
+	if (vkAllocateDescriptorSets(logical_device, &alloc_info, &descriptor_set) != VK_SUCCESS)
+	{
+		LOGC("failed to allocate descriptor sets!");
+	}
+	m_descriptor_sets[frame_idx].push_back(descriptor_set);
+	auto descriptor_set_id = m_descriptor_sets[frame_idx].size() - 1;
+
+	VkWriteDescriptorSetAccelerationStructureNV as_info = {};
+	as_info.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV;
+	as_info.accelerationStructureCount = 1;
+	as_info.pAccelerationStructures = &as->m_native;
+
+	VkWriteDescriptorSet descriptor_write = {};
+	descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptor_write.dstSet = m_descriptor_sets[frame_idx][descriptor_set_id];  // TODO: Don't use 0 but get the set that corresponds to the correct descriptor type.
+	descriptor_write.dstBinding = handle;
+	descriptor_write.dstArrayElement = 0;
+	descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
+	descriptor_write.descriptorCount = 1;
+	descriptor_write.pNext = &as_info;
+
+	vkUpdateDescriptorSets(logical_device, 1u, &descriptor_write, 0, nullptr);
+
+	return descriptor_set_id;
 }
 
 template<typename T, typename A>

@@ -85,7 +85,7 @@ namespace tasks
 			auto render_target = fg.GetRenderTarget(handle);
 			auto num_mips = render_target->GetMipLevels();
 
-			cmd_list->BindComputePipelineState(pipeline);
+			cmd_list->BindPipelineState(pipeline);
 
 			for (std::uint32_t i = 0; i < num_mips; i++)
 			{
@@ -98,7 +98,7 @@ namespace tasks
 						{data.m_desc_heap, data.m_input_set},
 						{data.m_desc_heap, data.m_uav_target_sets[i]}
 					};
-					cmd_list->BindComputeDescriptorHeap(data.m_root_sig, sets);
+					cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
 
 					// Update the cb with the correct info.
 					struct PushBlock

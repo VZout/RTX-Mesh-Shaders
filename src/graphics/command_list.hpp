@@ -26,12 +26,14 @@ namespace gfx
 	class StagingTexture;
 	class StagingBuffer;
 	class Texture;
+	class ShaderTable;
 
 	class CommandList
 	{
 		friend class RenderWindow;
 		friend class CommandQueue;
 		friend class ::ImGuiImpl;
+		friend class AccelerationStructure;
 	public:
 		explicit CommandList(CommandQueue* queue);
 		~CommandList();
@@ -43,11 +45,9 @@ namespace gfx
 		void BindRenderTarget(RenderTarget* render_target);
 		void UnbindRenderTarget();
 		void BindPipelineState(PipelineState* pipeline);
-		void BindComputePipelineState(PipelineState* pipeline);
 		void BindVertexBuffer(StagingBuffer* staging_buffer);
 		void BindIndexBuffer(StagingBuffer* staging_buffer);
 		void BindDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets);
-		void BindComputeDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets);
 		void BindComputePushConstants(RootSignature* root_signature, void* data, std::uint32_t size);
 		void BindTaskPushConstants(RootSignature* root_signature, void* data, std::uint32_t size);
 		void StageBuffer(StagingBuffer* staging_buffer);
@@ -65,6 +65,9 @@ namespace gfx
 		void DrawIndexed(std::uint32_t idx_count, std::uint32_t instance_count,
 				std::uint32_t first_idx = 0, std::uint32_t vertex_offset = 0, std::uint32_t first_instance = 0);
 		void Dispatch(std::uint32_t tg_count_x, std::uint32_t tg_count_y, std::uint32_t tg_count_z);
+		void DispatchRays(
+			ShaderTable* raygen_table, ShaderTable* miss_table, ShaderTable* hit_table,
+			std::uint32_t width, std::uint32_t height, std::uint32_t depth);
 		void DrawMesh(std::uint32_t count, std::uint32_t first);
 
 	private:
@@ -76,6 +79,7 @@ namespace gfx
 		std::vector<VkCommandBuffer> m_cmd_buffers;
 
 		std::uint32_t m_frame_idx;
+		VkPipelineBindPoint m_current_bind_point;
 	};
 
 } /* gfx */

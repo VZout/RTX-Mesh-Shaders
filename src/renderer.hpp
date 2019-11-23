@@ -77,6 +77,7 @@ public:
 	void PrepareShaderRegistry();
 	void PrepareRootSignatureRegistry();
 	void PreparePipelineRegistry();
+	void PrepareRaytracingPipelineRegistry();
 	template<typename R>
 	void DestroyRegistry();
 

@@ -23,29 +23,37 @@
 #include "../graphics/descriptor_heap.hpp"
 #include "../graphics/vk_material_pool.hpp"
 #include "../graphics/gfx_enums.hpp"
+#include "../graphics/shader_table.hpp"
+#include "vk_build_acceleration_structures_task.hpp"
 
 namespace tasks
 {
 
-	struct PostProcessingData
+	struct RaytracingData
 	{
-		std::uint32_t m_input_set;
+		std::uint32_t m_tlas_set;
 		std::uint32_t m_uav_target_set;
 		gfx::DescriptorHeap* m_gbuffer_heap;
 
+		gfx::PipelineState* m_pipeline;
 		gfx::RootSignature* m_root_sig;
+
+		gfx::ShaderTable* m_raygen_shader_table;
+		gfx::ShaderTable* m_miss_shader_table;
+		gfx::ShaderTable* m_hitgroup_shader_table;
+
+		bool m_first_execute = true;
 	};
 
 	namespace internal
 	{
 
-		template<typename T>
-		inline void SetupPostProcessingTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool)
+		inline void SetupRaytracingTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool)
 		{
-			auto& data = fg.GetData<PostProcessingData>(handle);
-			data.m_root_sig = RootSignatureRegistry::SFind(root_signatures::post_processing);
+			auto& data = fg.GetData<RaytracingData>(handle);
+			data.m_root_sig = RootSignatureRegistry::SFind(root_signatures::raytracing);
+			data.m_pipeline = RTPipelineRegistry::SFind(pipelines::raytracing);
 			auto render_target = fg.GetRenderTarget(handle);
-			auto predecessor_rt = fg.GetPredecessorRenderTarget<T>();
 
 			gfx::SamplerDesc input_sampler_desc
 			{
@@ -56,41 +64,58 @@ namespace tasks
 
 			gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
 			descriptor_heap_desc.m_versions = 1;
-			descriptor_heap_desc.m_num_descriptors = 3;
+			descriptor_heap_desc.m_num_descriptors = 2;
 			data.m_gbuffer_heap = new gfx::DescriptorHeap(rs.GetContext(), descriptor_heap_desc);
-			data.m_input_set = data.m_gbuffer_heap->CreateSRVSetFromRT(predecessor_rt, data.m_root_sig, 0, 0, false, std::nullopt);
 			data.m_uav_target_set = data.m_gbuffer_heap->CreateUAVSetFromRT(render_target, 0, data.m_root_sig, 1, 0, input_sampler_desc);
+
+			data.m_raygen_shader_table = new gfx::ShaderTable(rs.GetContext(), 3);
+			data.m_raygen_shader_table->AddShaderRecord(data.m_pipeline, 0, 3);
+
+			/*data.m_miss_shader_table = new gfx::ShaderTable(rs.GetContext(), 1);
+			data.m_miss_shader_table->AddShaderRecord(data.m_pipeline, 1, 1);
+
+			data.m_hitgroup_shader_table = new gfx::ShaderTable(rs.GetContext(), 1);
+			data.m_hitgroup_shader_table->AddShaderRecord(data.m_pipeline, 2, 1);*/
 		}
 
-		inline void ExecutePostProcessingTask(Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, fg::RenderTaskHandle handle)
+		inline void ExecuteRaytracingTask(Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, fg::RenderTaskHandle handle)
 		{
-			auto& data = fg.GetData<PostProcessingData>(handle);
+			auto& data = fg.GetData<RaytracingData>(handle);
 			auto cmd_list = fg.GetCommandList(handle);
-			auto pipeline = PipelineRegistry::SFind(pipelines::post_processing);
 			auto render_target = fg.GetRenderTarget(handle);
+
+			auto camera_pool = static_cast<gfx::VkConstantBufferPool*>(sg.GetInverseCameraConstantBufferPool());
+			auto camera_handle = sg.m_inverse_camera_cb_handles[0].m_value;
+
+			if (data.m_first_execute)
+			{
+				auto as_build_data = fg.GetPredecessorData<BuildASData>();
+				data.m_tlas_set = data.m_gbuffer_heap->CreateSRVFromAS(as_build_data.m_tlas, data.m_root_sig, 0, 0);
+				data.m_first_execute = false;
+			}
 
 			cb::Basic basic_cb_data;
 			std::vector<std::pair<gfx::DescriptorHeap*, std::uint32_t>> sets
 			{
-				{ data.m_gbuffer_heap, data.m_input_set },
+				{ data.m_gbuffer_heap, data.m_tlas_set },
 				{ data.m_gbuffer_heap, data.m_uav_target_set },
+				{ camera_pool->GetDescriptorHeap(), camera_handle.m_cb_set_id },
 			};
 
-			cmd_list->BindPipelineState(pipeline);
+			cmd_list->BindPipelineState(data.m_pipeline);
 			cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
-			cmd_list->Dispatch(render_target->GetWidth() / 16, render_target->GetHeight() / 16, 1);
+			cmd_list->DispatchRays(data.m_raygen_shader_table, data.m_raygen_shader_table, data.m_raygen_shader_table, render_target->GetWidth(), render_target->GetHeight(), 1);
 		}
 
-		inline void DestroyPostProcessingTask(fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool)
+		inline void DestroyRaytracingTask(fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool)
 		{
-			auto& data = fg.GetData<PostProcessingData>(handle);
+			auto& data = fg.GetData<RaytracingData>(handle);
 			delete data.m_gbuffer_heap;
 		}
 
 	} /* internal */
 
-	template<typename T>
-	inline void AddPostProcessingTask(fg::FrameGraph& fg)
+	inline void AddRaytracingTask(fg::FrameGraph& fg)
 	{
 		RenderTargetProperties rt_properties
 		{
@@ -108,22 +133,22 @@ namespace tasks
 		fg::RenderTaskDesc desc;
 		desc.m_setup_func = [](Renderer& rs, fg::FrameGraph& fg, ::fg::RenderTaskHandle handle, bool resize)
 		{
-			internal::SetupPostProcessingTask<T>(rs, fg, handle, resize);
+			internal::SetupRaytracingTask(rs, fg, handle, resize);
 		};
 		desc.m_execute_func = [](Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, ::fg::RenderTaskHandle handle)
 		{
-			internal::ExecutePostProcessingTask(rs, fg, sg, handle);
+			internal::ExecuteRaytracingTask(rs, fg, sg, handle);
 		};
 		desc.m_destroy_func = [](fg::FrameGraph& fg, ::fg::RenderTaskHandle handle, bool resize)
 		{
-			internal::DestroyPostProcessingTask(fg, handle, resize);
+			internal::DestroyRaytracingTask(fg, handle, resize);
 		};
 
 		desc.m_properties = rt_properties;
 		desc.m_type = fg::RenderTaskType::COMPUTE;
 		desc.m_allow_multithreading = true;
 
-		fg.AddTask<PostProcessingData>(desc, L"Post Processing Task", FG_DEPS<T>());
+		fg.AddTask<RaytracingData>(desc, L"Raytracing Task", FG_DEPS<BuildASData>());
 	}
 
 } /* tasks */

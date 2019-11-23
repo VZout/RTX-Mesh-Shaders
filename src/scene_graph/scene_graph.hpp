@@ -187,6 +187,12 @@ namespace sg
 				camera_cb_handle,
 				handle
 			));
+			// Allocate inverse constant buffer.
+			auto inverse_camera_cb_handle = m_inverse_camera_buffer_pool->Allocate(sizeof(cb::Camera));
+			m_inverse_camera_cb_handles.emplace_back(ComponentData<ConstantBufferHandle>(
+				inverse_camera_cb_handle,
+				handle
+			));
 
 			m_camera_aspect_ratios.emplace_back(ComponentData<float>(
 				1280.f / 720.f,
@@ -232,6 +238,7 @@ namespace sg
 
 		ConstantBufferPool* GetPOConstantBufferPool();
 		ConstantBufferPool* GetCameraConstantBufferPool();
+		ConstantBufferPool* GetInverseCameraConstantBufferPool();
 		ConstantBufferPool* GetLightConstantBufferPool();
 		ConstantBufferHandle GetLightBufferHandle();
 
@@ -249,6 +256,7 @@ namespace sg
 
 		// Camera Component
 		std::vector<ComponentData<ConstantBufferHandle>> m_camera_cb_handles;
+		std::vector<ComponentData<ConstantBufferHandle>> m_inverse_camera_cb_handles;
 		std::vector<ComponentData<float>> m_camera_aspect_ratios;
 		std::vector<ComponentData<std::vector<bool>>> m_requires_camera_buffer_update;
 
@@ -282,6 +290,7 @@ namespace sg
 		std::vector<NodeHandle> m_light_node_handles;
 		ConstantBufferPool* m_per_object_buffer_pool;
 		ConstantBufferPool* m_camera_buffer_pool;
+		ConstantBufferPool* m_inverse_camera_buffer_pool;
 		ConstantBufferPool* m_light_buffer_pool;
 		ConstantBufferHandle m_light_buffer_handle;
 

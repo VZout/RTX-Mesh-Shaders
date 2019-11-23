@@ -21,6 +21,10 @@ namespace gfx::enums
 		GEOMETRY,
 		MESH,
 		TASK,
+		RT_MISS,
+		RT_RAYGEN,
+		RT_CLOSEST,
+		RT_ANY
 	};
 
 	enum class TextureFilter
@@ -59,7 +63,8 @@ namespace gfx::enums
 	enum class PipelineType
 	{
 		COMPUTE_PIPE,
-		GRAPHICS_PIPE
+		GRAPHICS_PIPE,
+		RAYTRACING_PIPE,
 	};
 
 	inline bool FormatHasStencilComponent(VkFormat format)

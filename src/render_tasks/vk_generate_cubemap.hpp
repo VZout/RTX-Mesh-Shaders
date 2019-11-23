@@ -81,8 +81,8 @@ namespace tasks
 				{ data.m_desc_heap, data.m_uav_target_set },
 			};
 
-			cmd_list->BindComputePipelineState(pipeline);
-			cmd_list->BindComputeDescriptorHeap(data.m_root_sig, sets);
+			cmd_list->BindPipelineState(pipeline);
+			cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
 			cmd_list->Dispatch(render_target->GetWidth() / 8, render_target->GetHeight() / 8, 6);
 
 			cmd_list->TransitionRenderTarget(render_target, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);

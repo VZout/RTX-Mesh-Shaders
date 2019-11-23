@@ -63,6 +63,21 @@ REGISTER(shaders::generate_brdf_lut_cs, ShaderRegistry)({
    .m_type = gfx::enums::ShaderType::COMPUTE,
 });
 
+REGISTER(shaders::rt_raygen, ShaderRegistry)({
+   .m_path = "shaders/rt_raygen.comp.spv",
+   .m_type = gfx::enums::ShaderType::RT_RAYGEN,
+});
+
+REGISTER(shaders::rt_miss, ShaderRegistry)({
+   .m_path = "shaders/rt_miss.comp.spv",
+   .m_type = gfx::enums::ShaderType::RT_MISS,
+});
+
+REGISTER(shaders::rt_closest_hit, ShaderRegistry)({
+   .m_path = "shaders/rt_closest_hit.comp.spv",
+   .m_type = gfx::enums::ShaderType::RT_CLOSEST,
+});
+
 /* ============================================================== */
 /* ===                  RootSignature Registry                === */
 /* ============================================================== */
@@ -262,11 +277,34 @@ REGISTER(root_signatures::generate_brdf_lut, RootSignatureRegistry)({
   {
       decltype(RootSignatureDesc::m_parameters) params(1);
       params[0].binding = 0; // root parameter 1
-      params[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	  params[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
       params[0].descriptorCount = 1;
       params[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
       params[0].pImmutableSamplers = nullptr;
       return params;
+  }(),
+});
+
+REGISTER(root_signatures::raytracing, RootSignatureRegistry)({
+  .m_parameters = []() -> decltype(RootSignatureDesc::m_parameters)
+  {
+	  decltype(RootSignatureDesc::m_parameters) params(3);
+	  params[0].binding = 0; // acceleration structure
+	  params[0].descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
+	  params[0].descriptorCount = 1;
+	  params[0].stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_NV;
+	  params[0].pImmutableSamplers = nullptr;
+	  params[1].binding = 1; // output
+	  params[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	  params[1].descriptorCount = 1;
+	  params[1].stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_NV;
+	  params[1].pImmutableSamplers = nullptr;
+	  params[2].binding = 2; // inverse camera
+	  params[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	  params[2].descriptorCount = 1;
+	  params[2].stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_NV;
+	  params[2].pImmutableSamplers = nullptr;
+	  return params;
   }(),
 });
 
@@ -344,4 +382,19 @@ REGISTER(pipelines::generate_brdf_lut, PipelineRegistry)({
     .m_input_layout = std::nullopt,
 
     .m_type = gfx::enums::PipelineType::COMPUTE_PIPE,
+});
+
+std::vector<VkRayTracingShaderGroupCreateInfoNV> rt_shader_groups = 
+{
+	{ .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV, .type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV, .generalShader = 0, .closestHitShader = VK_SHADER_UNUSED_NV, .anyHitShader = VK_SHADER_UNUSED_NV, .intersectionShader = VK_SHADER_UNUSED_NV },
+	{ .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV, .type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV, .generalShader = 1, .closestHitShader = VK_SHADER_UNUSED_NV, .anyHitShader = VK_SHADER_UNUSED_NV, .intersectionShader = VK_SHADER_UNUSED_NV },
+	{ .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV, .type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV, .generalShader = VK_SHADER_UNUSED_NV, .closestHitShader = 2, .anyHitShader = VK_SHADER_UNUSED_NV, .intersectionShader = VK_SHADER_UNUSED_NV },
+	{ .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV,.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV, .generalShader = VK_SHADER_UNUSED_NV,.closestHitShader = VK_SHADER_UNUSED_NV,.anyHitShader = 1,.intersectionShader = VK_SHADER_UNUSED_NV },
+};
+
+REGISTER(pipelines::raytracing, RTPipelineRegistry)({
+	.m_root_signature_handle = root_signatures::raytracing,
+	.m_shader_handles = { shaders::rt_raygen, shaders::rt_miss, shaders::rt_closest_hit, shaders::rt_miss },
+	.m_shader_groups = rt_shader_groups,
+	.m_recursion_depth = 1,
 });

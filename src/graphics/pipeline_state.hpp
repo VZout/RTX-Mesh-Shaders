@@ -25,7 +25,15 @@ namespace gfx
 	class PipelineState
 	{
 		friend class CommandList;
+		friend class ShaderTable;
 	public:
+		// TODO: Not very nice code. Replace with a single variant.
+		struct RTDesc
+		{
+			std::uint32_t m_recursion_depth = 1;
+			std::vector<VkRayTracingShaderGroupCreateInfoNV> m_shader_groups;
+		};
+
 		struct Desc
 		{
 			std::vector<VkFormat> m_rtv_formats;
@@ -33,6 +41,8 @@ namespace gfx
 			VkPrimitiveTopology m_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 			bool m_counter_clockwise = true;
 			enums::PipelineType m_type = enums::PipelineType::GRAPHICS_PIPE;
+
+			RTDesc m_raytracing_desc;
 		};
 
 		using InputLayout = std::pair<std::vector<VkVertexInputBindingDescription>, std::vector<VkVertexInputAttributeDescription>>;
@@ -49,6 +59,8 @@ namespace gfx
 		void Recompile();
 
 	private:
+		void CompileGeneric();
+		void CompileRaytracing();
 		void CreateRenderPass();
 		void Cleanup();
 

@@ -9,7 +9,7 @@
 #include <util/user_literals.hpp>
 #include <vertex.hpp>
 
-static const unsigned num_spheres_x = 9;
+static const unsigned num_spheres_x = 1;
 static const unsigned num_spheres_y_metal_roughness = 3;
 static const unsigned num_spheres_y_clear_coat = 2;
 static const unsigned num_spheres_y_anisotropy = 1;

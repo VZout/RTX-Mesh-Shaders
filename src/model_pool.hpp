@@ -25,6 +25,7 @@ struct ModelHandle
 		std::uint32_t m_id;
 		std::uint32_t m_num_indices;
 		std::uint32_t m_num_vertices;
+		std::uint32_t m_vertex_stride;
 		std::optional<MaterialHandle> m_material_handle;
 
 		bool operator==(MeshHandle const & other) const
@@ -280,6 +281,7 @@ ModelHandle ModelPool::LoadWithMaterials(ModelData* data,
 			.m_id = m_next_id,
 			.m_num_indices = static_cast<std::uint32_t>(num_indices),
 			.m_num_vertices = static_cast<std::uint32_t>(num_vertices),
+			.m_vertex_stride = sizeof(V_T),
 			.m_material_handle = material_handle
 		});
 		m_next_id++;

@@ -1,0 +1,32 @@
+#version 460
+#extension GL_NV_ray_tracing : require
+#pragma shader_stage(raygen)
+
+layout(binding = 0, set = 0) uniform accelerationStructureNV scene;
+layout(set = 1, binding = 1, rgba8) uniform writeonly image2D t_output;
+
+layout(set = 2, binding = 2) uniform UniformBufferCameraObject {
+    mat4 inv_view;
+    mat4 inv_proj;
+} camera;
+
+layout(location = 0) rayPayloadNV vec3 hitValue;
+
+void main() 
+{
+	const vec2 pixelCenter = vec2(gl_LaunchIDNV.xy) + vec2(0.5);
+	const vec2 inUV = pixelCenter/vec2(gl_LaunchSizeNV.xy);
+	vec2 d = inUV * 2.0 - 1.0;
+
+	vec4 origin = camera.inv_view * vec4(0, 0, 0, 1);
+	vec4 target = camera.inv_proj * vec4(d.x, d.y, 1, 1) ;
+	vec4 direction = camera.inv_view * vec4(normalize(target.xyz), 0);
+
+	uint flags = gl_RayFlagsOpaqueNV;
+	float tmin = 0.001;
+	float tmax = 10000.0;
+
+	traceNV(scene, flags, 0xff, 0, 0, 0, origin.xyz, tmin, direction.xyz, tmax, 0);
+
+	imageStore(t_output, ivec2(gl_LaunchIDNV.xy), vec4(hitValue, 1));
+}

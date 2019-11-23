@@ -90,6 +90,7 @@ void Renderer::Init(Application* app)
 	PrepareShaderRegistry();
 	PrepareRootSignatureRegistry();
 	PreparePipelineRegistry();
+	PrepareRaytracingPipelineRegistry();
 
 	m_render_window = new gfx::RenderWindow(m_context);
 	m_direct_queue = new gfx::CommandQueue(m_context, gfx::CommandQueueType::DIRECT);
@@ -247,6 +248,36 @@ void Renderer::PreparePipelineRegistry()
 		}
 		if (desc.m_input_layout.has_value()) ps->SetInputLayout(desc.m_input_layout.value());
 		ps->SetViewport(m_viewport);
+		ps->Compile();
+		objects.push_back(ps);
+	}
+}
+
+void Renderer::PrepareRaytracingPipelineRegistry()
+{
+	auto& registry = RTPipelineRegistry::Get();
+	auto& rs_registry = RootSignatureRegistry::Get();
+	auto& s_registry = ShaderRegistry::Get();
+	auto const& descs = registry.GetDescriptions();
+	auto& objects = registry.GetObjects();
+
+	for (auto const& desc : descs)
+	{
+		gfx::PipelineState::Desc n_desc;
+		n_desc.m_type = gfx::enums::PipelineType::RAYTRACING_PIPE;
+
+		gfx::PipelineState::RTDesc n_rt_desc;
+		n_rt_desc.m_recursion_depth = desc.m_recursion_depth;
+		n_rt_desc.m_shader_groups = desc.m_shader_groups;
+
+		n_desc.m_raytracing_desc = n_rt_desc;
+
+		auto ps = new gfx::PipelineState(m_context, n_desc);
+		ps->SetRootSignature(rs_registry.Find(desc.m_root_signature_handle));
+		for (auto const& shader_handle : desc.m_shader_handles)
+		{
+			ps->AddShader(s_registry.Find(shader_handle));
+		}
 		ps->Compile();
 		objects.push_back(ps);
 	}

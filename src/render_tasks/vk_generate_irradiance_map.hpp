@@ -83,8 +83,8 @@ namespace tasks
 				{ data.m_desc_heap, data.m_uav_target_set },
 			};
 
-			cmd_list->BindComputePipelineState(pipeline);
-			cmd_list->BindComputeDescriptorHeap(data.m_root_sig, sets);
+			cmd_list->BindPipelineState(pipeline);
+			cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
 			cmd_list->Dispatch(render_target->GetWidth() / 32, render_target->GetHeight() / 32, 6);
 
 			fg.SetShouldExecute<GenerateIrradianceMapData>(false);

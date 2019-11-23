@@ -16,6 +16,7 @@ sg::SceneGraph::SceneGraph(Renderer* renderer)
 
 	m_per_object_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Basic) * gfx::settings::max_render_batch_size, 100, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_MESH_BIT_NV);
 	m_camera_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Camera), 1, 0, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_MESH_BIT_NV);
+	m_inverse_camera_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Camera), 1, 2, VK_SHADER_STAGE_RAYGEN_BIT_NV);
 	m_light_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Light) * gfx::settings::max_lights, 1, 3, VK_SHADER_STAGE_COMPUTE_BIT);
 
 	// Initialize the light buffer as empty.
@@ -33,6 +34,7 @@ sg::SceneGraph::~SceneGraph()
 {
 	delete m_per_object_buffer_pool;
 	delete m_camera_buffer_pool;
+	delete m_inverse_camera_buffer_pool;
 	delete m_light_buffer_pool;
 }
 
@@ -121,6 +123,11 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 
 		// TODO: In theory right now the cb handle and the mesh component will always have the same value.
 		m_camera_buffer_pool->Update(m_camera_cb_handles[node.m_camera_component], sizeof(cb::Camera), &data, frame_idx);
+
+		// Update inverse
+		data.m_view = glm::inverse(data.m_view);
+		data.m_proj = glm::inverse(data.m_proj);
+		m_inverse_camera_buffer_pool->Update(m_inverse_camera_cb_handles[node.m_camera_component], sizeof(cb::Camera), &data, frame_idx);
 
 		m_requires_camera_buffer_update[node.m_camera_component].m_value[frame_idx] = false;
 	}
@@ -328,6 +335,11 @@ ConstantBufferPool* sg::SceneGraph::GetPOConstantBufferPool()
 ConstantBufferPool* sg::SceneGraph::GetCameraConstantBufferPool()
 {
 	return m_camera_buffer_pool;
+}
+
+ConstantBufferPool* sg::SceneGraph::GetInverseCameraConstantBufferPool()
+{
+	return m_inverse_camera_buffer_pool;
 }
 
 ConstantBufferPool* sg::SceneGraph::GetLightConstantBufferPool()

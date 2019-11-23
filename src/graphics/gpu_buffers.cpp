@@ -82,6 +82,19 @@ gfx::GPUBuffer::GPUBuffer(Context* context, std::optional<MemoryPool*> pool, voi
 	Unmap();
 }
 
+gfx::GPUBuffer::GPUBuffer(Context* context, std::optional<MemoryPool*> pool, void* data, std::uint64_t size, std::uint64_t stride, enums::BufferUsageFlag usage, VmaMemoryUsage memory_usage)
+	: m_context(context), m_pool(pool), m_size(size* stride), m_mapped(false), m_mapped_data(nullptr), m_buffer(VK_NULL_HANDLE),
+	m_buffer_allocation(VK_NULL_HANDLE)
+{
+	// Create default buffer
+	CreateBufferAndMemory(m_pool, m_size, (int)usage, memory_usage,
+		m_buffer, m_buffer_allocation);
+
+	Map();
+	Update(data, m_size);
+	Unmap();
+}
+
 gfx::GPUBuffer::~GPUBuffer()
 {
 	if (m_mapped)
