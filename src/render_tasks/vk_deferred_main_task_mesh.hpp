@@ -94,17 +94,17 @@ namespace tasks
 
 					cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
 
-					const std::uint32_t num_tasks = ComputeTasksCount(meshlets_info.second);
+					const std::uint32_t num_tasks = ComputeTasksCount(meshlets_info.second * batch.m_num_meshes);
 
-					for (std::uint32_t i = 0; i < batch.m_num_meshes; i++)
+					//for (std::uint32_t i = 0; i < batch.m_num_meshes; i++)
 					{
 						struct PushBlock
 						{
-							unsigned int offset;
-							unsigned int count;
+							unsigned int batch_size;
+							unsigned int num_meshlets;
 						} push_data;
-						push_data.offset = i;
-						push_data.count = meshlets_info.second;
+						push_data.batch_size = batch.m_num_meshes;
+						push_data.num_meshlets = meshlets_info.second;
 						cmd_list->BindTaskPushConstants(data.m_root_sig, &push_data, sizeof(PushBlock));
 
 						cmd_list->DrawMesh(num_tasks, 0);

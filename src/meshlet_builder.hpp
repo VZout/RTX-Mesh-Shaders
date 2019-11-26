@@ -80,6 +80,19 @@ struct MeshletDesc
 		m_w |= Pack(begin, 20, 0);
 	}
 
+	std::uint32_t GetVertexBegin() const
+	{ 
+		return Unpack(m_z, 20, 0) * vertex_packing_alignment;
+	}
+
+	void SetVertexBegin(std::uint32_t begin)
+	{
+		//assert(begin % vertex_packing_alignment == 0);
+		//assert(begin / vertex_packing_alignment < ((1 << 20) - 1));
+		//m_z |= Pack(begin / vertex_packing_alignment, 20, 0
+		m_z |= Pack(begin, 20, 0);
+	}
+
 	static std::uint32_t Pack(std::uint32_t value, int width, int offset)
 	{
     	return (std::uint32_t)((value & ((1 << width) - 1)) << offset);

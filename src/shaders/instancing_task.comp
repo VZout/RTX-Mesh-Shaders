@@ -13,8 +13,8 @@
 layout(local_size_x=GROUP_SIZE) in;
 
 layout(push_constant) uniform PushConstants {
-    uint offset;
-    uint count;
+    uint batch_size;
+    uint num_meshlets;
 } drawcall_info;
 
 taskNV out Task
@@ -22,14 +22,17 @@ taskNV out Task
 	uint base_id;
 	uint instance_id;
 	uint8_t sub_ids[GROUP_SIZE];
+	uint num_meshlets;
 } OUT;
 
 void main()
 {
 	const uint base_id = gl_WorkGroupID.x * GROUP_SIZE;
 	const uint lane_id = gl_LocalInvocationID.x;
+	const uint global_id = gl_GlobalInvocationID.x;
+	const uint total_meshlet_count = subgroupBroadcastFirst(drawcall_info.num_meshlets * drawcall_info.batch_size);
 
-	bool render = !(base_id + lane_id > drawcall_info.count);
+	bool render = !(global_id > total_meshlet_count);
 	uvec4 vote  = subgroupBallot(render);
 	uint tasks = subgroupBallotBitCount(vote);
 
@@ -37,7 +40,10 @@ void main()
 	{
 		gl_TaskCountNV = tasks;
 		OUT.base_id = base_id;
-		OUT.instance_id = drawcall_info.offset;
+		//float id = float(global_id) / float(drawcall_info.num_meshlets);
+		//OUT.instance_id = uint(floor(id));
+		OUT.instance_id = 0;
+		OUT.num_meshlets = drawcall_info.num_meshlets;
 	}
 
 	uint idx_offset = subgroupBallotExclusiveBitCount(vote);

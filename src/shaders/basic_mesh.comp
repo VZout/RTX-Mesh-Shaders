@@ -102,6 +102,7 @@ taskNV in Task {
 	uint base_id;
 	uint instance_id;
 	uint8_t sub_ids[GROUP_SIZE];
+	uint num_meshlets;
 } IN;
 
 void EmitVertex(uint idx, ReadableVertex vertex)
@@ -149,7 +150,8 @@ ReadableVertex VertexToReadable(Vertex vertex)
 
 void main()
 {
-	int meshlet_id = int(IN.base_id + IN.sub_ids[gl_WorkGroupID.x]);
+	//int meshlet_id = int((IN.base_id + IN.sub_ids[gl_WorkGroupID.x]) % IN.num_meshlets);
+	int meshlet_id = 0;
 
 	uvec4 meshlet_desc = mb.meshlet_descs[meshlet_id];
 	uint vert_max;
@@ -166,11 +168,21 @@ void main()
 	{
 		uint k = i - (prim_begin * 3);
 
-		ReadableVertex v0 = VertexToReadable(vb.vertices[ib.indices[i + 0]]);
-		ReadableVertex v1 = VertexToReadable(vb.vertices[ib.indices[i + 1]]);
-		ReadableVertex v2 = VertexToReadable(vb.vertices[ib.indices[i + 2]]);
+		//ReadableVertex v0 = VertexToReadable(vb.vertices[ib.indices[i + 0]]);
+		//ReadableVertex v1 = VertexToReadable(vb.vertices[ib.indices[i + 1]]);
+		//ReadableVertex v2 = VertexToReadable(vb.vertices[ib.indices[i + 2]]);
 
-		PushTriangle(k, v0, v1, v2);
+		gl_PrimitiveIndicesNV[k+0] = ib.indices[k + 0];
+		gl_PrimitiveIndicesNV[k+1] = ib.indices[k + 1];
+		gl_PrimitiveIndicesNV[k+2] = ib.indices[k + 2];
+	}
+
+	for (uint i = vert_begin; i < vert_begin + vert_max; i++)
+	{
+		uint k = i - (vert_begin);
+
+		ReadableVertex v0 = VertexToReadable(vb.vertices[i]);
+		EmitVertex(i, v0);
 	}
 
 	gl_PrimitiveCountNV = prim_max;

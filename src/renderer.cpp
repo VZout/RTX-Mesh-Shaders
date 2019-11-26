@@ -66,23 +66,6 @@ void Renderer::Init(Application* app)
 	m_application = app;
 	m_context = new gfx::Context(app);
 
-	auto supported_extensions = m_context->GetSupportedExtensions();
-	auto supported_device_extensions = m_context->GetSupportedDeviceExtensions();
-
-	auto print_extensions_func = [](auto extensions)
-	{
-		for (auto extension : extensions)
-		{
-			LOG("\t- {} ({})", extension.extensionName, std::to_string(extension.specVersion));
-		}
-	};
-
-	LOG("Supported Instance Extensions:");
-	print_extensions_func(supported_extensions);
-
-	LOG("Supported Device Extensions:");
-	print_extensions_func(supported_device_extensions);
-
 	LOG("Initialized Vulkan");
 
 	m_viewport = new gfx::Viewport(app->GetWidth(), app->GetHeight());

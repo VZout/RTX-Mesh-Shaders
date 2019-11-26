@@ -246,15 +246,21 @@ ModelHandle ModelPool::LoadWithMaterials(ModelData* data,
 
 		// Generate meshlets
 		std::vector<MeshletDesc> meshlet_data;
+		std::vector<std::vector<int>> vertex_indices; // used to index the vertex buffer from mesh shading (Uploaded to the GPU)
+		std::vector<std::vector<std::uint32_t>> index_indices; // used to index the vertex indices buffer  (Uploaded to the GPU)
 		int max_meshlet_indices = 63;
+
+		int vertices_start = 0;
 
 		for (auto indices_start = 0; indices_start < mesh.m_num_indices; indices_start += max_meshlet_indices)
 		{
 			MeshletDesc meshlet = {};
 
 			auto num_indices_in_meshlet = std::min((int)mesh.m_num_indices - indices_start, max_meshlet_indices);
-			std::vector<int> used_vertex_indices;
+			std::vector<int> meshlet_vertex_indices;
+			std::vector<int> meshlet_indices;
 
+			// obtain all indices required for this meshlet.
 			for (auto i = indices_start; i < indices_start + num_indices_in_meshlet; i += 3)
 			{
 				glm::ivec3 triangle;
@@ -262,19 +268,70 @@ ModelHandle ModelPool::LoadWithMaterials(ModelData* data,
 
 				for (auto k = 0; k < 3; k++)
 				{
-					if (std::find(used_vertex_indices.begin(), used_vertex_indices.end(), triangle[k]) == used_vertex_indices.end())
+					meshlet_indices.push_back(triangle[k]);
+				}
+			}
+
+			// Create the flat indices vector. ([0, max])
+			/*std::vector<std::uint32_t> flat_meshlet_indices = meshlet_indices;
+			auto min_meshlet_index = *std::min_element(flat_meshlet_indices.begin(), flat_meshlet_indices.end());
+			for (auto& idx : flat_meshlet_indices)
+			{
+				idx -= min_meshlet_index;
+			}*/
+
+			// Resize the meshlet_vertex_indices array to the minimum required size.
+			int num_unique_vertices = std::unique(meshlet_indices.begin(), meshlet_indices.end()) - meshlet_indices.begin();
+			//meshlet_vertex_indices.resize(num_unique_vertices);
+
+			// Create the vertex indices vector based on the flat indices vector.
+			std::vector<std::uint32_t> flat_meshlet_indices(meshlet_indices.size());
+			std::vector<std::pair<std::uint32_t, std::uint32_t>> flat_helper; // first = original, second = flat
+
+			for (auto i = 0; i < meshlet_indices.size(); i++)
+			{
+				auto index = meshlet_indices[i];
+
+				if (std::find(meshlet_vertex_indices.begin(), meshlet_vertex_indices.end(), index) == meshlet_vertex_indices.end())
+				{
+					meshlet_vertex_indices.push_back(index);
+					auto new_flat_idx = meshlet_vertex_indices.size() - 1;
+					flat_meshlet_indices[i] = new_flat_idx;
+					flat_helper.push_back({ index, new_flat_idx });
+				}
+				else
+				{
+					bool found_match = false;
+					for (auto const & pair : flat_helper)
 					{
-						used_vertex_indices.push_back(triangle[k]);
+						if (pair.first == index)
+						{
+							flat_meshlet_indices[i] = pair.second;
+							found_match = true;
+							break;
+						}
+					}
+
+					if (!found_match)
+					{
+						LOGW("The flattening code appears to be broken");
 					}
 				}
 			}
 
-			meshlet.SetNumVertices(24);
+			meshlet.SetNumVertices(num_unique_vertices);
+			meshlet.SetVertexBegin(vertices_start);
 			meshlet.SetNumPrims(num_indices_in_meshlet / 3);
 			meshlet.SetPrimBegin(indices_start / 3);
 
 			meshlet_data.push_back(meshlet);
+			vertices_start += num_unique_vertices;
+
+			vertex_indices.push_back(meshlet_vertex_indices);
+			index_indices.push_back(flat_meshlet_indices);
 		}
+
+		// Todo:: Allocate vertex indices and index indices buffers. (Need 1 extra buffer. existing indices buffer gets replaced)
 
 		AllocateMesh(vertices.data(), num_vertices, sizeof(V_T), indices.data(), num_indices, index_stide, meshlet_data.data(), meshlet_data.size());
 		model_handle.m_mesh_handles.emplace_back(ModelHandle::MeshHandle{
