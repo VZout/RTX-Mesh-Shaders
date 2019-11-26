@@ -46,6 +46,7 @@ Renderer::~Renderer()
 	DestroyRegistry<ShaderRegistry>();
 	DestroyRegistry<RootSignatureRegistry>();
 	DestroyRegistry<PipelineRegistry>();
+	DestroyRegistry<RTPipelineRegistry>();
 
 	delete m_viewport;
 	for (auto& fence : m_present_fences)

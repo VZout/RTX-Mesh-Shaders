@@ -31,6 +31,7 @@ namespace tasks
 	struct BuildASData
 	{
 		gfx::AccelerationStructure* m_tlas;
+		std::vector<gfx::AccelerationStructure*> m_blasses;
 		gfx::GPUBuffer* m_scratch_buffer;
 
 		bool m_should_build = true;
@@ -39,14 +40,17 @@ namespace tasks
 	namespace internal
 	{
 
-		inline void SetupBuildASTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool)
+		inline void SetupBuildASTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
 		{
 			auto& data = fg.GetData<BuildASData>(handle);
 
 			const auto scratch_size = 65536*20;
 
 			//data.m_scratch_buffer = new gfx::GPUBuffer(rs.GetContext(), std::nullopt, scratch_size, gfx::enums::BufferUsageFlag::RAYTRACING);
-			data.m_should_build = true;
+			if (!resize)
+			{
+				data.m_should_build = true;
+			}
 		}
 
 		inline void ExecuteBuildASTask(Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, fg::RenderTaskHandle handle)
@@ -82,6 +86,7 @@ namespace tasks
 
 					//blas->SetScratchBuffer(data.m_scratch_buffer);
 					blas->CreateBottomLevel(cmd_list, { geom_desc });
+					data.m_blasses.push_back(blas);
 
 					for (auto const & node_handle : batch.m_nodes)
 					{
@@ -103,10 +108,19 @@ namespace tasks
 			data.m_should_build = false;
 		}
 
-		inline void DestroyBuildASTask(fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool)
+		inline void DestroyBuildASTask(fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
 		{
 			auto& data = fg.GetData<BuildASData>(handle);
-			delete data.m_tlas;
+
+			if (!resize)
+			{
+				for (auto& blas : data.m_blasses)
+				{
+					delete blas;
+				}
+
+				delete data.m_tlas;
+			}
 		}
 
 	} /* internal */

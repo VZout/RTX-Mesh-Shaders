@@ -78,7 +78,6 @@ void gfx::AccelerationStructure::CreateTopLevel(CommandList* cmd_list, std::vect
 	VK_NAME_OBJ(logical_device, m_native, VK_DEBUG_REPORT_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV_EXT, "Top Level Acceleration Structure");
 
 	Barrier(n_cmd_list);
-	delete m_scratch_buffer;
 }
 
 void gfx::AccelerationStructure::CreateBottomLevel(CommandList* cmd_list, std::vector<GeometryDesc> geometry_descs)
@@ -165,7 +164,6 @@ void gfx::AccelerationStructure::CreateBottomLevel(CommandList* cmd_list, std::v
 	VK_NAME_OBJ(logical_device, m_native, VK_DEBUG_REPORT_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV_EXT, "Bottom Level Acceleration Structure");
 
 	Barrier(n_cmd_list);
-	delete m_scratch_buffer;
 }
 
 void gfx::AccelerationStructure::DestroyScratchResources()

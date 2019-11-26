@@ -48,7 +48,7 @@ namespace tasks
 	namespace internal
 	{
 
-		inline void SetupRaytracingTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool)
+		inline void SetupRaytracingTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
 		{
 			auto& data = fg.GetData<RaytracingData>(handle);
 			data.m_root_sig = RootSignatureRegistry::SFind(root_signatures::raytracing);
@@ -67,6 +67,10 @@ namespace tasks
 			descriptor_heap_desc.m_num_descriptors = 2;
 			data.m_gbuffer_heap = new gfx::DescriptorHeap(rs.GetContext(), descriptor_heap_desc);
 			data.m_uav_target_set = data.m_gbuffer_heap->CreateUAVSetFromRT(render_target, 0, data.m_root_sig, 1, 0, input_sampler_desc);
+
+			data.m_first_execute = true;
+
+			if (resize) return;
 
 			data.m_raygen_shader_table = new gfx::ShaderTable(rs.GetContext(), 3);
 			data.m_raygen_shader_table->AddShaderRecord(data.m_pipeline, 0, 3);
@@ -107,10 +111,17 @@ namespace tasks
 			cmd_list->DispatchRays(data.m_raygen_shader_table, data.m_raygen_shader_table, data.m_raygen_shader_table, render_target->GetWidth(), render_target->GetHeight(), 1);
 		}
 
-		inline void DestroyRaytracingTask(fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool)
+		inline void DestroyRaytracingTask(fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
 		{
 			auto& data = fg.GetData<RaytracingData>(handle);
+
 			delete data.m_gbuffer_heap;
+
+			if (resize) return;
+
+			delete data.m_raygen_shader_table;
+			delete data.m_miss_shader_table;
+			delete data.m_hitgroup_shader_table;
 		}
 
 	} /* internal */
