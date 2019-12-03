@@ -250,6 +250,10 @@ protected:
 			{
 				SwitchFrameGraph(fg_manager::FGType::PBR_MESH_SHADING);
 			}
+			else if (key == GLFW_KEY_3)
+			{
+				SwitchFrameGraph(fg_manager::FGType::RAYTRACING);
+			}
 		}
 
 		// Key Bindings Modal
@@ -284,11 +288,11 @@ protected:
 			}
 			else if (key == GLFW_KEY_E && action == GLFW_PRESS)
 			{
-				SwitchFrameGraph(fg_manager::FGType::PBR_GENERIC);
+				m_gizmo_operation = ImGuizmo::OPERATION::ROTATE;
 			}
 			else if (key == GLFW_KEY_R && action == GLFW_PRESS)
 			{
-				SwitchFrameGraph(fg_manager::FGType::PBR_MESH_SHADING);
+				m_gizmo_operation = ImGuizmo::OPERATION::SCALE;
 			}
 		}
 

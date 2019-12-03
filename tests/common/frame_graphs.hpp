@@ -19,6 +19,7 @@ namespace fg_manager
 	{
 		PBR_GENERIC,
 		PBR_MESH_SHADING,
+		RAYTRACING,
 		COUNT
 	};
 
@@ -28,6 +29,7 @@ namespace fg_manager
 		{
 		case FGType::PBR_GENERIC: return "PBR Generic";
 		case FGType::PBR_MESH_SHADING: return "PBR Mesh Shading";
+		case FGType::RAYTRACING: return "Raytracing";
 		default:
 			return "Unknown";
 		}
@@ -39,15 +41,13 @@ namespace fg_manager
 		[](Renderer* rs, decltype(tasks::ImGuiTaskData::m_render_func) imgui_func)
 		{
 			auto fg = new fg::FrameGraph(9);
-			tasks::AddBuildASTask(*fg);
 			tasks::AddGenerateCubemapTask(*fg);
 			tasks::AddGenerateIrradianceMapTask(*fg);
 			tasks::AddGenerateEnvironmentMapTask(*fg);
 			tasks::AddGenerateBRDFLutTask(*fg);
 			tasks::AddDeferredMainTask(*fg);
 			tasks::AddDeferredCompositionTask(*fg);
-			tasks::AddRaytracingTask(*fg);
-			tasks::AddPostProcessingTask<tasks::RaytracingData>(*fg);
+			tasks::AddPostProcessingTask<tasks::DeferredCompositionData>(*fg);
 			tasks::AddCopyToBackBufferTask<tasks::PostProcessingData>(*fg);
 			tasks::AddImGuiTask<tasks::PostProcessingData>(*fg, imgui_func);
 
@@ -66,6 +66,24 @@ namespace fg_manager
 			tasks::AddDeferredMainMeshTask(*fg);
 			tasks::AddDeferredCompositionTask(*fg);
 			tasks::AddPostProcessingTask<tasks::DeferredCompositionData>(*fg);
+			tasks::AddCopyToBackBufferTask<tasks::PostProcessingData>(*fg);
+			tasks::AddImGuiTask<tasks::PostProcessingData>(*fg, imgui_func);
+
+			fg->Validate();
+			fg->Setup(rs);
+			return fg;
+		},
+		// Raytracing
+		[](Renderer* rs, decltype(tasks::ImGuiTaskData::m_render_func) imgui_func)
+		{
+			auto fg = new fg::FrameGraph(9);
+			tasks::AddBuildASTask(*fg);
+			tasks::AddGenerateCubemapTask(*fg);
+			tasks::AddGenerateIrradianceMapTask(*fg);
+			tasks::AddGenerateEnvironmentMapTask(*fg);
+			tasks::AddGenerateBRDFLutTask(*fg);
+			tasks::AddRaytracingTask(*fg);
+			tasks::AddPostProcessingTask<tasks::RaytracingData>(*fg);
 			tasks::AddCopyToBackBufferTask<tasks::PostProcessingData>(*fg);
 			tasks::AddImGuiTask<tasks::PostProcessingData>(*fg, imgui_func);
 
