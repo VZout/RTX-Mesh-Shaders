@@ -32,6 +32,7 @@ namespace tasks
 	struct RaytracingData
 	{
 		std::uint32_t m_tlas_set;
+		std::uint32_t m_offsets_set;
 		std::uint32_t m_uav_target_set;
 		gfx::DescriptorHeap* m_gbuffer_heap;
 
@@ -64,7 +65,7 @@ namespace tasks
 
 			gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
 			descriptor_heap_desc.m_versions = 1;
-			descriptor_heap_desc.m_num_descriptors = 2;
+			descriptor_heap_desc.m_num_descriptors = 3;
 			data.m_gbuffer_heap = new gfx::DescriptorHeap(rs.GetContext(), descriptor_heap_desc);
 			data.m_uav_target_set = data.m_gbuffer_heap->CreateUAVSetFromRT(render_target, 0, data.m_root_sig, 1, 0, input_sampler_desc);
 
@@ -88,13 +89,18 @@ namespace tasks
 			auto cmd_list = fg.GetCommandList(handle);
 			auto render_target = fg.GetRenderTarget(handle);
 
+			auto model_pool = static_cast<gfx::VkModelPool*>(rs.GetModelPool());
 			auto camera_pool = static_cast<gfx::VkConstantBufferPool*>(sg.GetInverseCameraConstantBufferPool());
 			auto camera_handle = sg.m_inverse_camera_cb_handles[0].m_value;
+			auto light_pool = static_cast<gfx::VkConstantBufferPool*>(sg.GetLightConstantBufferPool());
+			auto light_buffer_handle = sg.GetLightBufferHandle();
 
 			if (data.m_first_execute)
 			{
 				auto as_build_data = fg.GetPredecessorData<BuildASData>();
 				data.m_tlas_set = data.m_gbuffer_heap->CreateSRVFromAS(as_build_data.m_tlas, data.m_root_sig, 0, 0);
+				data.m_offsets_set = data.m_gbuffer_heap->CreateSRVFromCB(as_build_data.m_offsets_buffer, data.m_root_sig, 6, 0, false);
+
 				data.m_first_execute = false;
 			}
 
@@ -104,6 +110,10 @@ namespace tasks
 				{ data.m_gbuffer_heap, data.m_tlas_set },
 				{ data.m_gbuffer_heap, data.m_uav_target_set },
 				{ camera_pool->GetDescriptorHeap(), camera_handle.m_cb_set_id },
+				{ light_pool->GetDescriptorHeap(), light_buffer_handle.m_cb_set_id },
+				{ model_pool->m_heap, model_pool->m_big_vb_desc_set_id },
+				{ model_pool->m_heap, model_pool->m_big_ib_desc_set_id },
+				{ data.m_gbuffer_heap, data.m_offsets_set },
 			};
 
 			cmd_list->BindPipelineState(data.m_pipeline);
@@ -134,9 +144,9 @@ namespace tasks
 			.m_width = std::nullopt,
 			.m_height = std::nullopt,
 			.m_dsv_format = VK_FORMAT_UNDEFINED,
-			.m_rtv_formats = { VK_FORMAT_B8G8R8A8_UNORM },
+			.m_rtv_formats = { VK_FORMAT_R32G32B32A32_SFLOAT },
 			.m_state_execute = VK_IMAGE_LAYOUT_GENERAL,
-			.m_state_finished = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			.m_state_finished = std::nullopt,
 			.m_clear = false,
 			.m_clear_depth = false
 		};

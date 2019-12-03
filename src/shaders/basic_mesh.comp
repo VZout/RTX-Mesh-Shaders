@@ -18,8 +18,8 @@
 
 #define GROUP_SIZE 32
 #define NVMESHLET_VERTEX_COUNT      64
-#define NVMESHLET_PRIMITIVE_COUNT   126	
-#define NVMESHLET_PRIM_ALIGNMENT        32
+#define NVMESHLET_PRIMITIVE_COUNT   63	
+#define NVMESHLET_PRIM_ALIGNMENT        1
 #define NVMESHLET_VERTEX_ALIGNMENT      16
 
 #define NVMSH_INDEX_BITS      8
@@ -82,9 +82,13 @@ layout(set = 4, binding = 4) buffer VertexBufferObj {
 	Vertex vertices[];
 } vb;
 
-layout(set = 5, binding = 5) buffer IndexBufferObj {
+layout(set = 5, binding = 5) buffer FlatIndexBufferObj {
+	uint8_t indices[];
+} ibi;
+
+layout(set = 7, binding = 7) buffer VertexIndexBufferObj {
 	uint indices[];
-} ib;
+} vbi;
 
 layout(set = 6, binding = 6) buffer MeshletBufferObj {
 	uvec4 meshlet_descs[];
@@ -93,21 +97,22 @@ layout(set = 6, binding = 6) buffer MeshletBufferObj {
 void DecodeMeshlet(uvec4 meshlet_desc, out uint vert_max, out uint prim_max, out uint vert_begin, out uint prim_begin)
 {
 	vert_begin = (meshlet_desc.z & 0xFFFFF) * NVMESHLET_VERTEX_ALIGNMENT;
-	prim_begin = (meshlet_desc.w & 0xFFFFF) /** NVMESHLET_PRIM_ALIGNMENT*/;
+	prim_begin = (meshlet_desc.w & 0xFFFFF) * NVMESHLET_PRIM_ALIGNMENT;
 	vert_max = (meshlet_desc.x >> 24);
 	prim_max = (meshlet_desc.y >> 24);
 }
 
 taskNV in Task {
 	uint base_id;
-	uint instance_id;
 	uint8_t sub_ids[GROUP_SIZE];
 	uint num_meshlets;
 } IN;
 
 void EmitVertex(uint idx, ReadableVertex vertex)
 {
-	mat4 model = ubo.model[IN.instance_id];
+	float id = (float(IN.base_id) + float(IN.sub_ids[gl_WorkGroupID.x])) / float(IN.num_meshlets);
+	int instance_id = subgroupBroadcastFirst(int(floor(id)));
+	mat4 model = ubo.model[instance_id];
 
 	vec4 world_pos = model * vec4(vertex.pos, 1.0f);
 	vec4 world_normal = normalize(model * vec4(vertex.normal, 0));
@@ -150,8 +155,7 @@ ReadableVertex VertexToReadable(Vertex vertex)
 
 void main()
 {
-	//int meshlet_id = int((IN.base_id + IN.sub_ids[gl_WorkGroupID.x]) % IN.num_meshlets);
-	int meshlet_id = 0;
+	int meshlet_id = int((IN.base_id + IN.sub_ids[gl_WorkGroupID.x]) % (IN.num_meshlets));
 
 	uvec4 meshlet_desc = mb.meshlet_descs[meshlet_id];
 	uint vert_max;
@@ -164,25 +168,34 @@ void main()
 	
 	// primitives
 	uint next_index = 0;
-	for (uint i = prim_begin * 3; i < (prim_begin + prim_max) * 3; i += 3)
+	uint num_indices = prim_max * 3;
+	uint indices_start = prim_begin * 3;
+	int x = 0;
+	for (uint i = indices_start; i < indices_start + num_indices; i += 3)
 	{
-		uint k = i - (prim_begin * 3);
+		x += 1;
 
-		//ReadableVertex v0 = VertexToReadable(vb.vertices[ib.indices[i + 0]]);
-		//ReadableVertex v1 = VertexToReadable(vb.vertices[ib.indices[i + 1]]);
-		//ReadableVertex v2 = VertexToReadable(vb.vertices[ib.indices[i + 2]]);
+		uint k = i - indices_start;
+		gl_PrimitiveIndicesNV[k+0] = ibi.indices[i + 0];
+		gl_PrimitiveIndicesNV[k+1] = ibi.indices[i + 1];
+		gl_PrimitiveIndicesNV[k+2] = ibi.indices[i + 2];
 
-		gl_PrimitiveIndicesNV[k+0] = ib.indices[k + 0];
-		gl_PrimitiveIndicesNV[k+1] = ib.indices[k + 1];
-		gl_PrimitiveIndicesNV[k+2] = ib.indices[k + 2];
+		/*uint ii = uint(floor(float(i) / float(4)));
+		uint pp = ibi.indices[ii];
+
+		gl_PrimitiveIndicesNV[(k)+0] = (NVMSH_PACKED4X8_GET((pp), 3 - 0));
+		gl_PrimitiveIndicesNV[(k)+1] = (NVMSH_PACKED4X8_GET((pp), 3 - 1));
+		gl_PrimitiveIndicesNV[(k)+2] = (NVMSH_PACKED4X8_GET((pp), 3 - 2));
+		gl_PrimitiveIndicesNV[(k)+3] = (NVMSH_PACKED4X8_GET((pp), 3 - 3));
+		writePackedPrimitiveIndices4x8NV(k, ibi.indices[ii]);*/
 	}
 
 	for (uint i = vert_begin; i < vert_begin + vert_max; i++)
 	{
 		uint k = i - (vert_begin);
 
-		ReadableVertex v0 = VertexToReadable(vb.vertices[i]);
-		EmitVertex(i, v0);
+		ReadableVertex v0 = VertexToReadable(vb.vertices[vbi.indices[i]]);
+		EmitVertex(k, v0);
 	}
 
 	gl_PrimitiveCountNV = prim_max;

@@ -113,7 +113,7 @@ REGISTER(root_signatures::basic, RootSignatureRegistry)({
 REGISTER(root_signatures::basic_mesh, RootSignatureRegistry)({
 	.m_parameters = []() -> decltype(RootSignatureDesc::m_parameters)
 	{
-		decltype(RootSignatureDesc::m_parameters) params(7);
+		decltype(RootSignatureDesc::m_parameters) params(8);
 		params[0].binding = 0; // camera
 		params[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		params[0].descriptorCount = 1;
@@ -134,21 +134,26 @@ REGISTER(root_signatures::basic_mesh, RootSignatureRegistry)({
 		params[3].descriptorCount = 1;
 		params[3].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 		params[3].pImmutableSamplers = nullptr;
-		params[4].binding = 4; // root parameter 3
+		params[4].binding = 4; // vertices
 		params[4].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		params[4].descriptorCount = 1;
 		params[4].stageFlags = VK_SHADER_STAGE_MESH_BIT_NV;
 		params[4].pImmutableSamplers = nullptr;
-		params[5].binding = 5; // root parameter 4
+		params[5].binding = 5; // (flat) indices
 		params[5].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		params[5].descriptorCount = 1;
 		params[5].stageFlags = VK_SHADER_STAGE_MESH_BIT_NV;
 		params[5].pImmutableSamplers = nullptr;
-		params[6].binding = 6; // root parameter 5
+		params[6].binding = 6; // meshlet descs
 		params[6].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		params[6].descriptorCount = 1;
 		params[6].stageFlags = VK_SHADER_STAGE_MESH_BIT_NV;
 		params[6].pImmutableSamplers = nullptr;
+		params[7].binding = 7; // vertex indices buffer
+		params[7].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		params[7].descriptorCount = 1;
+		params[7].stageFlags = VK_SHADER_STAGE_MESH_BIT_NV;
+		params[7].pImmutableSamplers = nullptr;
 		return params;
 	}(),
 	.m_push_constants = []() -> decltype(RootSignatureDesc::m_push_constants)
@@ -160,7 +165,6 @@ REGISTER(root_signatures::basic_mesh, RootSignatureRegistry)({
 		return constants;
 	}()
 });
-
 
 REGISTER(root_signatures::composition, RootSignatureRegistry)({
     .m_parameters = []() -> decltype(RootSignatureDesc::m_parameters)
@@ -181,10 +185,10 @@ REGISTER(root_signatures::composition, RootSignatureRegistry)({
 	    params[2].descriptorCount = 1;
 	    params[2].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 	    params[2].pImmutableSamplers = nullptr;
-	    params[3].binding = 3; // root parameter 3
+	    params[3].binding = 3; // lights
 	    params[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	    params[3].descriptorCount = 1;
-	    params[3].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+	    params[3].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
 	    params[3].pImmutableSamplers = nullptr;
 	    params[4].binding = 4; // skybox
 	    params[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -288,7 +292,7 @@ REGISTER(root_signatures::generate_brdf_lut, RootSignatureRegistry)({
 REGISTER(root_signatures::raytracing, RootSignatureRegistry)({
   .m_parameters = []() -> decltype(RootSignatureDesc::m_parameters)
   {
-	  decltype(RootSignatureDesc::m_parameters) params(3);
+	  decltype(RootSignatureDesc::m_parameters) params(7);
 	  params[0].binding = 0; // acceleration structure
 	  params[0].descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
 	  params[0].descriptorCount = 1;
@@ -304,6 +308,26 @@ REGISTER(root_signatures::raytracing, RootSignatureRegistry)({
 	  params[2].descriptorCount = 1;
 	  params[2].stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_NV;
 	  params[2].pImmutableSamplers = nullptr;
+	  params[3].binding = 3; // lights
+	  params[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	  params[3].descriptorCount = 1;
+	  params[3].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+	  params[3].pImmutableSamplers = nullptr;
+	  params[4].binding = 4; // vertices
+	  params[4].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	  params[4].descriptorCount = 1;
+	  params[4].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+	  params[4].pImmutableSamplers = nullptr;
+	  params[5].binding = 5; // indices
+	  params[5].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	  params[5].descriptorCount = 1;
+	  params[5].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+	  params[5].pImmutableSamplers = nullptr;
+	  params[6].binding = 6; // offsets
+	  params[6].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	  params[6].descriptorCount = 1;
+	  params[6].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+	  params[6].pImmutableSamplers = nullptr;
 	  return params;
   }(),
 });

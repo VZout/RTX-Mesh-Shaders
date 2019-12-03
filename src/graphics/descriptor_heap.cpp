@@ -114,9 +114,9 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromCB(std::vector<GPUBuffer*> bu
 	return descriptor_set_id;
 }
 
-std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx, bool uniform)
+std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx, bool uniform, std::optional<std::pair<std::uint64_t, std::uint64_t>> offset_size)
 {
-	return CreateSRVFromCB(buffer, root_signature->m_descriptor_set_layouts[handle], handle, frame_idx, uniform);
+	return CreateSRVFromCB(buffer, root_signature->m_descriptor_set_layouts[handle], handle, frame_idx, uniform, offset_size);
 }
 
 std::uint32_t gfx::DescriptorHeap::CreateSRVFromAS(AccelerationStructure* as, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx)
@@ -163,7 +163,7 @@ constexpr inline T SizeAlignAnyAlignment(T size, A alignment)
 	return (size / alignment + (size % alignment > 0)) * alignment;
 }
 
-std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx, bool uniform)
+std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx, bool uniform, std::optional<std::pair<std::uint64_t, std::uint64_t>> offset_size)
 {
 	auto logical_device = m_context->m_logical_device;
 
@@ -182,10 +182,17 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, VkDescript
 	m_descriptor_sets[frame_idx].push_back(descriptor_set);
 
 	auto buffer_info = new VkDescriptorBufferInfo();
-	// FIXME: Command list will destroy it later.
 	buffer_info->buffer = buffer->m_buffer;
-	buffer_info->offset = 0;
-	buffer_info->range = buffer->m_size;
+	// FIXME: Command list will destroy it later.
+	if (offset_size.has_value()){
+		buffer_info->offset = offset_size->first;
+		buffer_info->range = offset_size->second;
+	}
+	else
+	{
+		buffer_info->offset = 0;
+		buffer_info->range = buffer->m_size;
+	}
 
 	auto descriptor_set_id = m_descriptor_sets[frame_idx].size() - 1;
 

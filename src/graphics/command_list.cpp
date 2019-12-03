@@ -156,17 +156,16 @@ void gfx::CommandList::BindPipelineState(gfx::PipelineState* pipeline)
 	vkCmdBindPipeline(m_cmd_buffers[m_frame_idx], m_current_bind_point, pipeline->m_pipeline);
 }
 
-void gfx::CommandList::BindVertexBuffer(StagingBuffer* staging_buffer)
+void gfx::CommandList::BindVertexBuffer(GPUBuffer* buffer, std::uint64_t offset)
 {
-	std::vector<VkBuffer> buffers = { staging_buffer->m_buffer };
-	std::vector<VkDeviceSize> offsets = { 0 };
+	std::vector<VkBuffer> buffers = { buffer->m_buffer };
+	std::vector<VkDeviceSize> offsets = { offset };
 	vkCmdBindVertexBuffers(m_cmd_buffers[m_frame_idx], 0, buffers.size(), buffers.data(), offsets.data());
 }
 
-void gfx::CommandList::BindIndexBuffer(StagingBuffer* staging_buffer)
+void gfx::CommandList::BindIndexBuffer(GPUBuffer* buffer, std::uint64_t stride, std::uint64_t offset)
 {
-	VkDeviceSize offset = { 0 };
-	vkCmdBindIndexBuffer(m_cmd_buffers[m_frame_idx], staging_buffer->m_buffer, offset, staging_buffer->m_stride == 4 ? VkIndexType::VK_INDEX_TYPE_UINT32 : VkIndexType::VK_INDEX_TYPE_UINT16);
+	vkCmdBindIndexBuffer(m_cmd_buffers[m_frame_idx], buffer->m_buffer, offset, stride == 4 ? VkIndexType::VK_INDEX_TYPE_UINT32 : VkIndexType::VK_INDEX_TYPE_UINT16);
 }
 
 void gfx::CommandList::BindDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets)
@@ -200,6 +199,15 @@ void gfx::CommandList::StageBuffer(StagingBuffer* staging_buffer)
 	copy_region.dstOffset = 0;
 	copy_region.size = staging_buffer->m_size;
 	vkCmdCopyBuffer(m_cmd_buffers[m_frame_idx], staging_buffer->m_staging_buffer, staging_buffer->m_buffer, 1, &copy_region);
+}
+
+void gfx::CommandList::StageBuffer(GPUBuffer* buffer, GPUBuffer* staging_buffer, std::uint64_t offset)
+{
+	VkBufferCopy copy_region = {};
+	copy_region.srcOffset = 0;
+	copy_region.dstOffset = offset;
+	copy_region.size = staging_buffer->m_size;
+	vkCmdCopyBuffer(m_cmd_buffers[m_frame_idx], staging_buffer->m_buffer, buffer->m_buffer, 1, &copy_region);
 }
 
 void gfx::CommandList::StageTexture(StagingTexture* texture)

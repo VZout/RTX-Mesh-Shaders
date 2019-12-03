@@ -80,6 +80,7 @@ namespace tasks
 					auto mesh_handle = model_handle.m_mesh_handles[i];
 					auto meshlets_info = model_pool->m_meshlet_desc_infos[mesh_handle.m_id];
 					auto vb_ib_pair = model_pool->m_mesh_shading_buffer_descriptor_sets[mesh_handle.m_id];
+					auto meshlets_index_buffer_info = model_pool->m_mesh_shading_index_buffer_descriptor_sets[mesh_handle.m_id];
 
 					std::vector<std::pair<gfx::DescriptorHeap*, std::uint32_t>> sets
 					{
@@ -87,9 +88,10 @@ namespace tasks
 						{ per_obj_pool->GetDescriptorHeap(), cb_handle.m_cb_set_id }, // TODO: Shitty naming of set_id. just use a vector in the handle instead probably.
 						{ material_pool->GetDescriptorHeap(), material_pool->GetDescriptorSetID(mat_vec[i]) },
 						{ material_pool->GetDescriptorHeap(), material_pool->GetCBDescriptorSetID(mat_vec[i]) },
-						{ model_pool->GetDescriptorHeap(), vb_ib_pair.first },
-						{ model_pool->GetDescriptorHeap(), vb_ib_pair.second },
-						{ model_pool->GetDescriptorHeap(), meshlets_info.first }
+						{ model_pool->GetDescriptorHeap(), vb_ib_pair.first }, // vertices
+						{ model_pool->GetDescriptorHeap(), meshlets_index_buffer_info.second }, // indices
+						{ model_pool->GetDescriptorHeap(), meshlets_info.first }, // meshlets
+						{ model_pool->GetDescriptorHeap(), meshlets_index_buffer_info.first }, // vertex indices
 					};
 
 					cmd_list->BindDescriptorHeap(data.m_root_sig, sets);

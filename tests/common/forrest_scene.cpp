@@ -57,8 +57,8 @@ void ForrestScene::BuildScene()
 {
 	// Create Camera
 	m_camera_node = m_scene_graph->CreateNode<sg::CameraComponent>();
-	sg::helper::SetPosition(m_scene_graph, m_camera_node, glm::vec3(0, 0, 5.f));
-	sg::helper::SetRotation(m_scene_graph, m_camera_node, glm::vec3(0, -90._deg, 0));
+	sg::helper::SetPosition(m_scene_graph, m_camera_node, glm::vec3(-4.810, 0.295, 5.736));
+	sg::helper::SetRotation(m_scene_graph, m_camera_node, glm::vec3(-49.119_deg, -132.739_deg, 0));
 
 	auto plane_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_plane_model);
 	sg::helper::SetMaterial(m_scene_graph, plane_node, { m_plane_material_handle });

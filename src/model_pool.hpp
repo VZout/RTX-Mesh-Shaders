@@ -20,12 +20,20 @@
 
 struct ModelHandle
 {
+	struct MeshOffsets
+	{
+		std::uint64_t m_vb;
+		std::uint64_t m_ib;
+	};
+
 	struct MeshHandle
 	{
 		std::uint32_t m_id;
+		MeshOffsets m_offsets;
 		std::uint32_t m_num_indices;
 		std::uint32_t m_num_vertices;
-		std::uint32_t m_vertex_stride;
+		std::uint64_t m_vertex_stride;
+		std::uint64_t m_index_stride;
 		std::optional<MaterialHandle> m_material_handle;
 
 		bool operator==(MeshHandle const & other) const
@@ -103,8 +111,10 @@ public:
 
 	std::unordered_map<ModelHandle, ModelData*> m_loaded_data; // TODO: Make private
 protected:
-	virtual void AllocateMesh(void* vertex_data, std::uint32_t num_vertices, std::uint32_t vertex_stride,
+	virtual ModelHandle::MeshOffsets AllocateMesh(void* vertex_data, std::uint32_t num_vertices, std::uint32_t vertex_stride,
 			void* index_data, std::uint32_t num_indices, std::uint32_t index_stride, void* meshlet_data, std::uint32_t num_meshlets) = 0;
+
+	virtual void AllocateMeshShadingBuffers(std::vector<std::uint32_t> vertex_indices, std::vector<std::uint8_t> flat_indices) = 0;
 
 	std::uint32_t m_next_id;
 
@@ -246,19 +256,20 @@ ModelHandle ModelPool::LoadWithMaterials(ModelData* data,
 
 		// Generate meshlets
 		std::vector<MeshletDesc> meshlet_data;
-		std::vector<std::vector<int>> vertex_indices; // used to index the vertex buffer from mesh shading (Uploaded to the GPU)
-		std::vector<std::vector<std::uint32_t>> index_indices; // used to index the vertex indices buffer  (Uploaded to the GPU)
+		std::vector<std::uint32_t> vertex_indices; // used to index the vertex buffer from mesh shading (Uploaded to the GPU)
+		std::vector<std::uint8_t> index_indices; // used to index the vertex indices buffer  (Uploaded to the GPU)
 		int max_meshlet_indices = 63;
 
 		int vertices_start = 0;
+		int prim_begin = 0;
 
 		for (auto indices_start = 0; indices_start < mesh.m_num_indices; indices_start += max_meshlet_indices)
 		{
 			MeshletDesc meshlet = {};
 
 			auto num_indices_in_meshlet = std::min((int)mesh.m_num_indices - indices_start, max_meshlet_indices);
-			std::vector<int> meshlet_vertex_indices;
-			std::vector<int> meshlet_indices;
+			std::vector<std::uint32_t> meshlet_vertex_indices;
+			std::vector<std::uint32_t> meshlet_indices;
 
 			// obtain all indices required for this meshlet.
 			for (auto i = indices_start; i < indices_start + num_indices_in_meshlet; i += 3)
@@ -272,21 +283,9 @@ ModelHandle ModelPool::LoadWithMaterials(ModelData* data,
 				}
 			}
 
-			// Create the flat indices vector. ([0, max])
-			/*std::vector<std::uint32_t> flat_meshlet_indices = meshlet_indices;
-			auto min_meshlet_index = *std::min_element(flat_meshlet_indices.begin(), flat_meshlet_indices.end());
-			for (auto& idx : flat_meshlet_indices)
-			{
-				idx -= min_meshlet_index;
-			}*/
-
-			// Resize the meshlet_vertex_indices array to the minimum required size.
-			int num_unique_vertices = std::unique(meshlet_indices.begin(), meshlet_indices.end()) - meshlet_indices.begin();
-			//meshlet_vertex_indices.resize(num_unique_vertices);
-
 			// Create the vertex indices vector based on the flat indices vector.
-			std::vector<std::uint32_t> flat_meshlet_indices(meshlet_indices.size());
-			std::vector<std::pair<std::uint32_t, std::uint32_t>> flat_helper; // first = original, second = flat
+			std::vector<std::uint8_t> flat_meshlet_indices(meshlet_indices.size());
+			std::vector<std::pair<std::uint32_t, std::uint8_t>> flat_helper; // first = original, second = flat
 
 			for (auto i = 0; i < meshlet_indices.size(); i++)
 			{
@@ -319,26 +318,175 @@ ModelHandle ModelPool::LoadWithMaterials(ModelData* data,
 				}
 			}
 
+			// alignment
+			auto alligned_vertices_start = SizeAlignTwoPower(vertices_start, vertex_packing_alignment);
+			auto alligned_prim_start = SizeAlignTwoPower(prim_begin, primitive_packing_alignment);
+
+			// pad array to allignment
+			for (auto i = 0; i < alligned_vertices_start - vertices_start; i++)
+			{
+				vertex_indices.push_back(0);
+			}
+			for (auto i = 0; i < alligned_prim_start - prim_begin; i++)
+			{
+				flat_meshlet_indices.push_back(0);
+				flat_meshlet_indices.push_back(0);
+				flat_meshlet_indices.push_back(0);
+			}
+
+			// Get new size with padding.
+			int num_unique_vertices = meshlet_vertex_indices.size();
+			int num_unique_indices = flat_meshlet_indices.size();
+
+			//flat_meshlet_indices.push_back(69);
+
+			vertices_start = alligned_vertices_start;
+			prim_begin = alligned_prim_start;
+
 			meshlet.SetNumVertices(num_unique_vertices);
 			meshlet.SetVertexBegin(vertices_start);
-			meshlet.SetNumPrims(num_indices_in_meshlet / 3);
-			meshlet.SetPrimBegin(indices_start / 3);
+			meshlet.SetNumPrims((num_indices_in_meshlet / 3));
+			meshlet.SetPrimBegin(prim_begin);
 
 			meshlet_data.push_back(meshlet);
 			vertices_start += num_unique_vertices;
+			prim_begin += (num_unique_indices / 3);
 
-			vertex_indices.push_back(meshlet_vertex_indices);
-			index_indices.push_back(flat_meshlet_indices);
+			vertex_indices.insert(vertex_indices.end(), meshlet_vertex_indices.begin(), meshlet_vertex_indices.end());
+			index_indices.insert(index_indices.end(), flat_meshlet_indices.begin(), flat_meshlet_indices.end());
 		}
 
-		// Todo:: Allocate vertex indices and index indices buffers. (Need 1 extra buffer. existing indices buffer gets replaced)
+		// debug
+		// miniboy
+#ifdef CUNT
+#define NVMSH_INDEX_BITS      8
+#define NVMSH_PACKED4X8_GET(packed, idx)   (((packed) >> (NVMSH_INDEX_BITS * (idx))) & 255)
 
-		AllocateMesh(vertices.data(), num_vertices, sizeof(V_T), indices.data(), num_indices, index_stide, meshlet_data.data(), meshlet_data.size());
+		std::vector<std::vector<std::uint32_t>> m_debug_write_indices_0(meshlet_data.size(), std::vector<std::uint32_t>(64));
+		std::vector<std::vector<std::uint32_t>> m_debug_write_indices_1(meshlet_data.size(), std::vector<std::uint32_t>(64));
+		std::vector<std::uint32_t> m_debug_indices;
+		for (auto i = 0; i < index_indices.size(); i += 4)
+		{
+			uint32_t m_newint;
+			memcpy(&m_newint, &index_indices[i], sizeof(std::uint32_t));
+
+			UINT8 var1 = index_indices[i]; //0000 0001
+			UINT8 var2 = 0;
+			if (i + 1 < index_indices.size())
+				var2 = index_indices[i+1]; //0000 0011
+			UINT8 var3 = 0;
+			if (i + 2 < index_indices.size())
+				var3 = index_indices[i+2]; //0000 0111
+			UINT8 var4 = 0;
+			if (i + 3 < index_indices.size())
+				var4 = index_indices[i+3]; //0000 1111
+			UINT32 bigvar = (var1 << 24) + (var2 << 16) + (var3 << 8) + var4;
+
+			m_debug_indices.push_back(bigvar);
+
+
+			int q = 1;
+		}
+
+		int idx_x = 0;
+		for (auto const & meshlet_desc : meshlet_data)
+		{
+			auto vert_max = meshlet_desc.GetNumVertices();
+			auto prim_max = meshlet_desc.GetNumPrims();
+			auto vert_begin = meshlet_desc.GetVertexBegin();
+			auto prim_begin = meshlet_desc.GetPrimBegin();
+
+			unsigned num_triangles = prim_max * 3;
+			unsigned triangles_start = prim_begin * 3;
+			for (auto i = triangles_start; i < triangles_start + num_triangles; i += 4)
+			{
+
+				std::uint32_t k = i - triangles_start;
+				std::uint32_t ii = std::uint32_t(std::floor(float(i) / float(4)));
+				if (ii >= m_debug_indices.size()) continue;
+				std::uint32_t packed = m_debug_indices[ii];
+
+
+				m_debug_write_indices_0[idx_x][(k)+0] = (NVMSH_PACKED4X8_GET((packed), 3 - 0));
+				m_debug_write_indices_0[idx_x][(k)+1] = (NVMSH_PACKED4X8_GET((packed), 3 - 1));
+				m_debug_write_indices_0[idx_x][(k)+2] = (NVMSH_PACKED4X8_GET((packed), 3 - 2));
+				m_debug_write_indices_0[idx_x][(k)+3] = (NVMSH_PACKED4X8_GET((packed), 3 - 3));
+			}
+			idx_x++;
+		}
+
+		int idx_y = 0;
+		for (auto const& meshlet_desc : meshlet_data)
+		{
+			auto vert_max = meshlet_desc.GetNumVertices();
+			auto prim_max = meshlet_desc.GetNumPrims();
+			auto vert_begin = meshlet_desc.GetVertexBegin();
+			auto prim_begin = meshlet_desc.GetPrimBegin();
+
+			unsigned num_indices = prim_max * 3;
+			unsigned indices_start = prim_begin * 3;
+			for (auto i = indices_start; i < indices_start + num_indices; i += 3)
+			{
+				std::uint32_t k = i - indices_start;
+				auto q = indices_start + num_indices;
+
+				if (i + 0 < index_indices.size())
+					m_debug_write_indices_1[idx_y][k + 0] = index_indices[i + 0];
+				if (i + 1 < index_indices.size())
+					m_debug_write_indices_1[idx_y][k + 1] = index_indices[i + 1];
+				if (i + 2 < index_indices.size())
+					m_debug_write_indices_1[idx_y][k + 2] = index_indices[i + 2];
+			}
+			idx_y++;
+		}
+
+		for (auto k = 0; k < m_debug_write_indices_0.size(); k++)
+		{
+			for (auto i = 0; i < m_debug_write_indices_0[k].size(); i++)
+			{
+				//if (m_debug_write_indices_0[k][i] != m_debug_write_indices_1[k][i])
+				{
+					LOG("MESHIDX({}), IDX({}) optimized: {} default: {}", k, i, m_debug_write_indices_0[k][i], m_debug_write_indices_1[k][i]);
+				}
+			}
+		}
+#endif
+
+#ifdef DEBUG_GENERATED_INDEX_BUFFERS
+		for (auto meshlet : meshlet_data)
+		{
+			for (auto i = meshlet.GetPrimBegin() * 3; i < (meshlet.GetPrimBegin() + meshlet.GetNumPrims()) * 3; i += 3)
+			{
+				glm::ivec3 triangle;
+				memcpy(&triangle, &mesh.m_indices[i * mesh.m_indices_stride], mesh.m_indices_stride * 3);
+
+				glm::ivec3 triangle_new;
+				auto vert_begin = meshlet.GetVertexBegin();
+				triangle_new.x = vertex_indices[vert_begin + index_indices[i + 0]];
+				triangle_new.y = vertex_indices[vert_begin + index_indices[i + 1]];
+				triangle_new.z = vertex_indices[vert_begin + index_indices[i + 2]];		
+
+				if (triangle_new != triangle)
+				{
+					LOG("=====================================");
+					LOG("old school ({}, {}, {})", triangle.x, triangle.y, triangle.z);
+					LOG("new school ({}, {}, {})", triangle_new.x, triangle_new.y, triangle_new.z);
+				}
+			}
+		}
+#endif
+
+		AllocateMeshShadingBuffers(vertex_indices, index_indices);
+
+		auto offsets = AllocateMesh(vertices.data(), num_vertices, sizeof(V_T), indices.data(), num_indices, index_stide, meshlet_data.data(), meshlet_data.size());
+
 		model_handle.m_mesh_handles.emplace_back(ModelHandle::MeshHandle{
 			.m_id = m_next_id,
+			.m_offsets = offsets,
 			.m_num_indices = static_cast<std::uint32_t>(num_indices),
 			.m_num_vertices = static_cast<std::uint32_t>(num_vertices),
 			.m_vertex_stride = sizeof(V_T),
+			.m_index_stride = index_stide,
 			.m_material_handle = material_handle
 		});
 		m_next_id++;

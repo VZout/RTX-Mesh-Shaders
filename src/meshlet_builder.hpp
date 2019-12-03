@@ -5,10 +5,16 @@
 #include <cstring>
 
 static inline const int max_vertex_count_limit = 256;
-static inline const int primitive_packing_alignment = 32;
+static inline const int primitive_packing_alignment = 1;
 static inline const int max_primitive_count_limit = 256;
 static inline const std::uint32_t vertex_packing_alignment = 16;
 static inline const std::uint32_t meshlets_per_task = 32;
+
+template<typename T, typename A>
+constexpr inline T SizeAlignTwoPower(T size, A alignment)
+{
+	return (size + (alignment - 1U)) & ~(alignment - 1U);
+}
 
 struct MeshletDesc
 {
@@ -69,28 +75,26 @@ struct MeshletDesc
 	}
 
 	std::uint32_t GetPrimBegin() const {
-		//return Unpack(m_w, 20, 0) * primitive_packing_alignment;
-		return Unpack(m_w, 20, 0);
+		return Unpack(m_w, 20, 0) * primitive_packing_alignment;
 	}
 
 	void SetPrimBegin(std::uint32_t begin) {
-		//assert(begin % primitive_packing_alignment == 0);
-		//assert(begin / primitive_packing_alignment < ((1 << 20) - 1));
-		//m_w |= Pack(begin / primitive_packing_alignment, 20, 0);
-		m_w |= Pack(begin, 20, 0);
+		assert(begin % primitive_packing_alignment == 0);
+		assert(begin / primitive_packing_alignment < ((1 << 20) - 1));
+		m_w |= Pack(begin / primitive_packing_alignment, 20, 0);
 	}
 
 	std::uint32_t GetVertexBegin() const
-	{ 
+	{
 		return Unpack(m_z, 20, 0) * vertex_packing_alignment;
 	}
 
 	void SetVertexBegin(std::uint32_t begin)
 	{
-		//assert(begin % vertex_packing_alignment == 0);
-		//assert(begin / vertex_packing_alignment < ((1 << 20) - 1));
-		//m_z |= Pack(begin / vertex_packing_alignment, 20, 0
-		m_z |= Pack(begin, 20, 0);
+		assert(begin % vertex_packing_alignment == 0);
+		assert(begin / vertex_packing_alignment < ((1 << 20) - 1));
+
+		m_z |= Pack(begin / vertex_packing_alignment, 20, 0);
 	}
 
 	static std::uint32_t Pack(std::uint32_t value, int width, int offset)

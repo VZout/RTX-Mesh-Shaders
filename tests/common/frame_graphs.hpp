@@ -46,8 +46,8 @@ namespace fg_manager
 			tasks::AddGenerateBRDFLutTask(*fg);
 			tasks::AddDeferredMainTask(*fg);
 			tasks::AddDeferredCompositionTask(*fg);
-			tasks::AddPostProcessingTask<tasks::DeferredCompositionData>(*fg);
 			tasks::AddRaytracingTask(*fg);
+			tasks::AddPostProcessingTask<tasks::RaytracingData>(*fg);
 			tasks::AddCopyToBackBufferTask<tasks::PostProcessingData>(*fg);
 			tasks::AddImGuiTask<tasks::PostProcessingData>(*fg, imgui_func);
 

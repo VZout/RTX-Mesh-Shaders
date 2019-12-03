@@ -10,12 +10,6 @@
 #include "pipeline_state.hpp"
 #include "gpu_buffers.hpp"
 
-template<typename T, typename A>
-constexpr inline T SizeAlignTwoPower(T size, A alignment)
-{
-	return (size + (alignment - 1U)) & ~(alignment - 1U);
-}
-
 gfx::ShaderTable::ShaderTable(Context* context, std::uint64_t num_shader_records)
 	: m_context(context)
 {

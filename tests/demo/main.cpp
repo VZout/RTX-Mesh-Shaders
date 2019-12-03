@@ -26,7 +26,7 @@
 
 #include <util/cpu_profiler.hpp>
 
-#define DEFAULT_SCENE DisplacementScene
+#define DEFAULT_SCENE ForrestScene
 
 class Demo : public Application
 {
@@ -325,7 +325,7 @@ protected:
 	ImVec2 m_viewport_pos = { 0, 0 };
 	ImVec2 m_viewport_size = { 1280, 720};
 
-	fg_manager::FGType m_fg_type = fg_manager::FGType::PBR_MESH_SHADING;
+	fg_manager::FGType m_fg_type = fg_manager::FGType::PBR_GENERIC;
 };
 
 

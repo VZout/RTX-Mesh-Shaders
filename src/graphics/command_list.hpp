@@ -45,12 +45,13 @@ namespace gfx
 		void BindRenderTarget(RenderTarget* render_target);
 		void UnbindRenderTarget();
 		void BindPipelineState(PipelineState* pipeline);
-		void BindVertexBuffer(StagingBuffer* staging_buffer);
-		void BindIndexBuffer(StagingBuffer* staging_buffer);
+		void BindVertexBuffer(GPUBuffer* staging_buffer, std::uint64_t offset = 0);
+		void BindIndexBuffer(GPUBuffer* staging_buffer, std::uint64_t stride, std::uint64_t offset = 0);
 		void BindDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets);
 		void BindComputePushConstants(RootSignature* root_signature, void* data, std::uint32_t size);
 		void BindTaskPushConstants(RootSignature* root_signature, void* data, std::uint32_t size);
 		void StageBuffer(StagingBuffer* staging_buffer);
+		void StageBuffer(GPUBuffer* buffer, GPUBuffer* staging_buffer, std::uint64_t offset);
 		void StageTexture(StagingTexture* texture);
 		void CopyRenderTargetToRenderWindow(RenderTarget* render_target, std::uint32_t rt_idx, RenderWindow* render_window);
 		void TransitionDepth(RenderTarget* render_target, VkImageLayout from, VkImageLayout to);

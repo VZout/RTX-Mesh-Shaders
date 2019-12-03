@@ -27,12 +27,20 @@
 
 namespace tasks
 {
+	struct RaytracingOffset
+	{
+		std::uint32_t m_vertex_offset;
+		std::uint32_t m_index_offset;
+	};
 
 	struct BuildASData
 	{
 		gfx::AccelerationStructure* m_tlas;
 		std::vector<gfx::AccelerationStructure*> m_blasses;
 		gfx::GPUBuffer* m_scratch_buffer;
+
+		std::vector<RaytracingOffset> m_offsets;
+		gfx::GPUBuffer* m_offsets_buffer;
 
 		bool m_should_build = true;
 	};
@@ -46,6 +54,8 @@ namespace tasks
 
 			const auto scratch_size = 65536*20;
 
+			data.m_offsets.resize(gfx::settings::max_num_rtx_materials, RaytracingOffset{0, 0});
+			data.m_offsets_buffer = new gfx::GPUBuffer(rs.GetContext(), std::nullopt, gfx::settings::max_num_rtx_materials * sizeof(RaytracingOffset), gfx::enums::BufferUsageFlag::RAYTRACING_STORAGE);
 			//data.m_scratch_buffer = new gfx::GPUBuffer(rs.GetContext(), std::nullopt, scratch_size, gfx::enums::BufferUsageFlag::RAYTRACING);
 			if (!resize)
 			{
@@ -64,6 +74,8 @@ namespace tasks
 
 			std::vector<gfx::InstanceDesc> blas_instances;
 
+			int material_id = 0;
+
 			// Build blasses and create the instances list.
 			for (auto const& batch : sg.GetRenderBatches())
 			{
@@ -76,13 +88,13 @@ namespace tasks
 					auto blas = new gfx::AccelerationStructure(context);
 					gfx::GeometryDesc geom_desc;
 
-					geom_desc.m_indices_offset = 0;
-					geom_desc.m_vertices_offset = 0;
+					geom_desc.m_indices_offset = mesh_handle.m_offsets.m_ib;
+					geom_desc.m_vertices_offset = mesh_handle.m_offsets.m_vb;
 					geom_desc.m_vertex_stride = mesh_handle.m_vertex_stride;
 					geom_desc.m_num_indices = mesh_handle.m_num_indices;
 					geom_desc.m_num_vertices = mesh_handle.m_num_vertices;
-					geom_desc.m_ib = model_pool->m_index_buffers[mesh_handle.m_id];
-					geom_desc.m_vb = model_pool->m_vertex_buffers[mesh_handle.m_id];
+					geom_desc.m_ib = model_pool->m_big_index_buffer;
+					geom_desc.m_vb = model_pool->m_big_vertex_buffer;
 
 					//blas->SetScratchBuffer(data.m_scratch_buffer);
 					blas->CreateBottomLevel(cmd_list, { geom_desc });
@@ -93,13 +105,26 @@ namespace tasks
 						auto node = sg.GetNode(node_handle);
 						auto model_mat = glm::transpose(sg.m_models[node.m_transform_component].m_value);
 
+						RaytracingOffset offset;
+						offset.m_vertex_offset = geom_desc.m_vertices_offset;
+						offset.m_index_offset = geom_desc.m_indices_offset;
+						data.m_offsets[material_id] = offset;
+
 						gfx::InstanceDesc new_instance;
 						new_instance.m_transform = (glm::mat3x4)(model_mat);
 						new_instance.m_blas = blas;
+						new_instance.m_material = material_id;
 						blas_instances.push_back(new_instance);
+
+						material_id++;
 					}
 				}
 			}
+
+			// Fill the offsets buffer
+			data.m_offsets_buffer->Map();
+			data.m_offsets_buffer->Update(data.m_offsets.data(), data.m_offsets.size() * sizeof(RaytracingOffset));
+			data.m_offsets_buffer->Unmap();
 
 			// Create TLAS
 			data.m_tlas = new gfx::AccelerationStructure(context);
@@ -120,6 +145,7 @@ namespace tasks
 				}
 
 				delete data.m_tlas;
+				delete data.m_offsets_buffer;
 			}
 		}
 

@@ -279,7 +279,7 @@ namespace sg
 			auto model_handle = m_model_handles[node.m_mesh_component].m_value;
 			auto material_handles = m_model_material_handles[node.m_mesh_component].m_value;
 
-			return batch.m_model_handle == model_handle && batch.m_material_handles == material_handles;
+			return batch.m_model_handle == model_handle/* && batch.m_material_handles == material_handles*/;
 		}
 
 	private:

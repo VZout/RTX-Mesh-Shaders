@@ -22,7 +22,7 @@ void main()
 	vec4 target = camera.inv_proj * vec4(d.x, d.y, 1, 1) ;
 	vec4 direction = camera.inv_view * vec4(normalize(target.xyz), 0);
 
-	uint flags = gl_RayFlagsOpaqueNV;
+	uint flags = gl_RayFlagsOpaqueNV | gl_RayFlagsCullBackFacingTrianglesNV;
 	float tmin = 0.001;
 	float tmax = 10000.0;
 

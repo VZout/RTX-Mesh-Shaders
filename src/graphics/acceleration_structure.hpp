@@ -23,8 +23,8 @@ namespace gfx
 
 	struct GeometryDesc
 	{
-		StagingBuffer* m_vb = nullptr;
-		StagingBuffer* m_ib = nullptr;
+		GPUBuffer* m_vb = nullptr;
+		GPUBuffer* m_ib = nullptr;
 
 		std::uint32_t m_num_vertices = 0u;
 		std::uint32_t m_num_indices = 0u;
@@ -39,6 +39,7 @@ namespace gfx
 	{
 		AccelerationStructure* m_blas;
 		glm::mat3x4 m_transform;
+		std::uint32_t m_material;
 	};
 
 	struct InstanceDesc_Internal {
