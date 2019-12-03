@@ -120,12 +120,7 @@ void main()
 	float subsurface_power = 0;
 	float thickness = decoded_ao_thick.g;
 
-
-#ifdef PBR_PLUS
     float roughness = clamp(albedo_roughness.a, MIN_PERCEPTUAL_ROUGHNESS, 1.f);
-#else
-    float roughness = albedo_roughness.a;
-#endif
     float metallic = normal_metallic.a;
 
     mat4 inv_view = inverse(camera.view);
@@ -146,7 +141,6 @@ void main()
 	float NdotV = max(dot(N, V), MIN_N_DOT_V);
     vec2 dfg = texture(t_brdf_lut, vec2(NdotV, roughness)).gr; // lut
 
-#ifdef PBR_PLUS
     vec3 diffuse_color = ComputeDiffuseColor(albedo, metallic);
 
     vec3 F0;
@@ -197,7 +191,6 @@ void main()
     float ibl_luminance = 1; // TODO figure this IBLluminance out.
 
     vec3 ibl_color = (diff + spec) * ibl_luminance;
-#endif
 
     uint num_lights = 1; //Light count is stored in 30 upper-bits of first light
     vec3 lighting = vec3(0);
@@ -213,7 +206,6 @@ void main()
 		const vec3 pos_to_light = light_pos - world_pos;
         vec3 L = normalize(pos_to_light);
 
-#ifdef PBR_PLUS
 		float sqr_falloff = lights.lights[i].m_radius * lights.lights[i].m_radius;
 		float sqr_inv_radius = sqr_falloff > 0.0f ? (1 / sqr_falloff) : 0;
 
@@ -248,27 +240,9 @@ void main()
 			lighting += BRDF(L, V, N, geometric_normal, metallic, roughness, diffuse_color, light_color, F0, energy_compensation, attenuation, 1.0f, anisotropy, anisotropic_t, anisotropic_b, clear_coat, cc_roughness);
 		}
 #endif
-
-#else
-        lighting += BRDF(L, V, N, metallic, roughness, albedo, light_color);
-#endif
     }
 
-    #ifdef PBR_PLUS
     vec3 color = ibl_color + lighting;
-    #else
-    vec3 diffuse = irradiance * albedo;
-    vec3 F = F_SchlickRoughness(max(dot(N, V), 0.0), metallic, albedo, roughness);
-    vec3 reflection = GetEnvReflection(R, roughness);
-    vec3 specular = reflection * (F * dfg.x + dfg.y);
-
-    vec3 kD = 1.0 - F;
-    kD *= 1.0 - metallic;
-    vec3 color = (kD * diffuse + specular) + lighting;
-
-    color *= ao;
-    #endif
-
 
     // Skybox
     if (world_pos.z == 0)

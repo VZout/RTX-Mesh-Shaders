@@ -32,7 +32,11 @@ namespace tasks
 	struct RaytracingData
 	{
 		std::uint32_t m_tlas_set;
+		std::uint32_t m_skybox_set;
+		std::uint32_t m_brdf_set;
 		std::uint32_t m_offsets_set;
+		std::uint32_t m_materials_set;
+		std::uint32_t m_textures_set;
 		std::uint32_t m_uav_target_set;
 		gfx::DescriptorHeap* m_gbuffer_heap;
 
@@ -65,7 +69,7 @@ namespace tasks
 
 			gfx::DescriptorHeap::Desc descriptor_heap_desc = {};
 			descriptor_heap_desc.m_versions = 1;
-			descriptor_heap_desc.m_num_descriptors = 3;
+			descriptor_heap_desc.m_num_descriptors = 7;
 			data.m_gbuffer_heap = new gfx::DescriptorHeap(rs.GetContext(), descriptor_heap_desc);
 			data.m_uav_target_set = data.m_gbuffer_heap->CreateUAVSetFromRT(render_target, 0, data.m_root_sig, 1, 0, input_sampler_desc);
 
@@ -81,6 +85,34 @@ namespace tasks
 
 			data.m_hitgroup_shader_table = new gfx::ShaderTable(rs.GetContext(), 1);
 			data.m_hitgroup_shader_table->AddShaderRecord(data.m_pipeline, 2, 1);*/
+
+			gfx::SamplerDesc skybox_sampler_desc
+			{
+				.m_filter = gfx::enums::TextureFilter::FILTER_ANISOTROPIC,
+				.m_address_mode = gfx::enums::TextureAddressMode::TAM_WRAP,
+				.m_border_color = gfx::enums::BorderColor::BORDER_WHITE,
+			};
+
+			gfx::SamplerDesc lut_sampler_desc
+			{
+				.m_filter = gfx::enums::TextureFilter::FILTER_LINEAR,
+				.m_address_mode = gfx::enums::TextureAddressMode::TAM_CLAMP,
+				.m_border_color = gfx::enums::BorderColor::BORDER_WHITE,
+			};
+
+			// Skybox
+			if (fg.HasTask<GenerateCubemapData>())
+			{
+				auto skybox_rt = fg.GetPredecessorRenderTarget<GenerateCubemapData>();
+				data.m_skybox_set = data.m_gbuffer_heap->CreateSRVSetFromRT(skybox_rt, data.m_root_sig, 9, 0, false, skybox_sampler_desc);
+			}
+
+			// BRDF Lut
+			if (fg.HasTask<GenerateBRDFLutData>())
+			{
+				auto brdf_rt = fg.GetPredecessorRenderTarget<GenerateBRDFLutData>();
+				data.m_brdf_set = data.m_gbuffer_heap->CreateSRVSetFromRT(brdf_rt, data.m_root_sig, 10, 0, false, lut_sampler_desc);
+			}
 		}
 
 		inline void ExecuteRaytracingTask(Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, fg::RenderTaskHandle handle)
@@ -90,6 +122,7 @@ namespace tasks
 			auto render_target = fg.GetRenderTarget(handle);
 
 			auto model_pool = static_cast<gfx::VkModelPool*>(rs.GetModelPool());
+			auto texture_pool = static_cast<gfx::VkTexturePool*>(rs.GetTexturePool());
 			auto camera_pool = static_cast<gfx::VkConstantBufferPool*>(sg.GetInverseCameraConstantBufferPool());
 			auto camera_handle = sg.m_inverse_camera_cb_handles[0].m_value;
 			auto light_pool = static_cast<gfx::VkConstantBufferPool*>(sg.GetLightConstantBufferPool());
@@ -100,6 +133,8 @@ namespace tasks
 				auto as_build_data = fg.GetPredecessorData<BuildASData>();
 				data.m_tlas_set = data.m_gbuffer_heap->CreateSRVFromAS(as_build_data.m_tlas, data.m_root_sig, 0, 0);
 				data.m_offsets_set = data.m_gbuffer_heap->CreateSRVFromCB(as_build_data.m_offsets_buffer, data.m_root_sig, 6, 0, false);
+				data.m_materials_set = data.m_gbuffer_heap->CreateSRVFromCB(as_build_data.m_materials_buffer, data.m_root_sig, 7, 0, false);
+				data.m_textures_set = data.m_gbuffer_heap->CreateSRVSetFromTexture(texture_pool->GetAllTexturesPadded(gfx::settings::max_num_rtx_textures), data.m_root_sig, 8, 0);
 
 				data.m_first_execute = false;
 			}
@@ -114,6 +149,10 @@ namespace tasks
 				{ model_pool->m_heap, model_pool->m_big_vb_desc_set_id },
 				{ model_pool->m_heap, model_pool->m_big_ib_desc_set_id },
 				{ data.m_gbuffer_heap, data.m_offsets_set },
+				{ data.m_gbuffer_heap, data.m_materials_set },
+				{ data.m_gbuffer_heap, data.m_textures_set },
+				{ data.m_gbuffer_heap, data.m_skybox_set },
+				{ data.m_gbuffer_heap, data.m_brdf_set },
 			};
 
 			cmd_list->BindPipelineState(data.m_pipeline);

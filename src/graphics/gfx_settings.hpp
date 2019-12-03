@@ -36,4 +36,5 @@ namespace gfx::settings
 	static const std::uint32_t max_lights = 50;
 	static const std::uint32_t max_render_batch_size = 700;
 	static const std::uint32_t max_num_rtx_materials = 2000;
+	static const std::uint32_t max_num_rtx_textures = 500;
 }

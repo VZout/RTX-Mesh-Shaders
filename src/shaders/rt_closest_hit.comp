@@ -3,6 +3,13 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 #pragma shader_stage(closest)
 
+#define POINT_LIGHT 0
+#define DIRECTIONAL_LIGHT 1
+#define SPOT_LIGHT 2
+
+#define SCATTER
+#include "pbr+_util.glsl"
+
 layout(location = 0) rayPayloadInNV vec3 hitValue;
 hitAttributeNV vec3 attribs;
 
@@ -43,6 +50,13 @@ struct RaytracingOffset
 	uint idx_offset;
 };
 
+struct RaytracingMaterial
+{   
+	uint albedo_texture;
+	uint normal_texture;
+	uint roughness_texture;
+};
+
 struct Light
 {
     vec3 m_pos;
@@ -74,6 +88,15 @@ layout(set = 6, binding = 6) buffer UniformBufferOffsetObject
 { 
     RaytracingOffset offsets[];
 } offsets;
+
+layout(set = 7, binding = 7) buffer UniformBufferMaterialObject
+{ 
+    RaytracingMaterial materials[];
+} materials;
+
+layout(set = 8, binding = 8) uniform sampler2D ts_textures[500];
+
+layout(set = 10, binding = 10) uniform sampler2D t_brdf_lut;
 
 ReadableVertex VertexToReadable(Vertex vertex)
 {
@@ -125,29 +148,96 @@ void main()
 	const ReadableVertex v2 = VertexToReadable(vb.vertices[indices.z]);
 
 	const vec3 normal = normalize(HitAttribute(v0.normal, v1.normal, v2.normal, attribs));
+	const vec3 tangent = normalize(HitAttribute(v0.tangent, v1.tangent, v2.tangent, attribs));
+	const vec3 bitangent = normalize(HitAttribute(v0.bitangent, v1.bitangent, v2.bitangent, attribs));
+	vec2 uv = HitAttribute(vec3(v0.uv, 0), vec3(v1.uv, 0), vec3(v2.uv, 0), attribs).xy;
+	uv.y = 1.0f - uv.y;
+
 	const vec3 N = normalize(gl_ObjectToWorldNV * vec4(normal, 0));
+	const vec3 geometric_normal = N;
+
+	// Raytracing Material
+	RaytracingMaterial material = materials.materials[gl_InstanceCustomIndexNV];
+
+	vec3 albedo = texture(ts_textures[material.albedo_texture], uv).rgb;
+	float thickness = 0.1;
+	float metallic = 0;
+	float roughness = 1;
+	float anisotropy = 0;
+	vec3 anisotropic_t = vec3(0);
+	vec3 anisotropic_b = vec3(0);
+	float clear_coat = 0;
+	float cc_roughness = clamp(0, MIN_PERCEPTUAL_ROUGHNESS, 1.0);;
+	float reflectivity = 0.5;
+	vec3 subsurface_color = vec3(143 / 255.f, 17 / 255.f, 0);
+	float subsurface_power = 0;
+
+	vec3 V = normalize(gl_WorldRayOriginNV - world_pos);
+
+	vec3 diffuse_color = ComputeDiffuseColor(albedo, metallic);
+	
+	vec3 F0;
+    if (reflectivity > -1)
+    {
+        float reflectance = ComputeDielectricF0(reflectivity); // TODO: proper material reflectance
+        F0 = ComputeF0(albedo, metallic, reflectance);
+    }
+    else
+    {
+        F0 = mix(vec3(0.04), albedo, 1 - metallic);
+    }
+	float NdotV = max(dot(N, V), MIN_N_DOT_V);
+	vec2 dfg = texture(t_brdf_lut, vec2(NdotV, roughness)).gr; // lut
+	vec3 energy_compensation = 1.0 + F0 * (1.0 / dfg.y - 1.0);
 
 	uint num_lights = 1; //Light count is stored in 30 upper-bits of first light
     vec3 lighting = vec3(0);
     for (uint i = 0; i < num_lights; i++)
     {
-        const vec3 light_color = lights.lights[i].m_color;
+		const vec3 light_color = lights.lights[i].m_color;
         const vec3 light_pos = lights.lights[i].m_pos;
-		
-		float ambient_strength = 0.1;
-		vec3 ambient = ambient_strength * vec3(1);
+		const vec3 light_dir = lights.lights[i].m_dir;
+		const uint type = lights.lights[i].m_type & 3;
+		const float inner_angle = lights.lights[i].m_inner_angle;
+		const float outer_angle = lights.lights[i].m_outer_angle;
 
-		vec3 light_dir = normalize(light_pos - world_pos);
-		float diff = max(dot(N, light_dir), 0.0);
-		vec3 diffuse = diff * light_color;
+		const vec3 pos_to_light = light_pos - world_pos;
+        vec3 L = normalize(pos_to_light);
 
-		float specularStrength = 0.5;
-		vec3 V = normalize(view_pos - world_pos);
-		vec3 reflectDir = reflect(-light_dir, N);  
-		float spec = pow(max(dot(V, reflectDir), 0.0), 4);
-		vec3 specular = specularStrength * spec * light_color;
+		float sqr_falloff = lights.lights[i].m_radius * lights.lights[i].m_radius;
+		float sqr_inv_radius = sqr_falloff > 0.0f ? (1 / sqr_falloff) : 0;
 
-		lighting += (ambient + diffuse + specular) * 1;
+		float attenuation = GetDistanceAttenuation(pos_to_light, sqr_inv_radius);
+		if (type == DIRECTIONAL_LIGHT)
+		{
+			attenuation = 1;
+			L = -light_dir;
+		}
+		else if (type == SPOT_LIGHT)
+		{
+			attenuation *= GetAngleAttenuation(light_dir, L, inner_angle, outer_angle);
+		}
+
+        float NdotL = clamp(dot(N, L), 0.0, 1.0); // TODO: Duplicate ndotl
+
+#ifdef SCATTER
+		if (thickness < 1)
+		{
+			lighting += SS_BRDF(L, V, N, geometric_normal, metallic, roughness, diffuse_color, light_color, F0, energy_compensation, attenuation, 1.0f, thickness, subsurface_color, subsurface_power);
+		}
+		else
+		{
+			if (NdotL > 0.0)
+			{
+				lighting += BRDF(L, V, N, geometric_normal, metallic, roughness, diffuse_color, light_color, F0, energy_compensation, attenuation, 1.0f, anisotropy, anisotropic_t, anisotropic_b, clear_coat, cc_roughness);
+			}
+		}
+#else
+		if (NdotL > 0.0)
+		{
+			lighting += BRDF(L, V, N, geometric_normal, metallic, roughness, diffuse_color, light_color, F0, energy_compensation, attenuation, 1.0f, anisotropy, anisotropic_t, anisotropic_b, clear_coat, cc_roughness);
+		}
+#endif
 	}
 
 	hitValue = lighting;

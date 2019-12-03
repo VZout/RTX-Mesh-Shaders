@@ -33,6 +33,13 @@ namespace tasks
 		std::uint32_t m_index_offset;
 	};
 
+	struct RaytracingMaterial
+	{
+		std::uint32_t m_albedo_texture;
+		std::uint32_t m_normal_texture;
+		std::uint32_t m_roughness_texture;
+	};
+
 	struct BuildASData
 	{
 		gfx::AccelerationStructure* m_tlas;
@@ -40,7 +47,9 @@ namespace tasks
 		gfx::GPUBuffer* m_scratch_buffer;
 
 		std::vector<RaytracingOffset> m_offsets;
+		std::vector<RaytracingMaterial> m_materials;
 		gfx::GPUBuffer* m_offsets_buffer;
+		gfx::GPUBuffer* m_materials_buffer;
 
 		bool m_should_build = true;
 	};
@@ -54,8 +63,11 @@ namespace tasks
 
 			const auto scratch_size = 65536*20;
 
-			data.m_offsets.resize(gfx::settings::max_num_rtx_materials, RaytracingOffset{0, 0});
+			data.m_offsets.resize(gfx::settings::max_num_rtx_materials);
+			data.m_materials.resize(gfx::settings::max_num_rtx_materials);
+
 			data.m_offsets_buffer = new gfx::GPUBuffer(rs.GetContext(), std::nullopt, gfx::settings::max_num_rtx_materials * sizeof(RaytracingOffset), gfx::enums::BufferUsageFlag::RAYTRACING_STORAGE);
+			data.m_materials_buffer = new gfx::GPUBuffer(rs.GetContext(), std::nullopt, gfx::settings::max_num_rtx_materials * sizeof(RaytracingMaterial), gfx::enums::BufferUsageFlag::RAYTRACING_STORAGE);
 			//data.m_scratch_buffer = new gfx::GPUBuffer(rs.GetContext(), std::nullopt, scratch_size, gfx::enums::BufferUsageFlag::RAYTRACING);
 			if (!resize)
 			{
@@ -110,6 +122,12 @@ namespace tasks
 						offset.m_index_offset = geom_desc.m_indices_offset;
 						data.m_offsets[material_id] = offset;
 
+						RaytracingMaterial material;
+						material.m_albedo_texture = batch.m_material_handles[i].m_albedo_texture_handle;
+						material.m_normal_texture = batch.m_material_handles[i].m_normal_texture_handle;
+						material.m_roughness_texture = batch.m_material_handles[i].m_roughness_texture_handle;
+						data.m_materials[material_id] = material;
+
 						gfx::InstanceDesc new_instance;
 						new_instance.m_transform = (glm::mat3x4)(model_mat);
 						new_instance.m_blas = blas;
@@ -125,6 +143,11 @@ namespace tasks
 			data.m_offsets_buffer->Map();
 			data.m_offsets_buffer->Update(data.m_offsets.data(), data.m_offsets.size() * sizeof(RaytracingOffset));
 			data.m_offsets_buffer->Unmap();
+
+			// Fill the materials buffer
+			data.m_materials_buffer->Map();
+			data.m_materials_buffer->Update(data.m_materials.data(), data.m_materials.size() * sizeof(RaytracingMaterial));
+			data.m_materials_buffer->Unmap();
 
 			// Create TLAS
 			data.m_tlas = new gfx::AccelerationStructure(context);
@@ -145,6 +168,7 @@ namespace tasks
 				}
 
 				delete data.m_tlas;
+				delete data.m_materials_buffer;
 				delete data.m_offsets_buffer;
 			}
 		}

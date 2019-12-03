@@ -292,7 +292,7 @@ REGISTER(root_signatures::generate_brdf_lut, RootSignatureRegistry)({
 REGISTER(root_signatures::raytracing, RootSignatureRegistry)({
   .m_parameters = []() -> decltype(RootSignatureDesc::m_parameters)
   {
-	  decltype(RootSignatureDesc::m_parameters) params(7);
+	  decltype(RootSignatureDesc::m_parameters) params(11);
 	  params[0].binding = 0; // acceleration structure
 	  params[0].descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
 	  params[0].descriptorCount = 1;
@@ -328,6 +328,26 @@ REGISTER(root_signatures::raytracing, RootSignatureRegistry)({
 	  params[6].descriptorCount = 1;
 	  params[6].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
 	  params[6].pImmutableSamplers = nullptr;
+	  params[7].binding = 7; // materials
+	  params[7].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	  params[7].descriptorCount = 1;
+	  params[7].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+	  params[7].pImmutableSamplers = nullptr;
+	  params[8].binding = 8; // materials
+	  params[8].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	  params[8].descriptorCount = gfx::settings::max_num_rtx_textures;
+	  params[8].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+	  params[8].pImmutableSamplers = nullptr;
+	  params[9].binding = 9; // skybox
+	  params[9].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	  params[9].descriptorCount = gfx::settings::max_num_rtx_textures;
+	  params[9].stageFlags = VK_SHADER_STAGE_MISS_BIT_NV;
+	  params[9].pImmutableSamplers = nullptr;
+	  params[10].binding = 10; // pbrlut
+	  params[10].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	  params[10].descriptorCount = gfx::settings::max_num_rtx_textures;
+	  params[10].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+	  params[10].pImmutableSamplers = nullptr;
 	  return params;
   }(),
 });
