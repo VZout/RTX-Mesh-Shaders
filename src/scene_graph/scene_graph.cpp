@@ -135,8 +135,8 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 
 		// Update inverse
 		cb::CameraInverse inv_data;
-		inv_data.m_view = glm::inverse(data.m_view);
-		inv_data.m_proj = glm::inverse(data.m_proj);
+		//inv_data.m_view = glm::inverse(data.m_view);
+		//inv_data.m_proj = glm::inverse(data.m_proj);
 
 		inv_data.cameraPositionAspect.x = cam_pos.x;
 		inv_data.cameraPositionAspect.y = cam_pos.y;

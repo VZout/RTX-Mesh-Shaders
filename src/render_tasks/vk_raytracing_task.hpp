@@ -53,13 +53,12 @@ namespace tasks
 		glm::vec3 last_rot;
 
 		bool m_first_execute = true;
+
+		std::uint32_t frame_number = 0;
 	};
 
 	namespace internal
 	{
-
-		std::uint32_t frame_number = 0;
-
 		inline void SetupRaytracingTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
 		{
 			auto& data = fg.GetData<RaytracingData>(handle);
@@ -81,7 +80,7 @@ namespace tasks
 			data.m_uav_target_set = data.m_gbuffer_heap->CreateUAVSetFromRT(render_target, 0, data.m_root_sig, 1, 0, input_sampler_desc);
 
 			data.m_first_execute = true;
-			frame_number = 0;
+			data.frame_number = 0;
 
 			gfx::SamplerDesc skybox_sampler_desc
 			{
@@ -138,7 +137,7 @@ namespace tasks
 			auto new_rot = sg.m_rotations[sg.GetActiveCamera().m_transform_component].m_value;
 			if (data.last_pos != new_pos || new_rot != data.last_rot)
 			{
-				frame_number = 0;
+				data.frame_number = 0;
 				data.last_pos = new_pos;
 				data.last_rot = new_rot;
 			}
@@ -175,10 +174,10 @@ namespace tasks
 
 			cmd_list->BindPipelineState(data.m_pipeline);
 			cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
-			cmd_list->BindRaygenPushConstants(data.m_root_sig, &frame_number, sizeof(std::uint32_t));
+			cmd_list->BindRaygenPushConstants(data.m_root_sig, &data.frame_number, sizeof(std::uint32_t));
 			cmd_list->DispatchRays(data.m_raygen_shader_table, data.m_raygen_shader_table, data.m_raygen_shader_table, render_target->GetWidth(), render_target->GetHeight(), 1);
 
-			frame_number++;
+			data.frame_number++;
 		}
 
 		inline void DestroyRaytracingTask(fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)

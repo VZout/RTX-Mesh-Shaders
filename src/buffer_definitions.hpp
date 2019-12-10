@@ -39,8 +39,8 @@ namespace cb
 
 	struct CameraInverse
 	{
-		alignas(16) glm::mat4 m_view;
-		alignas(16) glm::mat4 m_proj;
+		//alignas(16) glm::mat4 m_view;
+		//alignas(16) glm::mat4 m_proj;
 		glm::vec4 cameraPositionAspect;
 		glm::vec4 cameraUpVectorTanHalfFOV;
 		glm::vec4 cameraRightVectorLensR;

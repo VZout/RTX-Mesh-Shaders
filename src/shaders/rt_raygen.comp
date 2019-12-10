@@ -7,16 +7,18 @@
 #include "random.glsl"
 
 layout(binding = 0, set = 0) uniform accelerationStructureNV scene;
+
 layout(set = 1, binding = 1, rgba8) uniform image2D t_output;
 
 layout(set = 2, binding = 2) uniform UniformBufferCameraObject {
-    mat4 inv_view;
-    mat4 inv_proj;
+    //mat4 inv_view;
+    //mat4 inv_proj;
 	vec4 cameraPositionAspect;
     vec4 cameraUpVectorTanHalfFOV;
     vec4 cameraRightVectorLensR;
     vec4 cameraForwardVectorLensF;
 } camera;
+
 
 layout(location = 0) rayPayloadNV Payload payload;
 
@@ -97,9 +99,7 @@ void main()
 	result = clamp(result, 0, 10);
 
 	vec3 prev = imageLoad(t_output, ivec2(gl_LaunchIDNV.xy)).rgb;
-
 	vec3 color = (info.frame_number * prev + result) / (info.frame_number + 1); // accumulate
-
 	imageStore(t_output, ivec2(gl_LaunchIDNV.xy), vec4(color, 1));
 }
 

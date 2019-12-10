@@ -20,7 +20,7 @@ hitAttributeNV vec3 attribs;
 layout(binding = 0, set = 0) uniform accelerationStructureNV scene;
 
 layout(set = 3, binding = 3) uniform UniformBufferLightObject {
-    Light lights[50];
+    Light lights[25];
 } lights;
 
 layout(set = 4, binding = 4) buffer VertexBufferObj {
@@ -150,7 +150,6 @@ vec3 IndirectLighting(vec3 world_pos,
 	if (choose_diffuse)
 	{
 		vec3 diffuse_color = (diffuse_color / diffuse_probability);
-		nextRand(seed);
 		vec3 rand_dir = GetCosHemisphereSample(seed, N);
 
 		vec3 irradiance = TraceColorRay(world_pos + (vec3(EPSILON) * N), rand_dir, seed, depth + 1);
@@ -270,9 +269,11 @@ void main()
 
 	//lighting = DoFog(lighting, gl_HitTNV);
 
-	lighting += DirectLighting(world_pos, N, geometric_normal, V, roughness, diffuse_color, metallic, thickness, clear_coat, cc_roughness, subsurface_power, subsurface_color, anisotropy, anisotropic_t, anisotropic_b, F0, energy_compensation, payload.seed, payload.depth);
+	uint depth = payload.depth;
+
+	lighting += DirectLighting(world_pos, N, geometric_normal, V, roughness, diffuse_color, metallic, thickness, clear_coat, cc_roughness, subsurface_power, subsurface_color, anisotropy, anisotropic_t, anisotropic_b, F0, energy_compensation, payload.seed, depth);
 	
-	lighting += IndirectLighting(world_pos, N, geometric_normal, V, roughness, albedo, diffuse_color, metallic, thickness, clear_coat, cc_roughness, subsurface_power, subsurface_color, anisotropy, anisotropic_t, anisotropic_b, F0, energy_compensation, payload.seed, payload.depth);
+	lighting += IndirectLighting(world_pos, N, geometric_normal, V, roughness, albedo, diffuse_color, metallic, thickness, clear_coat, cc_roughness, subsurface_power, subsurface_color, anisotropy, anisotropic_t, anisotropic_b, F0, energy_compensation, payload.seed, depth);
 
 	payload.color = lighting;
 }

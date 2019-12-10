@@ -17,4 +17,5 @@
 #include "vk_generate_environment_map.hpp"
 #include "vk_generate_brdf_lut.hpp"
 #include "vk_build_acceleration_structures_task.hpp"
+#include "vk_taa_task.hpp"
 #include "vk_raytracing_task.hpp"

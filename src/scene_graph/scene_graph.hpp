@@ -404,6 +404,20 @@ namespace sg
 			sg->m_requires_camera_buffer_update[camera_handle] = { true, true, true };
 		}
 
+		inline void SetLensDiameter(SceneGraph* sg, NodeHandle handle, float diameter)
+		{
+			auto camera_handle = sg->GetNode(handle).m_camera_component;
+			sg->m_camera_lens_properties[camera_handle].m_value.m_diameter = diameter;
+			sg->m_requires_camera_buffer_update[camera_handle] = { true, true, true };
+		}
+
+		inline void SetFocalDistance(SceneGraph* sg, NodeHandle handle, float dist)
+		{
+			auto camera_handle = sg->GetNode(handle).m_camera_component;
+			sg->m_camera_lens_properties[camera_handle].m_value.m_focal_dist = dist;
+			sg->m_requires_camera_buffer_update[camera_handle] = { true, true, true };
+		}
+
 	} /* helper */
 
 } /* sg */

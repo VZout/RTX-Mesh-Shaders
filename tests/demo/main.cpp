@@ -165,7 +165,7 @@ protected:
 		{
 			//m_renderer->Resize(m_viewport_size.x, m_viewport_size.y, false);
 			//m_frame_graph->Resize(m_viewport_size.x, m_viewport_size.y);
-			m_viewport_has_changed = false;
+			//m_viewport_has_changed = false;
 		}
 
 		auto now = std::chrono::high_resolution_clock::now();
@@ -272,6 +272,8 @@ protected:
 		// Editor Visibility
 		if ((key == GLFW_KEY_F3 || key == GLFW_KEY_ESCAPE) && action == GLFW_PRESS)
 		{
+			m_viewport_has_changed = true;
+
 			editor.SetEditorVisibility(!editor.GetEditorVisibility());
 
 			auto scene_graph = m_scene->GetSceneGraph();

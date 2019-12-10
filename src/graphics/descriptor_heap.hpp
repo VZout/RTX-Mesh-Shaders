@@ -78,6 +78,8 @@ namespace gfx
 			std::uint32_t handle, std::uint32_t frame_idx, bool include_depth = true, std::optional<SamplerDesc> sampler_desc = m_default_sampler_desc);
 		std::uint32_t CreateUAVSetFromRT(RenderTarget* render_target, std::uint32_t rt_idx, RootSignature* root_signature,
 		                                 std::uint32_t handle,std::uint32_t frame_idx, SamplerDesc sampler_desc = m_default_sampler_desc, std::optional<float> mip_level = std::nullopt);
+		std::uint32_t CreateUAVSetFromRT(RenderTarget* render_target, std::uint32_t rt_idx, std::uint32_t num, RootSignature* root_signature,
+			std::uint32_t handle, std::uint32_t frame_idx, SamplerDesc sampler_desc = m_default_sampler_desc, std::optional<float> mip_level = std::nullopt);
 
 	private:
 		VkSampler CreateSampler(SamplerDesc sampler, std::uint32_t num_mips = 1);

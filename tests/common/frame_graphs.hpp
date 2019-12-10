@@ -81,6 +81,7 @@ namespace fg_manager
 			tasks::AddGenerateCubemapTask(*fg);
 			tasks::AddGenerateBRDFLutTask(*fg);
 			tasks::AddRaytracingTask(*fg);
+			//tasks::AddTemporalAntiAliasingTask<tasks::RaytracingData>(*fg);
 			tasks::AddPostProcessingTask<tasks::RaytracingData>(*fg);
 			tasks::AddCopyToBackBufferTask<tasks::PostProcessingData>(*fg);
 			tasks::AddImGuiTask<tasks::PostProcessingData>(*fg, imgui_func);

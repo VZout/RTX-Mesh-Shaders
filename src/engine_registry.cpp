@@ -40,6 +40,11 @@ REGISTER(shaders::composition_cs, ShaderRegistry)({
     .m_type = gfx::enums::ShaderType::COMPUTE,
 });
 
+REGISTER(shaders::taa_cs, ShaderRegistry)({
+	.m_path = "shaders/taa.comp.spv",
+	.m_type = gfx::enums::ShaderType::COMPUTE,
+});
+
 REGISTER(shaders::post_processing_cs, ShaderRegistry)({
     .m_path = "shaders/post_processing.comp.spv",
     .m_type = gfx::enums::ShaderType::COMPUTE,
@@ -249,6 +254,32 @@ REGISTER(root_signatures::post_processing, RootSignatureRegistry)({
     }(),
 });
 
+REGISTER(root_signatures::taa, RootSignatureRegistry)({
+    .m_parameters = []() -> decltype(RootSignatureDesc::m_parameters)
+    {
+        decltype(RootSignatureDesc::m_parameters) params(2);
+	    params[0].binding = 0; // root parameter 1
+	    params[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		params[0].descriptorCount = 1;
+	    params[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+	    params[0].pImmutableSamplers = nullptr;
+	    params[1].binding = 1; // root parameter 2
+	    params[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	    params[1].descriptorCount = 1;
+	    params[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+	    params[1].pImmutableSamplers = nullptr;
+        return params;
+    }(),  
+	.m_push_constants = []() -> decltype(RootSignatureDesc::m_push_constants)
+	{
+		decltype(RootSignatureDesc::m_push_constants) constants(1);
+		constants[0].offset = 0;
+		constants[0].size = sizeof(float) * 1; // frame idx
+		constants[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+		return constants;
+	}()
+});
+
 REGISTER(root_signatures::generate_cubemap, RootSignatureRegistry)({
   .m_parameters = []() -> decltype(RootSignatureDesc::m_parameters)
   {
@@ -412,6 +443,14 @@ REGISTER(pipelines::composition, PipelineRegistry)({
 
      .m_type = gfx::enums::PipelineType::COMPUTE_PIPE,
  });
+
+REGISTER(pipelines::taa, PipelineRegistry)({
+   .m_root_signature_handle = root_signatures::taa,
+   .m_shader_handles = { shaders::taa_cs },
+   .m_input_layout = std::nullopt,
+
+   .m_type = gfx::enums::PipelineType::COMPUTE_PIPE,
+});
 
 REGISTER(pipelines::post_processing, PipelineRegistry)({
    .m_root_signature_handle = root_signatures::post_processing,

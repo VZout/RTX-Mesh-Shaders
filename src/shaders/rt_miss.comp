@@ -19,7 +19,7 @@ layout(location = 0) rayPayloadInNV Payload payload;
 layout(location = 1) rayPayloadNV bool shadow_payload;
 
 layout(set = 3, binding = 3) uniform UniformBufferLightObject {
-    Light lights[50];
+    Light lights[25];
 } lights;
 
 #include "rt_util.glsl"

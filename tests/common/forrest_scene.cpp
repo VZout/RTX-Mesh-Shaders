@@ -63,6 +63,8 @@ void ForrestScene::BuildScene()
 	m_camera_node = m_scene_graph->CreateNode<sg::CameraComponent>();
 	sg::helper::SetPosition(m_scene_graph, m_camera_node, glm::vec3(0.5, 0.95, 2.6));
 	sg::helper::SetRotation(m_scene_graph, m_camera_node, glm::vec3(0, -90._deg, 0));
+	sg::helper::SetLensDiameter(m_scene_graph, m_camera_node, 0.1f);
+	sg::helper::SetFocalDistance(m_scene_graph, m_camera_node, 2.1f);
 
 	// Create Object
 	auto object = m_scene_graph->CreateNode<sg::MeshComponent>(m_object_model);

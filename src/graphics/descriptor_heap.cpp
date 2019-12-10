@@ -550,6 +550,84 @@ std::uint32_t gfx::DescriptorHeap::CreateUAVSetFromRT(RenderTarget* render_targe
 	return descriptor_set_id;
 }
 
+std::uint32_t gfx::DescriptorHeap::CreateUAVSetFromRT(RenderTarget* render_target, std::uint32_t rt_idx, std::uint32_t num, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx, SamplerDesc sampler_desc, std::optional<float> mip_level)
+{
+	auto logical_device = m_context->m_logical_device;
+
+	// Create the descriptor sets
+	VkDescriptorSetAllocateInfo alloc_info = {};
+	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	alloc_info.descriptorPool = m_descriptor_pools[frame_idx];
+	alloc_info.descriptorSetCount = 1;
+	alloc_info.pSetLayouts = &root_signature->m_descriptor_set_layouts[handle];
+
+	VkDescriptorSet descriptor_set;
+	if (vkAllocateDescriptorSets(logical_device, &alloc_info, &descriptor_set) != VK_SUCCESS)
+	{
+		LOGC("failed to allocate descriptor sets!");
+	}
+	m_descriptor_sets[frame_idx].push_back(descriptor_set);
+
+	auto new_sampler = CreateSampler(sampler_desc);
+	m_image_samplers.push_back(new_sampler);
+
+	std::vector<VkDescriptorImageInfo> image_infos;
+
+	for (auto i = 0; i < num; i++)
+	{
+		// image view
+		VkImageViewCreateInfo view_info = {};
+		view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		view_info.image = render_target->m_images[rt_idx + i];
+		view_info.viewType = render_target->m_desc.m_is_cube_map ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
+		view_info.format = render_target->m_desc.m_rtv_formats[rt_idx + i];
+		view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		if (mip_level.has_value())
+		{
+			view_info.subresourceRange.baseMipLevel = mip_level.value();
+			view_info.subresourceRange.levelCount = 1;
+		}
+		else
+		{
+			view_info.subresourceRange.baseMipLevel = 0;
+			view_info.subresourceRange.levelCount = render_target->m_desc.m_mip_levels;
+		}
+		view_info.subresourceRange.baseArrayLayer = 0;
+		view_info.subresourceRange.layerCount = render_target->m_desc.m_is_cube_map ? 6 : 1;;
+
+		VkImageView new_view;
+		if (vkCreateImageView(logical_device, &view_info, nullptr, &new_view) != VK_SUCCESS)
+		{
+			LOGC("Failed to create texture image view!");
+		}
+		m_image_views.push_back(new_view);
+
+		VkDescriptorImageInfo image_info = {};
+		image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+		image_info.imageView = new_view;
+		image_info.sampler = new_sampler;
+
+		image_infos.push_back(image_info);
+	}
+
+	auto descriptor_set_id = m_descriptor_sets[frame_idx].size() - 1;
+
+	VkWriteDescriptorSet descriptor_write = {};
+	descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET; // TODO: Descriptor set id can just be ::back here.
+	descriptor_write.dstSet = m_descriptor_sets[frame_idx][descriptor_set_id]; // TODO: Don't use 1 but get the set that corresponds to the correct descriptor type.
+	descriptor_write.dstBinding = handle;
+	descriptor_write.dstArrayElement = 0;
+	descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	descriptor_write.descriptorCount = image_infos.size();
+	descriptor_write.pBufferInfo = nullptr;
+	descriptor_write.pImageInfo = image_infos.data();
+	descriptor_write.pTexelBufferView = nullptr;
+
+	vkUpdateDescriptorSets(logical_device, 1u, &descriptor_write, 0, nullptr);
+
+	return descriptor_set_id;
+}
+
 
 VkSampler gfx::DescriptorHeap::CreateSampler(SamplerDesc sampler_desc, std::uint32_t num_mips)
 {
