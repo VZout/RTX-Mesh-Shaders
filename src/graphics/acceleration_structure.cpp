@@ -37,6 +37,7 @@ void gfx::AccelerationStructure::CreateTopLevel(CommandList* cmd_list, std::vect
 	geom_info.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
 	geom_info.instanceCount = instance_descs.size();
 	geom_info.geometryCount = 0;
+	geom_info.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV;
 
 	// actual geometry instances, this is clearer in dx12 imo
 	std::vector<InstanceDesc_Internal> geom_instances = {};
@@ -116,7 +117,7 @@ void gfx::AccelerationStructure::CreateBottomLevel(CommandList* cmd_list, std::v
 		geom.geometry.triangles.transformOffset = 0;
 		geom.geometry.aabbs = {};
 		geom.geometry.aabbs.sType = { VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV };
-		geom.flags = VK_GEOMETRY_OPAQUE_BIT_NV;
+		geom.flags = 0; // VK_GEOMETRY_OPAQUE_BIT_NV
 
 		geometries.push_back(geom);
 	}
@@ -124,6 +125,7 @@ void gfx::AccelerationStructure::CreateBottomLevel(CommandList* cmd_list, std::v
 	VkAccelerationStructureInfoNV geom_info = {};
 	geom_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
 	geom_info.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
+	geom_info.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV;
 	geom_info.instanceCount = 0;
 	geom_info.geometryCount = geometries.size();
 	geom_info.pGeometries = geometries.data();
@@ -147,8 +149,6 @@ void gfx::AccelerationStructure::CreateBottomLevel(CommandList* cmd_list, std::v
 	VkMemoryRequirements2 scratch_memory_requirements;
 	Context::vkGetAccelerationStructureMemoryRequirementsNV(logical_device, &mem_requirements_info, &scratch_memory_requirements);
 
-	LOG("{} vssss {}", m_scratch_buffer->m_size, scratch_memory_requirements.memoryRequirements.size);
-
 	Context::vkCmdBuildAccelerationStructureNV(
 		n_cmd_list,
 		&geom_info,
@@ -159,7 +159,6 @@ void gfx::AccelerationStructure::CreateBottomLevel(CommandList* cmd_list, std::v
 		VK_NULL_HANDLE,
 		m_scratch_buffer->m_buffer,
 		0);
-
 
 	VK_NAME_OBJ(logical_device, m_native, VK_DEBUG_REPORT_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV_EXT, "Bottom Level Acceleration Structure");
 

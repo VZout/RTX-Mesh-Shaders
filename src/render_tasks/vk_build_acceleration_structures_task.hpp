@@ -38,6 +38,26 @@ namespace tasks
 		std::uint32_t m_albedo_texture;
 		std::uint32_t m_normal_texture;
 		std::uint32_t m_roughness_texture;
+		std::uint32_t m_thickness_texture;
+
+		glm::vec4 m_color = { -1, -1, -1, -1 };
+		float m_metallic = -1;
+		float m_roughness = -1;
+		float m_reflectivity = 0.5f;
+		float m_transparency = -1;
+		float m_emissive = -1;
+		float m_normal_strength = 1;
+		float m_anisotropy = 0;
+		float m_anisotropy_x = 1;
+		float m_anisotropy_y = 0;
+		float m_clear_coat = 0;
+		float m_clear_coat_roughness = 0;
+		float m_u_scale = 1;
+		float m_v_scale = 1;
+
+		float m_pad0 = 1;
+		float m_pad1 = 1;
+		float m_pad2 = 1;
 	};
 
 	struct BuildASData
@@ -61,16 +81,16 @@ namespace tasks
 		{
 			auto& data = fg.GetData<BuildASData>(handle);
 
-			const auto scratch_size = 65536*20;
+			const auto scratch_size = 65536*50;
 
-			data.m_offsets.resize(gfx::settings::max_num_rtx_materials);
-			data.m_materials.resize(gfx::settings::max_num_rtx_materials);
-
-			data.m_offsets_buffer = new gfx::GPUBuffer(rs.GetContext(), std::nullopt, gfx::settings::max_num_rtx_materials * sizeof(RaytracingOffset), gfx::enums::BufferUsageFlag::RAYTRACING_STORAGE);
-			data.m_materials_buffer = new gfx::GPUBuffer(rs.GetContext(), std::nullopt, gfx::settings::max_num_rtx_materials * sizeof(RaytracingMaterial), gfx::enums::BufferUsageFlag::RAYTRACING_STORAGE);
-			//data.m_scratch_buffer = new gfx::GPUBuffer(rs.GetContext(), std::nullopt, scratch_size, gfx::enums::BufferUsageFlag::RAYTRACING);
 			if (!resize)
 			{
+				data.m_offsets.resize(gfx::settings::max_num_rtx_materials);
+				data.m_materials.resize(gfx::settings::max_num_rtx_materials);
+
+				data.m_offsets_buffer = new gfx::GPUBuffer(rs.GetContext(), std::nullopt, gfx::settings::max_num_rtx_materials * sizeof(RaytracingOffset), gfx::enums::BufferUsageFlag::RAYTRACING_STORAGE);
+				data.m_materials_buffer = new gfx::GPUBuffer(rs.GetContext(), std::nullopt, gfx::settings::max_num_rtx_materials * sizeof(RaytracingMaterial), gfx::enums::BufferUsageFlag::RAYTRACING_STORAGE);
+				//data.m_scratch_buffer = new gfx::GPUBuffer(rs.GetContext(), std::nullopt, scratch_size, gfx::enums::BufferUsageFlag::RAYTRACING);
 				data.m_should_build = true;
 			}
 		}
@@ -81,6 +101,7 @@ namespace tasks
 			auto cmd_list = fg.GetCommandList(handle);
 			auto context = rs.GetContext();
 			auto model_pool = static_cast<gfx::VkModelPool*>(rs.GetModelPool());
+			auto material_pool = static_cast<gfx::VkMaterialPool*>(rs.GetMaterialPool());
 
 			if (!data.m_should_build) return;
 
@@ -122,10 +143,26 @@ namespace tasks
 						offset.m_index_offset = geom_desc.m_indices_offset;
 						data.m_offsets[material_id] = offset;
 
+						auto raw = material_pool->GetRawData(batch.m_material_handles[i]);
+
 						RaytracingMaterial material;
 						material.m_albedo_texture = batch.m_material_handles[i].m_albedo_texture_handle;
 						material.m_normal_texture = batch.m_material_handles[i].m_normal_texture_handle;
 						material.m_roughness_texture = batch.m_material_handles[i].m_roughness_texture_handle;
+						material.m_thickness_texture = batch.m_material_handles[i].m_thickness_texture_handle;
+						material.m_color = glm::vec4(raw.m_base_color[0], raw.m_base_color[1], raw.m_base_color[2], 0);
+						material.m_roughness = raw.m_base_roughness;
+						material.m_metallic = raw.m_base_metallic;
+						material.m_reflectivity = raw.m_base_reflectivity;
+						material.m_anisotropy = raw.m_base_anisotropy;
+						material.m_anisotropy_x = raw.m_base_anisotropy_dir.x;
+						material.m_anisotropy_y = raw.m_base_anisotropy_dir.y;
+						material.m_normal_strength = raw.m_base_normal_strength;
+						material.m_clear_coat = raw.m_base_clear_coat;
+						material.m_clear_coat_roughness = raw.m_base_clear_coat_roughness;
+						material.m_u_scale = raw.m_base_uv_scale.x;
+						material.m_v_scale = raw.m_base_uv_scale.y;
+
 						data.m_materials[material_id] = material;
 
 						gfx::InstanceDesc new_instance;
@@ -151,6 +188,7 @@ namespace tasks
 
 			// Create TLAS
 			data.m_tlas = new gfx::AccelerationStructure(context);
+			//data.m_tlas->SetScratchBuffer(data.m_scratch_buffer);
 			data.m_tlas->CreateTopLevel(cmd_list, blas_instances);
 
 			data.m_should_build = false;

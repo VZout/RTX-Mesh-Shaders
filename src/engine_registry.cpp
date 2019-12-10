@@ -6,6 +6,8 @@
 
 #include "engine_registry.hpp"
 
+#include <glm.hpp>
+
 #include "vertex.hpp"
 #include "graphics/gfx_settings.hpp"
 
@@ -73,8 +75,23 @@ REGISTER(shaders::rt_miss, ShaderRegistry)({
    .m_type = gfx::enums::ShaderType::RT_MISS,
 });
 
+REGISTER(shaders::rt_shadow_miss, ShaderRegistry)({
+   .m_path = "shaders/rt_shadow_miss.comp.spv",
+   .m_type = gfx::enums::ShaderType::RT_MISS,
+});
+
 REGISTER(shaders::rt_closest_hit, ShaderRegistry)({
    .m_path = "shaders/rt_closest_hit.comp.spv",
+   .m_type = gfx::enums::ShaderType::RT_CLOSEST,
+});
+
+REGISTER(shaders::rt_any_hit, ShaderRegistry)({
+   .m_path = "shaders/rt_any_hit.comp.spv",
+   .m_type = gfx::enums::ShaderType::RT_ANY,
+});
+
+REGISTER(shaders::rt_shadow_hit, ShaderRegistry)({
+   .m_path = "shaders/rt_shadow_hit.comp.spv",
    .m_type = gfx::enums::ShaderType::RT_CLOSEST,
 });
 
@@ -89,12 +106,12 @@ REGISTER(root_signatures::basic, RootSignatureRegistry)({
 		params[0].binding = 0; // camera
 		params[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		params[0].descriptorCount = 1;
-		params[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_MESH_BIT_NV;
+		params[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_TASK_BIT_NV;
 		params[0].pImmutableSamplers = nullptr;
-		params[1].binding = 1; // root parameter 0
+		params[1].binding = 1; // per object data
 		params[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		params[1].descriptorCount = 1;
-		params[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_MESH_BIT_NV;
+		params[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_TASK_BIT_NV;
 		params[1].pImmutableSamplers = nullptr;
 		params[2].binding = 2; // root parameter 1
 		params[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -117,12 +134,12 @@ REGISTER(root_signatures::basic_mesh, RootSignatureRegistry)({
 		params[0].binding = 0; // camera
 		params[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		params[0].descriptorCount = 1;
-		params[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_MESH_BIT_NV;
+		params[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_TASK_BIT_NV;
 		params[0].pImmutableSamplers = nullptr;
-		params[1].binding = 1; // root parameter 0
+		params[1].binding = 1; // per-object data
 		params[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		params[1].descriptorCount = 1;
-		params[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_MESH_BIT_NV;
+		params[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_TASK_BIT_NV;
 		params[1].pImmutableSamplers = nullptr;
 		params[2].binding = 2; // root parameter 1
 		params[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -147,7 +164,7 @@ REGISTER(root_signatures::basic_mesh, RootSignatureRegistry)({
 		params[6].binding = 6; // meshlet descs
 		params[6].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		params[6].descriptorCount = 1;
-		params[6].stageFlags = VK_SHADER_STAGE_MESH_BIT_NV;
+		params[6].stageFlags = VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_TASK_BIT_NV;
 		params[6].pImmutableSamplers = nullptr;
 		params[7].binding = 7; // vertex indices buffer
 		params[7].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -160,7 +177,7 @@ REGISTER(root_signatures::basic_mesh, RootSignatureRegistry)({
 	{
 		decltype(RootSignatureDesc::m_push_constants) constants(1);
 		constants[0].offset = 0;
-		constants[0].size = sizeof(unsigned int) * 2; // meshlet offset (instance) and meshlet count
+		constants[0].size = (sizeof(unsigned int) * 4) + (sizeof(glm::vec4) * 2); // meshlet offset (instance) and meshlet count and bbox
 		constants[0].stageFlags = VK_SHADER_STAGE_TASK_BIT_NV;
 		return constants;
 	}()
@@ -173,7 +190,7 @@ REGISTER(root_signatures::composition, RootSignatureRegistry)({
 	    params[0].binding = 0; // camera
 	    params[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	    params[0].descriptorCount = 1;
-	    params[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_MESH_BIT_NV;
+	    params[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_TASK_BIT_NV;
 	    params[0].pImmutableSamplers = nullptr;
 	    params[1].binding = 1; // root parameter 1
 	    params[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
@@ -188,7 +205,7 @@ REGISTER(root_signatures::composition, RootSignatureRegistry)({
 	    params[3].binding = 3; // lights
 	    params[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	    params[3].descriptorCount = 1;
-	    params[3].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+	    params[3].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV | VK_SHADER_STAGE_MISS_BIT_NV;
 	    params[3].pImmutableSamplers = nullptr;
 	    params[4].binding = 4; // skybox
 	    params[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -296,7 +313,7 @@ REGISTER(root_signatures::raytracing, RootSignatureRegistry)({
 	  params[0].binding = 0; // acceleration structure
 	  params[0].descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
 	  params[0].descriptorCount = 1;
-	  params[0].stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_NV;
+	  params[0].stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_NV | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV | VK_SHADER_STAGE_MISS_BIT_NV;
 	  params[0].pImmutableSamplers = nullptr;
 	  params[1].binding = 1; // output
 	  params[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
@@ -311,32 +328,32 @@ REGISTER(root_signatures::raytracing, RootSignatureRegistry)({
 	  params[3].binding = 3; // lights
 	  params[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	  params[3].descriptorCount = 1;
-	  params[3].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+	  params[3].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV | VK_SHADER_STAGE_MISS_BIT_NV;
 	  params[3].pImmutableSamplers = nullptr;
 	  params[4].binding = 4; // vertices
 	  params[4].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	  params[4].descriptorCount = 1;
-	  params[4].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+	  params[4].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV | VK_SHADER_STAGE_ANY_HIT_BIT_NV;
 	  params[4].pImmutableSamplers = nullptr;
 	  params[5].binding = 5; // indices
 	  params[5].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	  params[5].descriptorCount = 1;
-	  params[5].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+	  params[5].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV | VK_SHADER_STAGE_ANY_HIT_BIT_NV;
 	  params[5].pImmutableSamplers = nullptr;
 	  params[6].binding = 6; // offsets
 	  params[6].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	  params[6].descriptorCount = 1;
-	  params[6].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+	  params[6].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV | VK_SHADER_STAGE_ANY_HIT_BIT_NV;
 	  params[6].pImmutableSamplers = nullptr;
 	  params[7].binding = 7; // materials
 	  params[7].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	  params[7].descriptorCount = 1;
-	  params[7].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+	  params[7].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV | VK_SHADER_STAGE_ANY_HIT_BIT_NV;
 	  params[7].pImmutableSamplers = nullptr;
-	  params[8].binding = 8; // materials
+	  params[8].binding = 8; // textures
 	  params[8].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	  params[8].descriptorCount = gfx::settings::max_num_rtx_textures;
-	  params[8].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+	  params[8].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV | VK_SHADER_STAGE_ANY_HIT_BIT_NV;
 	  params[8].pImmutableSamplers = nullptr;
 	  params[9].binding = 9; // skybox
 	  params[9].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -350,6 +367,14 @@ REGISTER(root_signatures::raytracing, RootSignatureRegistry)({
 	  params[10].pImmutableSamplers = nullptr;
 	  return params;
   }(),
+	.m_push_constants = []() -> decltype(RootSignatureDesc::m_push_constants)
+	{
+		decltype(RootSignatureDesc::m_push_constants) constants(1);
+		constants[0].offset = 0;
+		constants[0].size = sizeof(std::uint32_t); // frame_idx
+		constants[0].stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_NV;
+		return constants;
+	}()
 });
 
 /* ============================================================== */
@@ -432,13 +457,14 @@ std::vector<VkRayTracingShaderGroupCreateInfoNV> rt_shader_groups =
 {
 	{ .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV, .type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV, .generalShader = 0, .closestHitShader = VK_SHADER_UNUSED_NV, .anyHitShader = VK_SHADER_UNUSED_NV, .intersectionShader = VK_SHADER_UNUSED_NV },
 	{ .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV, .type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV, .generalShader = 1, .closestHitShader = VK_SHADER_UNUSED_NV, .anyHitShader = VK_SHADER_UNUSED_NV, .intersectionShader = VK_SHADER_UNUSED_NV },
-	{ .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV, .type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV, .generalShader = VK_SHADER_UNUSED_NV, .closestHitShader = 2, .anyHitShader = VK_SHADER_UNUSED_NV, .intersectionShader = VK_SHADER_UNUSED_NV },
-	{ .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV,.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV, .generalShader = VK_SHADER_UNUSED_NV,.closestHitShader = VK_SHADER_UNUSED_NV,.anyHitShader = 1,.intersectionShader = VK_SHADER_UNUSED_NV },
+	{ .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV, .type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV, .generalShader = 2, .closestHitShader = VK_SHADER_UNUSED_NV,.anyHitShader = VK_SHADER_UNUSED_NV,.intersectionShader = VK_SHADER_UNUSED_NV },
+	{ .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV, .type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV, .generalShader = VK_SHADER_UNUSED_NV, .closestHitShader = 3, .anyHitShader = 5, .intersectionShader = VK_SHADER_UNUSED_NV },
+	{ .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV, .type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV, .generalShader = VK_SHADER_UNUSED_NV, .closestHitShader = 4, .anyHitShader = 5, .intersectionShader = VK_SHADER_UNUSED_NV },
 };
 
 REGISTER(pipelines::raytracing, RTPipelineRegistry)({
 	.m_root_signature_handle = root_signatures::raytracing,
-	.m_shader_handles = { shaders::rt_raygen, shaders::rt_miss, shaders::rt_closest_hit, shaders::rt_miss },
+	.m_shader_handles = { shaders::rt_raygen, shaders::rt_miss, shaders::rt_shadow_miss, shaders::rt_closest_hit, shaders::rt_shadow_hit, shaders::rt_any_hit },
 	.m_shader_groups = rt_shader_groups,
-	.m_recursion_depth = 1,
+	.m_recursion_depth = 3,
 });

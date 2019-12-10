@@ -32,9 +32,9 @@ namespace gfx::settings
 	static const VkFormat swapchain_format = VK_FORMAT_B8G8R8A8_UNORM;
 	static const VkPresentModeKHR swapchain_present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
 	static const VkColorSpaceKHR swapchain_color_space = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-	static const VkCullModeFlags cull_mode = VK_CULL_MODE_BACK_BIT;
+	static const VkCullModeFlags cull_mode = VK_CULL_MODE_NONE;
 	static const std::uint32_t max_lights = 50;
-	static const std::uint32_t max_render_batch_size = 700;
-	static const std::uint32_t max_num_rtx_materials = 2000;
-	static const std::uint32_t max_num_rtx_textures = 500;
+	static const std::uint32_t max_render_batch_size = 1000;
+	static const std::uint32_t max_num_rtx_materials = 4000;
+	static const std::uint32_t max_num_rtx_textures = 1000;
 }

@@ -32,10 +32,10 @@ struct MaterialData
 	TextureData m_thickness_texture;
 	TextureData m_displacement_texture;
 
-	float m_base_color[3] = { -1, -1, -1 };
+	glm::vec3 m_base_color = { -1, -1, -1 };
 	float m_base_metallic = -1;
 	float m_base_roughness = -1;
-	float m_base_reflectivity = 0.4f;
+	float m_base_reflectivity = 0.5f;
 	float m_base_transparency = -1;
 	float m_base_emissive = -1;
 	float m_base_normal_strength = 1;

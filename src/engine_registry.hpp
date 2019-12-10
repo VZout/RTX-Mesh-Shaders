@@ -30,6 +30,9 @@ struct shaders
 
 	static RegistryHandle rt_raygen;
 	static RegistryHandle rt_closest_hit;
+	static RegistryHandle rt_any_hit;
+	static RegistryHandle rt_shadow_hit;
+	static RegistryHandle rt_shadow_miss;
 	static RegistryHandle rt_miss;
 
 }; /* shaders */

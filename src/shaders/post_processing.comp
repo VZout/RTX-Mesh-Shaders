@@ -23,13 +23,13 @@ void main()
 #endif
 
     //ImageData data = GetNeighbours();
-    //vec3 rgb = Sharpen(data);
-    vec3 rgb = imageLoad(t_input, ivec2(n_uv)).rgb;
-    //vec3 rgb = ChromaticAberration(uv, 0.1, 0.97f, resolution);
+    //vec3 rgb_0 = Sharpen(data);
+    //vec3 rgb_1 = imageLoad(t_input, ivec2(n_uv)).rgb;
+	//vec3 rgb = mix(rgb_0, rgb_1, 0.7); 
+    vec3 rgb = ChromaticAberration(uv, 0.1, 0.97f, resolution);
 
     const float gamma = 2.2;
     const float exposure = 1;
-
 
     vec3 color = ExposureCorrect(rgb, exposure);
 
@@ -51,10 +51,11 @@ void main()
 
     if (i != 2 && i != 10) color = GammaCorrect(color, gamma);
     #else
-    color = RomBinDaHouse(color);
+    color = ACESHighPerformance(color);
+	color = GammaCorrect(color, gamma);
     #endif
 
-    color = GammaCorrect(color, gamma);
+	color = Vignette(color, uv, 1.5, 0.5, 0.5);
 
     imageStore(t_output, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1));
 }

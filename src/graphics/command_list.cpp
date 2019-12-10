@@ -187,6 +187,11 @@ void gfx::CommandList::BindTaskPushConstants(RootSignature* root_signature, void
 	vkCmdPushConstants(m_cmd_buffers[m_frame_idx], root_signature->m_pipeline_layout, VK_SHADER_STAGE_TASK_BIT_NV, 0, size, data);
 }
 
+void gfx::CommandList::BindRaygenPushConstants(RootSignature* root_signature, void* data, std::uint32_t size)
+{
+	vkCmdPushConstants(m_cmd_buffers[m_frame_idx], root_signature->m_pipeline_layout, VK_SHADER_STAGE_RAYGEN_BIT_NV, 0, size, data);
+}
+
 void gfx::CommandList::BindComputePushConstants(RootSignature* root_signature, void* data, std::uint32_t size)
 {
 	vkCmdPushConstants(m_cmd_buffers[m_frame_idx], root_signature->m_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, size, data);
@@ -708,7 +713,7 @@ void gfx::CommandList::DispatchRays(ShaderTable* raygen_table, ShaderTable* miss
 	// TODO: Temporary
 	VkDeviceSize raygen_offset = raygen_table->m_shader_record_size * 0;
 	VkDeviceSize miss_offset = miss_table->m_shader_record_size * 1;
-	VkDeviceSize hit_offset = hit_table->m_shader_record_size * 2;
+	VkDeviceSize hit_offset = hit_table->m_shader_record_size * 3;
 
 	//raygen_offset = miss_offset = hit_offset = 0;
 

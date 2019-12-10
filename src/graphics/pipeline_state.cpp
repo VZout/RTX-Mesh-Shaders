@@ -220,33 +220,14 @@ void gfx::PipelineState::CompileRaytracing()
 {
 	auto logical_device = m_context->m_logical_device;
 
-	std::array<VkRayTracingShaderGroupCreateInfoNV, 3> groups{};
-	for (auto& group : groups) {
-		// Init all groups with some default values
-		group.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV;
-		group.generalShader = VK_SHADER_UNUSED_NV;
-		group.closestHitShader = VK_SHADER_UNUSED_NV;
-		group.anyHitShader = VK_SHADER_UNUSED_NV;
-		group.intersectionShader = VK_SHADER_UNUSED_NV;
-	}
-
-	// Links shaders and types to ray tracing shader groups
-	groups[0].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
-	groups[0].generalShader = 0;
-	groups[1].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
-	groups[1].generalShader = 1;
-	groups[2].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
-	groups[2].generalShader = VK_SHADER_UNUSED_NV;
-	groups[2].closestHitShader = 2;
-
 	VkRayTracingPipelineCreateInfoNV create_info = {};
 	create_info.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_NV;
 	create_info.layout = m_root_signature->m_pipeline_layout;
 	create_info.stageCount = m_shader_info.size();
 	create_info.pStages = m_shader_info.data();
 	create_info.maxRecursionDepth = m_desc.m_raytracing_desc.m_recursion_depth;
-	create_info.groupCount = groups.size();
-	create_info.pGroups = groups.data();
+	create_info.groupCount = m_desc.m_raytracing_desc.m_shader_groups.size();
+	create_info.pGroups = m_desc.m_raytracing_desc.m_shader_groups.data();
 	
 	if (Context::vkCreateRayTracingPipelinesNV(logical_device, VK_NULL_HANDLE, 1, &create_info, nullptr, &m_pipeline)
 		!= VK_SUCCESS)

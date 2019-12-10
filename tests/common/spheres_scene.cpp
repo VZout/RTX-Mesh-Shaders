@@ -162,8 +162,8 @@ void SpheresScene::BuildScene()
 void SpheresScene::Update_Impl(float delta, float time)
 {
 	// animate light
-	float light_x = sin(time * 2) * 2;
+	/*float light_x = sin(time * 2) * 2;
 	float light_y = cos(time * 2) * 2;
 	sg::helper::SetPosition(m_scene_graph, m_light_node, glm::vec3(light_x, light_y, 2));
-	sg::helper::SetPosition(m_scene_graph, m_light_sphere_node, glm::vec3(light_x, light_y, 2));
+	sg::helper::SetPosition(m_scene_graph, m_light_sphere_node, glm::vec3(light_x, light_y, 2));*/
 }

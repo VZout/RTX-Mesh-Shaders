@@ -50,6 +50,7 @@ namespace gfx
 		void BindDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets);
 		void BindComputePushConstants(RootSignature* root_signature, void* data, std::uint32_t size);
 		void BindTaskPushConstants(RootSignature* root_signature, void* data, std::uint32_t size);
+		void BindRaygenPushConstants(RootSignature* root_signature, void* data, std::uint32_t size);
 		void StageBuffer(StagingBuffer* staging_buffer);
 		void StageBuffer(GPUBuffer* buffer, GPUBuffer* staging_buffer, std::uint64_t offset);
 		void StageTexture(StagingTexture* texture);

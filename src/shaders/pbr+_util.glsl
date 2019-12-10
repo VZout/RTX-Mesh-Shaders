@@ -1,3 +1,6 @@
+#ifndef PBR_UTIL_GLSL
+#define PBR_UTIL_GLSL
+
 #define M_PI 3.1415926535897932384626433832795
 
 #define MULTI_BOUNCE_AMBIENT_OCCLUSION 0
@@ -10,8 +13,8 @@
 #define MIN_PERCEPTUAL_ROUGHNESS 0.045
 #define MIN_ROUGHNESS 0.002025 // Only used for anisotropyic lobes
 #define MIN_N_DOT_V 1e-4
-#define ANISO
-#define CLEAR_COAT
+//#define ANISO
+//#define CLEAR_COAT
 #define MATERIAL_HAS_NORMAL
 #define SPECULAR_AMBIENT_OCCLUSION 1
 #define MULTI_BOUNCE_AMBIENT_OCCLUSION 0
@@ -253,6 +256,16 @@ float ClearCoatLobe(vec3 N, vec3 geometric_normal, vec3 H, float NdotH, float Ld
 	return D * G * F;
 }
 
+vec3 ImportanceSamplingNdfDggx(vec2 u, float roughness) {
+    // Importance sampling D_GGX
+    float a2 = roughness * roughness;
+    float phi = 2.0 * M_PI * u.x;
+    float cosTheta2 = (1.0 - u.y) / (1.0 + (a2 - 1.0) * u.y);
+    float cosTheta = sqrt(cosTheta2);
+    float sinTheta = sqrt(1.0 - cosTheta2);
+    return vec3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
+}
+
 #ifdef ENV_SAMPLING
 vec3 GetEnvReflection(vec3 R, float roughness)
 {
@@ -396,3 +409,5 @@ vec3 SS_BRDF(vec3 L, vec3 V, vec3 N, vec3 geometric_normal, float metallic, floa
 
 	return (color * radiance) * attenuation;
 }
+
+#endif /* PBR_UTIL_GLSL */

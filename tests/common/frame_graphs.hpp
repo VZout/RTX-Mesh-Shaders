@@ -76,11 +76,9 @@ namespace fg_manager
 		// Raytracing
 		[](Renderer* rs, decltype(tasks::ImGuiTaskData::m_render_func) imgui_func)
 		{
-			auto fg = new fg::FrameGraph(9);
+			auto fg = new fg::FrameGraph(7);
 			tasks::AddBuildASTask(*fg);
 			tasks::AddGenerateCubemapTask(*fg);
-			tasks::AddGenerateIrradianceMapTask(*fg);
-			tasks::AddGenerateEnvironmentMapTask(*fg);
 			tasks::AddGenerateBRDFLutTask(*fg);
 			tasks::AddRaytracingTask(*fg);
 			tasks::AddPostProcessingTask<tasks::RaytracingData>(*fg);

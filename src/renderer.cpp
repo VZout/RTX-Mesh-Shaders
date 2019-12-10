@@ -138,13 +138,16 @@ void Renderer::WaitForAllPreviousWork()
 	m_context->WaitForDevice();
 }
 
-void Renderer::Resize(std::uint32_t width, std::uint32_t height)
+void Renderer::Resize(std::uint32_t width, std::uint32_t height, bool resize_render_window)
 {
 	WaitForAllPreviousWork();
 
 	m_viewport->Resize(width, height);
 
-	m_render_window->Resize(width, height);
+	if (resize_render_window)
+	{
+		m_render_window->Resize(width, height);
+	}
 	// TODO: REMOVE THIS. use dyn viewport instead.
 	PipelineRegistry::SFind(pipelines::basic)->Recompile();
 	PipelineRegistry::SFind(pipelines::basic_mesh)->Recompile();

@@ -104,9 +104,15 @@ namespace tasks
 						{
 							unsigned int batch_size;
 							unsigned int num_meshlets;
+							unsigned int paddingx;
+							unsigned int paddingy;
+							glm::vec4 bbox_min;
+							glm::vec4 bbox_max;
 						} push_data;
 						push_data.batch_size = batch.m_num_meshes;
 						push_data.num_meshlets = meshlets_info.second;
+						push_data.bbox_min = glm::vec4(mesh_handle.m_bbox_min, 0);
+						push_data.bbox_max = glm::vec4(mesh_handle.m_bbox_max, 0);
 						cmd_list->BindTaskPushConstants(data.m_root_sig, &push_data, sizeof(PushBlock));
 
 						cmd_list->DrawMesh(num_tasks, 0);

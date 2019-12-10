@@ -1,6 +1,7 @@
 #version 450
 
 #define SCATTER
+#define COMPOSITION
 
 #define POINT_LIGHT 0
 #define DIRECTIONAL_LIGHT 1
@@ -22,30 +23,18 @@ layout(set = 7, binding = 7) uniform sampler2D t_brdf_lut;
 #define ENV_SAMPLING
 #include "pbr+_util.glsl"
 #include "fog.glsl"
+#include "structs.glsl"
 
 layout(set = 0, binding = 0) uniform UniformBufferCameraObject {
     mat4 view;
     mat4 proj;
 } camera;
 
-struct Light
-{
-    vec3 m_pos;
-    float m_radius;
-
-	vec3 m_dir;
-	float m_inner_angle;
-
-    vec3 m_color;
-    uint m_type;
-
-	float m_outer_angle;
-	vec3 m_padding;
-};
-
 layout(set = 3, binding = 3) uniform UniformBufferLightObject {
     Light lights[50];
 } lights;
+
+#include "lighting.glsl"
 
 vec3 GetReflectionVec(vec3 N, vec3 V, float roughness, float anisotropy, vec3 anisotropic_t, vec3 anisotropic_b)
 {
@@ -116,7 +105,7 @@ void main()
 	// Subsurface
 	const vec2 decoded_ao_thick = DecodeMaterialProperties(world_pos_ao.a);
 	const float ao = decoded_ao_thick.r;
-	vec3 subsurface_color = vec3(143 / 255.f, 17 / 255.f, 0);
+	vec3 subsurface_color = vec3(24 / 255.f, 69 / 255.f, 0);
 	float subsurface_power = 0;
 	float thickness = decoded_ao_thick.g;
 
@@ -143,17 +132,8 @@ void main()
 
     vec3 diffuse_color = ComputeDiffuseColor(albedo, metallic);
 
-    vec3 F0;
-    if (reflectivity > -1)
-    {
-        float reflectance = ComputeDielectricF0(reflectivity); // TODO: proper material reflectance
-        F0 = ComputeF0(albedo, metallic, reflectance);
-    }
-    else
-    {
-        F0 = mix(vec3(0.04), albedo, 1 - metallic);
-    }
-
+    float reflectance = ComputeDielectricF0(reflectivity); // TODO: proper material reflectance
+    vec3 F0 = ComputeF0(albedo, metallic, reflectance);
     vec3 energy_compensation = 1.0 + F0 * (1.0 / dfg.y - 1.0);
     //energy_compensation = vec3(1);
 
@@ -192,54 +172,12 @@ void main()
 
     vec3 ibl_color = (diff + spec) * ibl_luminance;
 
-    uint num_lights = 1; //Light count is stored in 30 upper-bits of first light
+    //uint num_lights = 1; //Light count is stored in 30 upper-bits of first light
+	uint num_lights = lights.lights[0].m_type >> 2;
     vec3 lighting = vec3(0);
     for (uint i = 0; i < num_lights; i++)
     {
-        const vec3 light_color = lights.lights[i].m_color;
-        const vec3 light_pos = lights.lights[i].m_pos;
-		const vec3 light_dir = lights.lights[i].m_dir;
-		const uint type = lights.lights[i].m_type & 3;
-		const float inner_angle = lights.lights[i].m_inner_angle;
-		const float outer_angle = lights.lights[i].m_outer_angle;
-
-		const vec3 pos_to_light = light_pos - world_pos;
-        vec3 L = normalize(pos_to_light);
-
-		float sqr_falloff = lights.lights[i].m_radius * lights.lights[i].m_radius;
-		float sqr_inv_radius = sqr_falloff > 0.0f ? (1 / sqr_falloff) : 0;
-
-		float attenuation = GetDistanceAttenuation(pos_to_light, sqr_inv_radius);
-		if (type == DIRECTIONAL_LIGHT)
-		{
-			attenuation = 1;
-			L = -light_dir;
-		}
-		else if (type == SPOT_LIGHT)
-		{
-			attenuation *= GetAngleAttenuation(light_dir, L, inner_angle, outer_angle);
-		}
-
-        float NdotL = clamp(dot(N, L), 0.0, 1.0); // TODO: Duplicate ndotl
-
-#ifdef SCATTER
-		if (thickness < 1)
-		{
-			lighting += SS_BRDF(L, V, N, geometric_normal, metallic, roughness, diffuse_color, light_color, F0, energy_compensation, attenuation, 1.0f, thickness, subsurface_color, subsurface_power);
-		}
-		else
-		{
-			if (NdotL > 0.0)
-			{
-				lighting += BRDF(L, V, N, geometric_normal, metallic, roughness, diffuse_color, light_color, F0, energy_compensation, attenuation, 1.0f, anisotropy, anisotropic_t, anisotropic_b, clear_coat, cc_roughness);
-			}
-		}
-#else
-		if (NdotL > 0.0)
-		{
-			lighting += BRDF(L, V, N, geometric_normal, metallic, roughness, diffuse_color, light_color, F0, energy_compensation, attenuation, 1.0f, anisotropy, anisotropic_t, anisotropic_b, clear_coat, cc_roughness);
-		}
-#endif
+		lighting += ShadeLight(lights.lights[i], world_pos, N, geometric_normal, V, roughness, diffuse_color, metallic, thickness, clear_coat, cc_roughness, subsurface_power, subsurface_color, anisotropy, anisotropic_t, anisotropic_b, F0, energy_compensation);
     }
 
     vec3 color = ibl_color + lighting;

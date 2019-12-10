@@ -28,7 +28,7 @@ void DisplacementScene::LoadResources()
 	auto displacement_f = std::async(std::launch::async, load_texture_func, "medieval_blocks/medieval_blocks_06_disp_4k.jpg");
 	auto normal_map_f = std::async(std::launch::async, load_texture_func, "medieval_blocks/medieval_blocks_06_nor_4k.jpg");
 
-	m_sphere_model = m_model_pool->LoadWithMaterials<Vertex>("sphere.fbx", m_material_pool, m_texture_pool, false);
+	m_sphere_model = m_model_pool->LoadWithMaterials<Vertex>("cube.fbx", m_material_pool, m_texture_pool, false);
 
 	MaterialData mat = {};
 	mat.m_base_reflectivity = 0.4f;

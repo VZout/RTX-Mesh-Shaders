@@ -13,7 +13,7 @@ layout(location = 2) in vec3 g_frag_pos;
 layout(location = 3) in vec3 g_tangent;
 layout(location = 4) in vec3 g_bitangent;
 #ifdef SHOW_MESHLETS
-layout(location = 5) in flat int g_meshlet_id;
+layout(location = 5) in flat uint g_meshlet_id;
 #endif
 
 layout(location = 0) out vec4 out_color;
@@ -89,6 +89,8 @@ void main()
     vec3 compressed_mra = texture(ts_textures[2], uv).rgb;
 
     vec3 normal = normalize(g_normal);
+	normal = mix(-normal, normal, float(gl_FrontFacing)); // flip to face direction
+
     mat3 TBN = mat3( normalize(g_tangent), normalize(g_bitangent), normal );
     vec3 normal_t = normalize(texture(ts_textures[1], uv).xyz * 2.0f - 1.0f);
 
@@ -117,7 +119,7 @@ void main()
 
 #ifdef SHOW_MESHLETS
 	out_color = vec4(random_color(g_meshlet_id), 1);
-	out_normal = vec4(obj_normal, 0);
+	out_normal = vec4(normal, 0);
 #else
 	out_color = vec4(albedo.rgb, roughness);
 	out_normal = vec4(obj_normal, metallic);

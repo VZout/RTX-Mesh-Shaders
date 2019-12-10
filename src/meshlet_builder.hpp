@@ -102,6 +102,24 @@ struct MeshletDesc
     	return (std::uint32_t)((value & ((1 << width) - 1)) << offset);
     }
 
+	void SetBBox(uint8_t const bboxMin[3], uint8_t const bboxMax[3])
+	{
+		m_x |= Pack(bboxMin[0], 8, 0) | Pack(bboxMin[1], 8, 8) | Pack(bboxMin[2], 8, 16);
+
+		m_y |= Pack(bboxMax[0], 8, 0) | Pack(bboxMax[1], 8, 8) | Pack(bboxMax[2], 8, 16);
+	}
+
+	void GetBBox(uint8_t bboxMin[3], uint8_t bboxMax[3]) const
+	{
+		bboxMin[0] = Unpack(m_x, 8, 0);
+		bboxMin[0] = Unpack(m_x, 8, 8);
+		bboxMin[0] = Unpack(m_x, 8, 16);
+
+		bboxMax[0] = Unpack(m_y, 8, 0);
+		bboxMax[0] = Unpack(m_y, 8, 8);
+		bboxMax[0] = Unpack(m_y, 8, 16);
+	}
+
     static std::uint32_t Unpack(std::uint32_t value, int width, int offset)
 	{
     	return (std::uint32_t)((value >> offset) & ((1 << width) - 1));

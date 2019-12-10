@@ -254,6 +254,7 @@ void SetupEditor()
 				scene_graph->m_light_types[node.m_light_component].m_value = (cb::LightType)selected_type;
 
 				ImGui::DragFloat3("Color", &scene_graph->m_colors[node.m_light_component].m_value[0], 0.1f);
+				ImGui::DragFloat("Physical Size", &scene_graph->m_light_physical_size[node.m_light_component].m_value, 0.01f);
 
 				if (scene_graph->m_light_types[node.m_light_component] == cb::LightType::POINT)
 				{
@@ -271,6 +272,20 @@ void SetupEditor()
 					scene_graph->m_light_angles[node.m_light_component].m_value.first = glm::radians(inner);
 					scene_graph->m_light_angles[node.m_light_component].m_value.second = glm::radians(outer);
 				}
+			}
+
+			if (node.m_camera_component > -1)
+			{
+				ImGui::Separator();
+				auto& lens_properties = scene_graph->m_camera_lens_properties[node.m_camera_component].m_value;
+				ImGui::DragFloat("Lens Diameter", &lens_properties.m_diameter, 0.01f);
+				ImGui::DragFloat("Focal Distance", &lens_properties.m_focal_dist, 0.01f);
+				ImGui::Separator();
+				ImGui::ToggleButton("Use Simple FoV", &lens_properties.m_use_simple_fov);
+				ImGui::DragFloat("FoV", &lens_properties.m_fov, 1.f);
+				ImGui::Separator();
+				ImGui::DragFloat("Film Size", &lens_properties.m_film_size, 0.01f);
+				ImGui::DragFloat("Focal Length", &lens_properties.m_focal_length, 0.01f);
 			}
 
 			scene_graph->m_requires_update[node.m_transform_component] = true;
@@ -415,6 +430,8 @@ void SetupEditor()
 				auto camera_node = m_scene->GetCameraNodeHandle();
 				m_viewport_size = size;
 				sg::helper::SetAspectRatio(scene_graph, camera_node, (float)size.x / (float)size.y);
+
+				m_viewport_has_changed = true;
 			}
 
 			ImGui::Image(editor.GetTexture(), size);

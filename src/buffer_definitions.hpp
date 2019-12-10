@@ -19,7 +19,7 @@ namespace cb
 	struct BasicMaterial
 	{
 		glm::vec3 color = glm::vec3(-1, -1, -1);
-		float reflectivity = -1;
+		float reflectivity = 0.5F;
 		float roughness = -1;
 		float metallic = -1;
 		float normal_strength = 1;
@@ -35,6 +35,16 @@ namespace cb
 	{
 		alignas(16) glm::mat4 m_view;
 		alignas(16) glm::mat4 m_proj;
+	};
+
+	struct CameraInverse
+	{
+		alignas(16) glm::mat4 m_view;
+		alignas(16) glm::mat4 m_proj;
+		glm::vec4 cameraPositionAspect;
+		glm::vec4 cameraUpVectorTanHalfFOV;
+		glm::vec4 cameraRightVectorLensR;
+		glm::vec4 cameraForwardVectorLensF;
 	};
 
 	enum class LightType : int
@@ -54,7 +64,8 @@ namespace cb
 		std::uint32_t m_type = (std::uint32_t)LightType::FREE;
 
 		float m_outer_angle = 0.698132;
-		glm::vec3 m_padding;
+		float m_physical_size = 0;
+		glm::vec2 m_padding;
 	};
 
 	struct PrefilterInfo

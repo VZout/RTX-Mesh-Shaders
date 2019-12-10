@@ -50,7 +50,7 @@ namespace tasks
 			auto render_target = fg.GetRenderTarget(handle);
 
 			auto texture_pool = static_cast<gfx::VkTexturePool*>(rs.GetTexturePool());
-			data.m_sky_texture_id = texture_pool->Load("kloofendal_4k.hdr", false, false);
+			data.m_sky_texture_id = texture_pool->Load("epping_forest_01_4k.hdr", false, false);
 			auto textures = texture_pool->GetTextures({ data.m_sky_texture_id });
 
 			gfx::SamplerDesc input_sampler_desc
@@ -106,8 +106,8 @@ namespace tasks
 		RenderTargetProperties rt_properties
 		{
 			.m_is_render_window = false,
-			.m_width = 1024,
-			.m_height = 1024,
+			.m_width = 2048,
+			.m_height = 2048,
 			.m_dsv_format = VK_FORMAT_UNDEFINED,
 			.m_rtv_formats = { VK_FORMAT_R16G16B16A16_SFLOAT },
 			.m_state_execute = VK_IMAGE_LAYOUT_GENERAL,

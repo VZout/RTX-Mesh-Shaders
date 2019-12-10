@@ -15,6 +15,7 @@
 #include "texture_pool.hpp"
 #include "meshlet_builder.hpp"
 #include "stb_image_loader.hpp"
+#include <glm.hpp>
 
 #include "util/log.hpp"
 
@@ -35,6 +36,9 @@ struct ModelHandle
 		std::uint64_t m_vertex_stride;
 		std::uint64_t m_index_stride;
 		std::optional<MaterialHandle> m_material_handle;
+
+		glm::vec3 m_bbox_min;
+		glm::vec3 m_bbox_max;
 
 		bool operator==(MeshHandle const & other) const
 		{
@@ -120,6 +124,29 @@ protected:
 
 	inline static std::vector<ResourceLoader<ModelData>*> m_registered_loaders = {};
 };
+
+inline glm::vec4 GetBoxCorner(glm::vec3 bboxMin, glm::vec3 bboxMax, int n)
+{
+	using glm::vec4;
+	switch (n) {
+	case 0:
+		return vec4(bboxMin.x, bboxMin.y, bboxMin.z, 1);
+	case 1:
+		return vec4(bboxMax.x, bboxMin.y, bboxMin.z, 1);
+	case 2:
+		return vec4(bboxMin.x, bboxMax.y, bboxMin.z, 1);
+	case 3:
+		return vec4(bboxMax.x, bboxMax.y, bboxMin.z, 1);
+	case 4:
+		return vec4(bboxMin.x, bboxMin.y, bboxMax.z, 1);
+	case 5:
+		return vec4(bboxMax.x, bboxMin.y, bboxMax.z, 1);
+	case 6:
+		return vec4(bboxMin.x, bboxMax.y, bboxMax.z, 1);
+	case 7:
+		return vec4(bboxMax.x, bboxMax.y, bboxMax.z, 1);
+	}
+}
 
 template<typename T>
 void ModelPool::RegisterLoader()
@@ -254,6 +281,26 @@ ModelHandle ModelPool::LoadWithMaterials(ModelData* data,
 			if constexpr (HasBitangent<V_T>::value) { vertices[i].m_bitangent = mesh.m_bitangents[i]; }
 		}
 
+		// Calculate objectbbox
+		glm::vec3 object_bbox_min = glm::vec3(std::numeric_limits<float>::max());
+		glm::vec3 object_bbox_max = glm::vec3(-std::numeric_limits<float>::max());
+		for (auto i = 0; i < mesh.m_num_indices; i += 3)
+		{
+			glm::ivec3 triangle;
+			memcpy(&triangle, &mesh.m_indices[i * mesh.m_indices_stride], mesh.m_indices_stride * 3);
+
+			// bounding box
+			{
+				object_bbox_min = glm::min(object_bbox_min, vertices[triangle[0]].m_pos);
+				object_bbox_min = glm::min(object_bbox_min, vertices[triangle[1]].m_pos);
+				object_bbox_min = glm::min(object_bbox_min, vertices[triangle[2]].m_pos);
+
+				object_bbox_max = glm::max(object_bbox_max, vertices[triangle[0]].m_pos);
+				object_bbox_max = glm::max(object_bbox_max, vertices[triangle[1]].m_pos);
+				object_bbox_max = glm::max(object_bbox_max, vertices[triangle[2]].m_pos);
+			}
+		}
+
 		// Generate meshlets
 		std::vector<MeshletDesc> meshlet_data;
 		std::vector<std::uint32_t> vertex_indices; // used to index the vertex buffer from mesh shading (Uploaded to the GPU)
@@ -267,6 +314,9 @@ ModelHandle ModelPool::LoadWithMaterials(ModelData* data,
 		{
 			MeshletDesc meshlet = {};
 
+			glm::vec3 bbox_min = glm::vec3(std::numeric_limits<float>::max());
+			glm::vec3 bbox_max = glm::vec3(-std::numeric_limits<float>::max());
+
 			auto num_indices_in_meshlet = std::min((int)mesh.m_num_indices - indices_start, max_meshlet_indices);
 			std::vector<std::uint32_t> meshlet_vertex_indices;
 			std::vector<std::uint32_t> meshlet_indices;
@@ -276,6 +326,17 @@ ModelHandle ModelPool::LoadWithMaterials(ModelData* data,
 			{
 				glm::ivec3 triangle;
 				memcpy(&triangle, &mesh.m_indices[i * mesh.m_indices_stride], mesh.m_indices_stride * 3);
+
+				// bounding box
+				{
+					bbox_min = glm::min(bbox_min, vertices[triangle[0]].m_pos);
+					bbox_min = glm::min(bbox_min, vertices[triangle[1]].m_pos);
+					bbox_min = glm::min(bbox_min, vertices[triangle[2]].m_pos);
+
+					bbox_max = glm::max(bbox_max, vertices[triangle[0]].m_pos);
+					bbox_max = glm::max(bbox_max, vertices[triangle[1]].m_pos);
+					bbox_max = glm::max(bbox_max, vertices[triangle[2]].m_pos);
+				}
 
 				for (auto k = 0; k < 3; k++)
 				{
@@ -348,17 +409,39 @@ ModelHandle ModelPool::LoadWithMaterials(ModelData* data,
 			meshlet.SetNumPrims((num_indices_in_meshlet / 3));
 			meshlet.SetPrimBegin(prim_begin);
 
-			meshlet_data.push_back(meshlet);
 			vertices_start += num_unique_vertices;
 			prim_begin += (num_unique_indices / 3);
 
 			vertex_indices.insert(vertex_indices.end(), meshlet_vertex_indices.begin(), meshlet_vertex_indices.end());
 			index_indices.insert(index_indices.end(), flat_meshlet_indices.begin(), flat_meshlet_indices.end());
+
+			// Do bounding box
+			// truncate min relative to object min
+			glm::vec3 object_bbox_extent = object_bbox_max - object_bbox_min;
+			bbox_min = bbox_min - object_bbox_min;
+			bbox_max = bbox_max - object_bbox_min;
+			bbox_min = bbox_min / object_bbox_extent;
+			bbox_max = bbox_max / object_bbox_extent;
+
+			// Snap to grid
+			const int grid_bits = 8;
+			const int grid_last = (1 << grid_bits) - 1;
+			uint8_t   grid_min[3];
+			uint8_t   grid_max[3];
+
+			grid_min[0] = std::max(0, std::min(int(truncf(bbox_min.x * float(grid_last))), grid_last - 1));
+			grid_min[1] = std::max(0, std::min(int(truncf(bbox_min.y * float(grid_last))), grid_last - 1));
+			grid_min[2] = std::max(0, std::min(int(truncf(bbox_min.z * float(grid_last))), grid_last - 1));
+			grid_max[0] = std::max(0, std::min(int(ceilf(bbox_max.x * float(grid_last))), grid_last));
+			grid_max[1] = std::max(0, std::min(int(ceilf(bbox_max.y * float(grid_last))), grid_last));
+			grid_max[2] = std::max(0, std::min(int(ceilf(bbox_max.z * float(grid_last))), grid_last));
+
+			meshlet.SetBBox(grid_min, grid_max);
+
+			meshlet_data.push_back(meshlet);
 		}
 
-		// debug
-		// miniboy
-#ifdef CUNT
+#ifdef DEBUG_SOMETHING
 #define NVMSH_INDEX_BITS      8
 #define NVMSH_PACKED4X8_GET(packed, idx)   (((packed) >> (NVMSH_INDEX_BITS * (idx))) & 255)
 
@@ -487,7 +570,9 @@ ModelHandle ModelPool::LoadWithMaterials(ModelData* data,
 			.m_num_vertices = static_cast<std::uint32_t>(num_vertices),
 			.m_vertex_stride = sizeof(V_T),
 			.m_index_stride = index_stide,
-			.m_material_handle = material_handle
+			.m_material_handle = material_handle,
+			.m_bbox_min = object_bbox_min,
+			.m_bbox_max = object_bbox_max
 		});
 		m_next_id++;
 	}

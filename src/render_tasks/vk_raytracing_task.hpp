@@ -26,6 +26,8 @@
 #include "../graphics/shader_table.hpp"
 #include "vk_build_acceleration_structures_task.hpp"
 
+#include <glm.hpp>
+
 namespace tasks
 {
 
@@ -47,11 +49,16 @@ namespace tasks
 		gfx::ShaderTable* m_miss_shader_table;
 		gfx::ShaderTable* m_hitgroup_shader_table;
 
+		glm::vec3 last_pos;
+		glm::vec3 last_rot;
+
 		bool m_first_execute = true;
 	};
 
 	namespace internal
 	{
+
+		std::uint32_t frame_number = 0;
 
 		inline void SetupRaytracingTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
 		{
@@ -74,17 +81,7 @@ namespace tasks
 			data.m_uav_target_set = data.m_gbuffer_heap->CreateUAVSetFromRT(render_target, 0, data.m_root_sig, 1, 0, input_sampler_desc);
 
 			data.m_first_execute = true;
-
-			if (resize) return;
-
-			data.m_raygen_shader_table = new gfx::ShaderTable(rs.GetContext(), 3);
-			data.m_raygen_shader_table->AddShaderRecord(data.m_pipeline, 0, 3);
-
-			/*data.m_miss_shader_table = new gfx::ShaderTable(rs.GetContext(), 1);
-			data.m_miss_shader_table->AddShaderRecord(data.m_pipeline, 1, 1);
-
-			data.m_hitgroup_shader_table = new gfx::ShaderTable(rs.GetContext(), 1);
-			data.m_hitgroup_shader_table->AddShaderRecord(data.m_pipeline, 2, 1);*/
+			frame_number = 0;
 
 			gfx::SamplerDesc skybox_sampler_desc
 			{
@@ -113,6 +110,17 @@ namespace tasks
 				auto brdf_rt = fg.GetPredecessorRenderTarget<GenerateBRDFLutData>();
 				data.m_brdf_set = data.m_gbuffer_heap->CreateSRVSetFromRT(brdf_rt, data.m_root_sig, 10, 0, false, lut_sampler_desc);
 			}
+
+			if (resize) return;
+
+			data.m_raygen_shader_table = new gfx::ShaderTable(rs.GetContext(), 5);
+			data.m_raygen_shader_table->AddShaderRecord(data.m_pipeline, 0, 5);
+
+			/*data.m_miss_shader_table = new gfx::ShaderTable(rs.GetContext(), 1);
+			data.m_miss_shader_table->AddShaderRecord(data.m_pipeline, 1, 1);
+
+			data.m_hitgroup_shader_table = new gfx::ShaderTable(rs.GetContext(), 1);
+			data.m_hitgroup_shader_table->AddShaderRecord(data.m_pipeline, 2, 1);*/
 		}
 
 		inline void ExecuteRaytracingTask(Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, fg::RenderTaskHandle handle)
@@ -125,6 +133,16 @@ namespace tasks
 			auto texture_pool = static_cast<gfx::VkTexturePool*>(rs.GetTexturePool());
 			auto camera_pool = static_cast<gfx::VkConstantBufferPool*>(sg.GetInverseCameraConstantBufferPool());
 			auto camera_handle = sg.m_inverse_camera_cb_handles[0].m_value;
+
+			auto new_pos = sg.m_positions[sg.GetActiveCamera().m_transform_component].m_value;
+			auto new_rot = sg.m_rotations[sg.GetActiveCamera().m_transform_component].m_value;
+			if (data.last_pos != new_pos || new_rot != data.last_rot)
+			{
+				frame_number = 0;
+				data.last_pos = new_pos;
+				data.last_rot = new_rot;
+			}
+
 			auto light_pool = static_cast<gfx::VkConstantBufferPool*>(sg.GetLightConstantBufferPool());
 			auto light_buffer_handle = sg.GetLightBufferHandle();
 
@@ -157,7 +175,10 @@ namespace tasks
 
 			cmd_list->BindPipelineState(data.m_pipeline);
 			cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
+			cmd_list->BindRaygenPushConstants(data.m_root_sig, &frame_number, sizeof(std::uint32_t));
 			cmd_list->DispatchRays(data.m_raygen_shader_table, data.m_raygen_shader_table, data.m_raygen_shader_table, render_target->GetWidth(), render_target->GetHeight(), 1);
+
+			frame_number++;
 		}
 
 		inline void DestroyRaytracingTask(fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)

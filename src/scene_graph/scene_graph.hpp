@@ -65,6 +65,16 @@ namespace sg
 		ComponentHandle m_light_component;
 	};
 
+	struct LensProperties
+	{
+		float m_diameter = 0;
+		float m_focal_length = 35.f;
+		float m_focal_dist = 1;
+		float m_film_size = 45.0f;
+		bool m_use_simple_fov = true;
+		float m_fov = 45.f;
+	};
+
 	namespace internal
 	{
 
@@ -188,9 +198,14 @@ namespace sg
 				handle
 			));
 			// Allocate inverse constant buffer.
-			auto inverse_camera_cb_handle = m_inverse_camera_buffer_pool->Allocate(sizeof(cb::Camera));
+			auto inverse_camera_cb_handle = m_inverse_camera_buffer_pool->Allocate(sizeof(cb::CameraInverse));
 			m_inverse_camera_cb_handles.emplace_back(ComponentData<ConstantBufferHandle>(
 				inverse_camera_cb_handle,
+				handle
+			));
+
+			m_camera_lens_properties.emplace_back(ComponentData<LensProperties>(
+				LensProperties(),
 				handle
 			));
 
@@ -227,6 +242,7 @@ namespace sg
 			m_colors.emplace_back(ComponentData<glm::vec3>{color, handle});
 			m_light_types.emplace_back(ComponentData<cb::LightType>{type, handle});
 			m_radius.emplace_back(ComponentData<float>{0, handle});
+			m_light_physical_size.emplace_back(ComponentData<float>{0, handle});
 			m_light_angles.emplace_back(ComponentData<std::pair<float, float>>{ {glm::radians(40.f), glm::radians(50.f)}, handle});
 
 			m_light_node_handles.push_back(handle);
@@ -257,6 +273,7 @@ namespace sg
 		// Camera Component
 		std::vector<ComponentData<ConstantBufferHandle>> m_camera_cb_handles;
 		std::vector<ComponentData<ConstantBufferHandle>> m_inverse_camera_cb_handles;
+		std::vector<ComponentData<LensProperties>> m_camera_lens_properties;
 		std::vector<ComponentData<float>> m_camera_aspect_ratios;
 		std::vector<ComponentData<std::vector<bool>>> m_requires_camera_buffer_update;
 
@@ -265,6 +282,7 @@ namespace sg
 		std::vector<ComponentData<glm::vec3>> m_colors;
 		std::vector<ComponentData<cb::LightType>> m_light_types;
 		std::vector<ComponentData<float>> m_radius;
+		std::vector<ComponentData<float>> m_light_physical_size;
 		std::vector<ComponentData<std::pair<float, float>>> m_light_angles;
 		std::vector<std::size_t> m_num_lights;
 
@@ -279,7 +297,7 @@ namespace sg
 			auto model_handle = m_model_handles[node.m_mesh_component].m_value;
 			auto material_handles = m_model_material_handles[node.m_mesh_component].m_value;
 
-			return batch.m_model_handle == model_handle/* && batch.m_material_handles == material_handles*/;
+			return batch.m_model_handle == model_handle && batch.m_material_handles == material_handles;
 		}
 
 	private:
@@ -369,6 +387,13 @@ namespace sg
 		{
 			auto light_handle = sg->GetNode(handle).m_light_component;
 			sg->m_radius[light_handle].m_value = radius;
+			sg->m_requires_light_buffer_update[light_handle] = { true, true, true };
+		}
+
+		inline void SetPhysicalSize(SceneGraph* sg, NodeHandle handle, float size)
+		{
+			auto light_handle = sg->GetNode(handle).m_light_component;
+			sg->m_light_physical_size[light_handle].m_value = size;
 			sg->m_requires_light_buffer_update[light_handle] = { true, true, true };
 		}
 

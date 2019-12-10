@@ -9,21 +9,7 @@
 	layout(set = 2, binding = 2) uniform sampler2D ts_textures[5];
 #endif
 
-#define USE_NATIVE   1
-#extension GL_NV_mesh_shader : enable
-#extension GL_EXT_shader_explicit_arithmetic_types_int8 : enable
-#extension GL_KHR_shader_subgroup_basic : require
-#extension GL_KHR_shader_subgroup_ballot : require
-#extension GL_KHR_shader_subgroup_vote : require
-
-#define GROUP_SIZE 32
-#define NVMESHLET_VERTEX_COUNT      64
-#define NVMESHLET_PRIMITIVE_COUNT   63	
-#define NVMESHLET_PRIM_ALIGNMENT        1
-#define NVMESHLET_VERTEX_ALIGNMENT      16
-
-#define NVMSH_INDEX_BITS      8
-#define NVMSH_PACKED4X8_GET(packed, idx)   (((packed) >> (NVMSH_INDEX_BITS * (idx))) & 255)
+#include "mesh_shader_util.glsl"
 
 layout(local_size_x=GROUP_SIZE) in;
 layout(max_vertices=NVMESHLET_VERTEX_COUNT, max_primitives=NVMESHLET_PRIMITIVE_COUNT) out;
@@ -35,7 +21,7 @@ layout(location = 2) out vec3 g_frag_pos[];
 layout(location = 3) out vec3 g_tangent[];
 layout(location = 4) out vec3 g_bitangent[];
 #ifdef SHOW_MESHLETS
-layout(location = 5) out flat int g_meshlet_id[];
+layout(location = 5) out flat uint g_meshlet_id[];
 #endif
 
 struct Vertex
@@ -94,26 +80,14 @@ layout(set = 6, binding = 6) buffer MeshletBufferObj {
 	uvec4 meshlet_descs[];
 } mb;
 
-void DecodeMeshlet(uvec4 meshlet_desc, out uint vert_max, out uint prim_max, out uint vert_begin, out uint prim_begin)
-{
-	vert_begin = (meshlet_desc.z & 0xFFFFF) * NVMESHLET_VERTEX_ALIGNMENT;
-	prim_begin = (meshlet_desc.w & 0xFFFFF) * NVMESHLET_PRIM_ALIGNMENT;
-	vert_max = (meshlet_desc.x >> 24);
-	prim_max = (meshlet_desc.y >> 24);
-}
-
 taskNV in Task {
 	uint base_id;
 	uint8_t sub_ids[GROUP_SIZE];
 	uint num_meshlets;
 } IN;
 
-void EmitVertex(uint idx, ReadableVertex vertex)
+void EmitVertex(uint idx, ReadableVertex vertex, mat4 model, uint meshlet_id)
 {
-	float id = (float(IN.base_id) + float(IN.sub_ids[gl_WorkGroupID.x])) / float(IN.num_meshlets);
-	int instance_id = subgroupBroadcastFirst(int(floor(id)));
-	mat4 model = ubo.model[instance_id];
-
 	vec4 world_pos = model * vec4(vertex.pos, 1.0f);
 	vec4 world_normal = normalize(model * vec4(vertex.normal, 0));
 
@@ -136,9 +110,9 @@ void PushTriangle(inout uint start_idx, ReadableVertex a, ReadableVertex b, Read
 	gl_PrimitiveIndicesNV[start_idx+1] = start_idx+1;
 	gl_PrimitiveIndicesNV[start_idx+2] = start_idx+2;
 
-	EmitVertex(start_idx+0, a);
-	EmitVertex(start_idx+1, b);
-	EmitVertex(start_idx+2, c);
+	EmitVertex(start_idx+0, a, mat4(1), 0);
+	EmitVertex(start_idx+1, b, mat4(1), 0);
+	EmitVertex(start_idx+2, c, mat4(1), 0);
 }
 
 ReadableVertex VertexToReadable(Vertex vertex)
@@ -155,7 +129,7 @@ ReadableVertex VertexToReadable(Vertex vertex)
 
 void main()
 {
-	int meshlet_id = int((IN.base_id + IN.sub_ids[gl_WorkGroupID.x]) % (IN.num_meshlets));
+	uint meshlet_id = uint((IN.base_id + IN.sub_ids[gl_WorkGroupID.x]) % (IN.num_meshlets));
 
 	uvec4 meshlet_desc = mb.meshlet_descs[meshlet_id];
 	uint vert_max;
@@ -165,16 +139,17 @@ void main()
 	DecodeMeshlet(meshlet_desc, vert_max, prim_max, vert_begin, prim_begin);
 	vert_max += 1;
 	prim_max += 1;
+
+	float id = (float(IN.base_id) + float(IN.sub_ids[gl_WorkGroupID.x])) / float(IN.num_meshlets);
+	int instance_id = int(floor(id));
+	mat4 model = ubo.model[instance_id];
 	
 	// primitives
 	uint next_index = 0;
 	uint num_indices = prim_max * 3;
 	uint indices_start = prim_begin * 3;
-	int x = 0;
 	for (uint i = indices_start; i < indices_start + num_indices; i += 3)
 	{
-		x += 1;
-
 		uint k = i - indices_start;
 		gl_PrimitiveIndicesNV[k+0] = ibi.indices[i + 0];
 		gl_PrimitiveIndicesNV[k+1] = ibi.indices[i + 1];
@@ -195,7 +170,7 @@ void main()
 		uint k = i - (vert_begin);
 
 		ReadableVertex v0 = VertexToReadable(vb.vertices[vbi.indices[i]]);
-		EmitVertex(k, v0);
+		EmitVertex(k, v0, model, meshlet_id);
 	}
 
 	gl_PrimitiveCountNV = prim_max;

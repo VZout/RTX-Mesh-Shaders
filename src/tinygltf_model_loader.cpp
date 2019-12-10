@@ -133,6 +133,12 @@ inline void LoadMaterial(ModelData* model, tinygltf::Model tg_model, tinygltf::M
 			set_img_data(mat_data.m_albedo_texture, img);
 
 		}
+		else if (value.first == "baseColorFactor")
+		{
+			//auto color = value.second.ColorFactor();
+			//mat_data.m_base_color = glm::vec3(color[0], color[1], color[2]);
+
+		}
 		else if (value.first == "metallicRoughnessTexture")
 		{
 			auto img = tg_model.images[value.second.json_double_value.begin()->second];

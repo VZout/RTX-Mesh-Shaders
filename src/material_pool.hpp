@@ -7,6 +7,7 @@
 #pragma once
 
 #include <vector>
+#include <unordered_map>
 
 #include "resource_loader.hpp"
 #include "resource_structs.hpp"
@@ -40,6 +41,8 @@ public:
 	MaterialHandle Load(MaterialData const & data, TexturePool* texture_pool);
 	virtual void Update(MaterialHandle handle, MaterialData const & material_data) = 0;
 
+	MaterialData GetRawData(MaterialHandle handle); // This is temporary.
+
 private:
 	virtual void Load_Impl(MaterialHandle& handle, MaterialData const & data, TexturePool* texture_pool) = 0;
 
@@ -49,6 +52,8 @@ private:
 	std::uint32_t m_default_normal_texture;
 	std::uint32_t m_default_thickness_texture;
 	std::uint32_t m_default_displacement_texture;
+
+	std::unordered_map<uint32_t, MaterialData> m_raw_data;
 
 	std::uint32_t m_next_id;
 };

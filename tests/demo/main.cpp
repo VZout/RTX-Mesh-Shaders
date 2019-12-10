@@ -161,6 +161,13 @@ protected:
 			m_reload_sg = false;
 		}
 
+		if (m_viewport_has_changed)
+		{
+			//m_renderer->Resize(m_viewport_size.x, m_viewport_size.y, false);
+			//m_frame_graph->Resize(m_viewport_size.x, m_viewport_size.y);
+			m_viewport_has_changed = false;
+		}
+
 		auto now = std::chrono::high_resolution_clock::now();
 		auto diff = now - m_last; 
 		m_delta = (float)diff.count() / 1000000000.f; // milliseconds
@@ -329,7 +336,9 @@ protected:
 	ImVec2 m_viewport_pos = { 0, 0 };
 	ImVec2 m_viewport_size = { 1280, 720};
 
-	fg_manager::FGType m_fg_type = fg_manager::FGType::PBR_GENERIC;
+	bool m_viewport_has_changed = false;
+
+	fg_manager::FGType m_fg_type = fg_manager::FGType::RAYTRACING;
 };
 
 

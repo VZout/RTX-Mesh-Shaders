@@ -67,7 +67,7 @@ public:
 	void Render(sg::SceneGraph& sg, fg::FrameGraph& fg);
 	void AquireNewFrame();
 	void WaitForAllPreviousWork();
-	void Resize(std::uint32_t width, std::uint32_t height);
+	void Resize(std::uint32_t width, std::uint32_t height, bool resize_render_window = true);
 	Application* GetApp();
 	std::uint32_t GetFrameIdx();
 	ModelPool* GetModelPool();
