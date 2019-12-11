@@ -308,7 +308,34 @@ void SetupEditor()
 				ImGui::Text(fmt::format("\t Num Samples: {}", it.second.m_times).c_str());
 				ImGui::Text(fmt::format("\t Average: {}", average).c_str());
 				ImGui::Text(fmt::format("\t Last Sample: {}", last_ms).c_str());
-				ImGui::Text(fmt::format("\t Num Samples: {}", it.second.m_times).c_str());
+
+#ifdef PROFILER_GRAPHING
+				if (it.second.m_samples.size() > 1)
+				{
+					auto min_value = *std::min_element(it.second.m_samples.begin(), it.second.m_samples.end());
+					auto max_value = *std::max_element(it.second.m_samples.begin(), it.second.m_samples.end());
+
+					/*ImGui::PlotLines(it.first.c_str(), it.second.m_samples.data(), it.second.m_samples.size(), 0, nullptr, min_value,
+			               max_value, ImVec2(ImGui::GetContentRegionAvailWidth(), 100));*/
+
+					ImGui::PlotConfig conf;
+					//conf.values.xs = x_data; // this line is optional
+					conf.values.ys = it.second.m_samples.data();
+					conf.values.count = it.second.m_samples.size();
+					conf.scale.min = min_value;
+					conf.scale.max = max_value;
+					conf.tooltip.show = true;
+					conf.tooltip.format = "%.2f";
+					conf.skip_small_lines = true;
+					conf.grid_x.show = true;
+					conf.grid_y.show = false;
+					conf.values.color = ImColor(0, 255, 0);
+					conf.frame_size = ImVec2(ImGui::GetContentRegionAvailWidth(), 100);
+					conf.line_thickness = 2.5f;
+
+					ImGui::Plot("plot", conf);
+				}
+#endif
 			}
 		}, false, reinterpret_cast<const char*>(ICON_FA_CHART_AREA));
 

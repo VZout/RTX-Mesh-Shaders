@@ -6,6 +6,9 @@
 
 #pragma once
 
+#define PROFILER_GRAPHING
+#define PROFILER_GRAPHING_MAX_SAMPLES 500
+
 #include "log.hpp"
 
 #include <chrono>
@@ -17,25 +20,10 @@ namespace util
 
 	class CPUProfilerSystem
 	{
-	public:
-		struct ScopeBlock
-		{
-			using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
+	private:
+		CPUProfilerSystem() {}
 
-			TimePoint m_start;
-			std::int64_t m_total = 0;
-			std::int64_t m_last = 0;
-			std::int64_t m_times = 0;
-			bool m_in_use = false;
-		};
-
-		static CPUProfilerSystem& Get()
-		{
-			static CPUProfilerSystem instance = {};
-			return instance;
-		}
-
-		virtual ~CPUProfilerSystem()
+		~CPUProfilerSystem()
 		{
 			for (auto const & it : m_scopes)
 			{
@@ -46,6 +34,31 @@ namespace util
 			}
 		}
 
+	public:
+		struct ScopeBlock
+		{
+			using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
+
+			TimePoint m_start;
+			std::int64_t m_total = 0;
+			std::int64_t m_last = 0;
+			std::int64_t m_times = 0;
+			bool m_in_use = false;
+
+#ifdef PROFILER_GRAPHING
+			std::vector<float> m_samples;
+#endif
+		};
+
+		CPUProfilerSystem(CPUProfilerSystem const&) = delete;
+        void operator=(CPUProfilerSystem const&) = delete;
+
+		static CPUProfilerSystem& Get()
+		{
+			static CPUProfilerSystem instance = {};
+			return instance;
+		}
+
 		void AddTime(std::string name, std::int64_t ns)
 		{
 			if (auto it = m_scopes.find(name); it != m_scopes.end())
@@ -54,6 +67,21 @@ namespace util
 				it->second.m_last = ns;
 				it->second.m_times++;
 				it->second.m_in_use = false;
+#ifdef PROFILER_GRAPHING
+				auto& samples = it->second.m_samples;
+				if (samples.size() > PROFILER_GRAPHING_MAX_SAMPLES) //Max seconds to show
+				{
+					for (size_t i = 1; i < samples.size(); i++)
+					{
+						samples[i - 1] = samples[i];
+					}
+					samples[samples.size() - 1] = ns;
+				}
+				else
+				{
+					samples.push_back(ns);
+				}
+#endif
 			}
 			else
 			{
