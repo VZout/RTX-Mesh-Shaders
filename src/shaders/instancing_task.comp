@@ -36,7 +36,6 @@ taskNV out Task
 	uint num_meshlets;
 } OUT;
 
-
 void main()
 {
 	const uint base_id = gl_WorkGroupID.x * GROUP_SIZE;
@@ -49,7 +48,8 @@ void main()
 	mat4 model = ubo.model[instance_id];
 	uvec4 meshlet_desc = mb.meshlet_descs[meshlet_id];
 
-	bool render = !(global_id > total_meshlet_count || EarlyCull(meshlet_desc, model, camera.proj * camera.view));
+	mat4 inverse_view = inverse(camera.view);
+	bool render = !(global_id > total_meshlet_count || EarlyCull(meshlet_desc, model, vec3(inverse_view[3]), camera.proj * camera.view));
 	uvec4 vote = subgroupBallot(render);
 	uint tasks = subgroupBallotBitCount(vote);
 

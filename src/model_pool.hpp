@@ -148,6 +148,65 @@ inline glm::vec4 GetBoxCorner(glm::vec3 bboxMin, glm::vec3 bboxMax, int n)
 	}
 }
 
+// all oct functions derived from "A Survey of Efficient Representations for Independent Unit Vectors"
+// http://jcgt.org/published/0003/02/01/paper.pdf
+inline glm::vec3 OctSignNotZero(glm::vec3 v)
+{
+	// leaves z as is
+	return glm::vec3((v.x >= 0.0f) ? +1.0f : -1.0f, (v.y >= 0.0f) ? +1.0f : -1.0f, 1.0f);
+}
+
+inline glm::vec3 OctToFVec3(glm::vec3 e)
+{
+	auto v = glm::vec3(e.x, e.y, 1.0f - fabsf(e.x) - fabsf(e.y));
+	if (v.z < 0.0f)
+	{
+		v = glm::vec3(1.0f - fabs(v.y), 1.0f - fabs(v.x), v.z) * OctSignNotZero(v);
+	}
+	return glm::normalize(v);
+}
+
+inline glm::vec3 FVec3ToOct(glm::vec3 v)
+{
+	// Project the sphere onto the octahedron, and then onto the xy plane
+	glm::vec3 p = glm::vec3(v.x, v.y, 0) * (1.0f / (fabsf(v.x) + fabsf(v.y) + fabsf(v.z)));
+	// Reflect the folds of the lower hemisphere over the diagonals
+	return (v.z <= 0.0f) ? glm::vec3(1.0f - fabsf(p.y), 1.0f - fabsf(p.x), 0.0f) * OctSignNotZero(p) : p;
+}
+
+inline glm::vec3 FVec3ToOctnPrecise(glm::vec3 v, const int n)
+{
+	glm::vec3 s = FVec3ToOct(v);  // Remap to the square
+								  // Each snorm's max value interpreted as an integer,
+								  // e.g., 127.0 for snorm8
+	float M = float(1 << ((n / 2) - 1)) - 1.0;
+	// Remap components to snorm(n/2) precision...with floor instead
+	// of round (see equation 1)
+	s = glm::floor(glm::clamp(s, glm::vec3(-1.0f), glm::vec3(1.0f)) * M) * glm::vec3(1.0 / M);
+	glm::vec3 bestRepresentation = s;
+	float highestCosine = glm::dot(OctToFVec3(s), v);
+	// Test all combinations of floor and ceil and keep the best.
+	// Note that at +/- 1, this will exit the square... but that
+	// will be a worse encoding and never win.
+	for (int i = 0; i <= 1; ++i)
+		for (int j = 0; j <= 1; ++j)
+			// This branch will be evaluated at compile time
+			if ((i != 0) || (j != 0))
+			{
+				// Offset the bit pattern (which is stored in floating
+				// point!) to effectively change the rounding mode
+				// (when i or j is 0: floor, when it is one: ceiling)
+				glm::vec3 candidate = glm::vec3(i, j, 0) * (1 / M) + s;
+				float cosine = glm::dot(OctToFVec3(candidate), v);
+				if (cosine > highestCosine)
+				{
+					bestRepresentation = candidate;
+					highestCosine = cosine;
+				}
+			}
+	return bestRepresentation;
+}
+
 template<typename T>
 void ModelPool::RegisterLoader()
 {
@@ -281,6 +340,9 @@ ModelHandle ModelPool::LoadWithMaterials(ModelData* data,
 			if constexpr (HasBitangent<V_T>::value) { vertices[i].m_bitangent = mesh.m_bitangents[i]; }
 		}
 
+		glm::vec3 average_normal(0);
+		std::vector<glm::vec3> tri_normals;
+
 		// Calculate objectbbox
 		glm::vec3 object_bbox_min = glm::vec3(std::numeric_limits<float>::max());
 		glm::vec3 object_bbox_max = glm::vec3(-std::numeric_limits<float>::max());
@@ -298,6 +360,25 @@ ModelHandle ModelPool::LoadWithMaterials(ModelData* data,
 				object_bbox_max = glm::max(object_bbox_max, vertices[triangle[0]].m_pos);
 				object_bbox_max = glm::max(object_bbox_max, vertices[triangle[1]].m_pos);
 				object_bbox_max = glm::max(object_bbox_max, vertices[triangle[2]].m_pos);
+			}
+
+			// cone
+			{
+				glm::vec3 cross = glm::cross(vertices[triangle[1]].m_pos - vertices[triangle[0]].m_pos, vertices[triangle[2]].m_pos - vertices[triangle[0]].m_pos);
+				float length = glm::length(cross);
+
+				glm::vec3 normal;
+				if (length > FLT_EPSILON)
+				{
+					normal = cross * (1.0f / length);
+				}
+				else
+				{
+					normal = cross;
+				}
+
+				average_normal += normal;
+				tri_normals.push_back(normal);
 			}
 		}
 
@@ -437,6 +518,47 @@ ModelHandle ModelPool::LoadWithMaterials(ModelData* data,
 			grid_max[2] = std::max(0, std::min(int(ceilf(bbox_max.z * float(grid_last))), grid_last));
 
 			meshlet.SetBBox(grid_min, grid_max);
+
+			// potential improvement, instead of average maybe use
+			// http://www.cs.technion.ac.il/~cggc/files/gallery-pdfs/Barequet-1.pdf
+			float len = glm::length(average_normal);
+			if (len > FLT_EPSILON)
+			{
+				average_normal = average_normal / len;
+			}
+			else
+			{
+				average_normal = glm::vec3(0.0f);
+			}
+
+			glm::vec3 packed = FVec3ToOctnPrecise(average_normal, 16);
+			std::int8_t cone_x = std::min(127, std::max(-127, std::int32_t(packed.x * 127.0f)));
+			std::int8_t cone_y = std::min(127, std::max(-127, std::int32_t(packed.y * 127.0f)));
+
+			// post quantization normal
+			average_normal = OctToFVec3(glm::vec3(float(cone_x) / 127.0f, float(cone_y) / 127.0f, 0.0f));
+
+			float mindot = 1.0f;
+			for (auto const & n : tri_normals)
+			{
+				mindot = std::min(mindot, glm::dot(n, average_normal));
+			}
+
+			// apply safety delta due to quantization
+			mindot -= 1.0f / 127.0f;
+			mindot = std::max(-1.0f, mindot);
+
+			// positive value for cluster not being backface cullable (normals > 90)
+			std::int8_t cone_angle = 127;
+			if (mindot > 0)
+			{
+				// otherwise store -sin(cone angle)
+				// we test against dot product (cosine) so this is equivalent to cos(cone angle + 90°)
+				float angle = -sinf(acosf(mindot));
+				cone_angle = std::max(-127, std::min(127, int32_t(angle * 127.0f)));
+			}
+
+			meshlet.SetCone(cone_x, cone_y, cone_angle);
 
 			meshlet_data.push_back(meshlet);
 		}

@@ -109,6 +109,20 @@ struct MeshletDesc
 		m_y |= Pack(bboxMax[0], 8, 0) | Pack(bboxMax[1], 8, 8) | Pack(bboxMax[2], 8, 16);
 	}
 
+	void SetCone(int8_t coneOctX, int8_t coneOctY, int8_t minusSinAngle)
+	{
+		uint8_t anglebits = minusSinAngle;
+		m_z |= Pack(coneOctX, 8, 20) | Pack((anglebits >> 0) & 0xF, 4, 28);
+		m_w |= Pack(coneOctY, 8, 20) | Pack((anglebits >> 4) & 0xF, 4, 28);
+	}
+
+	void GetCone(int8_t& coneOctX, int8_t& coneOctY, int8_t& minusSinAngle) const
+	{
+		coneOctX = Unpack(m_z, 8, 20);
+		coneOctY = Unpack(m_w, 8, 20);
+		minusSinAngle = Unpack(m_z, 4, 28) | (Unpack(m_w, 4, 28) << 4);
+	}
+
 	void GetBBox(uint8_t bboxMin[3], uint8_t bboxMax[3]) const
 	{
 		bboxMin[0] = Unpack(m_x, 8, 0);

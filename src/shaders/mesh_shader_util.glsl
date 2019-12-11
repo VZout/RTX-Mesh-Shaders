@@ -75,20 +75,60 @@ uint GetCullBits(vec4 hPos)
 	return cullBits;
 }
 
-bool EarlyCull(uvec4 meshlet_desc, mat4 model, mat4 viewproj_mat)
+// oct_ code from "A Survey of Efficient Representations for Independent Unit Vectors"
+// http://jcgt.org/published/0003/02/01/paper.pdf
+vec2 oct_signNotZero(vec2 v) {
+	return vec2((v.x >= 0.0) ? +1.0 : -1.0, (v.y >= 0.0) ? +1.0 : -1.0);
+}
+
+vec3 oct_to_vec3(vec2 e) {
+	vec3 v = vec3(e.xy, 1.0 - abs(e.x) - abs(e.y));
+	if (v.z < 0) v.xy = (1.0 - abs(v.yx)) * oct_signNotZero(v.xy);
+  
+	return normalize(v);
+}
+
+void DecodeNormalAngle(uvec4 meshlet_desc, out vec3 normal, out float angle)
+{
+  uint packed_vec =  (((meshlet_desc.z >> 20) & 0xFF) << 0)  |
+                     (((meshlet_desc.w >> 20) & 0xFF) << 8)  |
+                     (((meshlet_desc.z >> 28)       ) << 16) |
+                     (((meshlet_desc.w >> 28)       ) << 20);
+
+  vec3 unpacked_vec = unpackSnorm4x8(packed_vec).xyz;
+  
+  float winding = 1.f;
+  normal = oct_to_vec3(unpacked_vec.xy) * winding;
+  angle = unpacked_vec.z;
+}
+
+bool EarlyCull(uvec4 meshlet_desc, mat4 model, vec3 view_pos, mat4 viewproj_mat)
 {
 	vec3 bbox_min;
 	vec3 bbox_max;
 	DecodeBbox(meshlet_desc, bbox_min, bbox_max);
 
 	uint frustum_bits = ~0;
+	bool backface = false;
+
+	// Early backface culling
+	vec3 o_group_normal;
+	float angle;
+	DecodeNormalAngle(meshlet_desc, o_group_normal, angle);
+	vec3 w_group_normal = normalize(inverse(transpose(mat3(model))) * o_group_normal);
+	backface = angle < 0;
 
 	for (int n = 0; n < 8; n++)
 	{
+		// Early frustum culling
 		vec4 w_pos = model * GetBoxCorner(bbox_min, bbox_max, n);
 		vec4 h_pos = viewproj_mat * w_pos;
 		frustum_bits &= GetCullBits(h_pos);
+
+		// Early backface culling
+		vec3 w_dir = normalize(view_pos - w_pos.xyz);
+   		backface = backface && (dot(w_group_normal, w_dir) < angle);
 	}
 
-	return frustum_bits != 0;
+	return (frustum_bits != 0 || backface);
 }
