@@ -179,27 +179,6 @@ protected:
 
 		m_renderer->Render(*m_scene->GetSceneGraph(), *m_frame_graph);
 
-		auto append_graph_list = [](auto& list, auto time, auto max, auto& lowest, auto& highest)
-		{
-			lowest = time < lowest ? time : lowest;
-			highest = time > highest ? time : highest;
-
-			if (static_cast<int>(list.size()) > max) //Max seconds to show
-			{
-				for (size_t i = 1; i < list.size(); i++)
-				{
-					list[i - 1] = list[i];
-				}
-				list[list.size() - 1] = time;
-			} else
-			{
-				list.push_back(time);
-			}
-		};
-
-		append_graph_list(m_frame_rates, ImGui::GetIO().Framerate, m_max_frame_rates, m_min_frame_rate,
-		                  m_max_frame_rate);
-
 		m_fps_camera.HandleControllerInput(m_delta);
 		m_fps_camera.Update(m_delta);
 
@@ -328,10 +307,6 @@ protected:
 
 	// ImGui
 	std::chrono::time_point<std::chrono::high_resolution_clock> m_last;
-	std::vector<float> m_frame_rates;
-	int m_max_frame_rates = 1000;
-	float m_min_frame_rate = 0;
-	float m_max_frame_rate = 1;
 	std::optional<sg::NodeHandle> m_selected_node;
 	ImGuiTextFilter m_outliner_filter;
 	bool m_viewport_has_focus = false;
