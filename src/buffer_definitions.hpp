@@ -49,7 +49,7 @@ namespace cb
 
 	enum class LightType : int
 	{
-		POINT, DIRECTIONAL, SPOT, FREE
+		POINT, DIRECTIONAL, SPOT
 	};
 
 	struct Light
@@ -61,7 +61,12 @@ namespace cb
 		float m_inner_angle = 0.698132;
 
 		glm::vec3 m_color = { 1, 1, 1 };
-		std::uint32_t m_type = (std::uint32_t)LightType::FREE;
+
+		//   m_x        | Bits | Content
+		//  ------------|:----:|----------------------------------------------------------------
+		//  light type  | 2    | value in the range of 0 - 3 determining the type of the light.
+		//  num lights  | 30   | the number of lights (only stored in the first light)
+		std::uint32_t m_type = 0;
 
 		float m_outer_angle = 0.698132;
 		float m_physical_size = 0;

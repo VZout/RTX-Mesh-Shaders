@@ -31,7 +31,6 @@ void main()
     g_normal = normalize(model * vec4(normal, 0)).xyz;
 
     g_frag_pos = vec3(model * vec4(pos, 1.0));
-	g_frag_pos = pos;
     gl_Position = camera.proj * camera.view * model * vec4(pos, 1.0);
     g_uv = uv;
     g_uv.y *= -1;

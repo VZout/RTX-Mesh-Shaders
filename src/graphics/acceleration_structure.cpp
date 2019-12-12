@@ -205,8 +205,6 @@ void gfx::AccelerationStructure::CreateScratchBuffer()
 
 	const auto scratch_size = scratch_memory_requirements.memoryRequirements.size;
 
-	LOG("{} -- {}", scratch_memory_requirements.memoryRequirements.size, scratch_memory_requirements.memoryRequirements.alignment);
-
 	m_scratch_buffer = new GPUBuffer(m_context, std::nullopt, scratch_size, gfx::enums::BufferUsageFlag::RAYTRACING);
 }
 
