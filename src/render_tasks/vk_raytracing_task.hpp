@@ -149,8 +149,8 @@ namespace tasks
 			{
 				auto as_build_data = fg.GetPredecessorData<BuildASData>();
 				data.m_tlas_set = data.m_gbuffer_heap->CreateSRVFromAS(as_build_data.m_tlas, data.m_root_sig, 0, 0);
-				data.m_offsets_set = data.m_gbuffer_heap->CreateSRVFromCB(as_build_data.m_offsets_buffer, data.m_root_sig, 6, 0, false);
-				data.m_materials_set = data.m_gbuffer_heap->CreateSRVFromCB(as_build_data.m_materials_buffer, data.m_root_sig, 7, 0, false);
+				data.m_offsets_set = data.m_gbuffer_heap->CreateSRVFromCB(as_build_data.m_offsets_buffer, data.m_root_sig, 6, 0, gfx::enums::BufferDescType::STORAGE);
+				data.m_materials_set = data.m_gbuffer_heap->CreateSRVFromCB(as_build_data.m_materials_buffer, data.m_root_sig, 7, 0, gfx::enums::BufferDescType::STORAGE);
 				data.m_textures_set = data.m_gbuffer_heap->CreateSRVSetFromTexture(texture_pool->GetAllTexturesPadded(gfx::settings::max_num_rtx_textures), data.m_root_sig, 8, 0);
 
 				data.m_first_execute = false;

@@ -104,17 +104,6 @@ void EmitVertex(uint idx, ReadableVertex vertex, mat4 model, uint meshlet_id)
 	gl_MeshVerticesNV[idx].gl_Position = camera.proj * camera.view * world_pos;
 }
 
-void PushTriangle(inout uint start_idx, ReadableVertex a, ReadableVertex b, ReadableVertex c)
-{
-	gl_PrimitiveIndicesNV[start_idx+0] = start_idx+0;
-	gl_PrimitiveIndicesNV[start_idx+1] = start_idx+1;
-	gl_PrimitiveIndicesNV[start_idx+2] = start_idx+2;
-
-	EmitVertex(start_idx+0, a, mat4(1), 0);
-	EmitVertex(start_idx+1, b, mat4(1), 0);
-	EmitVertex(start_idx+2, c, mat4(1), 0);
-}
-
 ReadableVertex VertexToReadable(Vertex vertex)
 {
 	ReadableVertex retval;

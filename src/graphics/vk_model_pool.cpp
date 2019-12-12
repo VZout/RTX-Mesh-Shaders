@@ -26,8 +26,8 @@ gfx::VkModelPool::VkModelPool(Context* context)
 
 	auto& rs_reg = RootSignatureRegistry::Get();
 	auto rs = rs_reg.Find(root_signatures::raytracing);
-	m_big_vb_desc_set_id = m_heap->CreateSRVFromCB(m_big_vertex_buffer, rs, 4, 0, false);
-	m_big_ib_desc_set_id = m_heap->CreateSRVFromCB(m_big_index_buffer, rs, 5, 0, false);
+	m_big_vb_desc_set_id = m_heap->CreateSRVFromCB(m_big_vertex_buffer, rs, 4, 0, gfx::enums::BufferDescType::STORAGE);
+	m_big_ib_desc_set_id = m_heap->CreateSRVFromCB(m_big_index_buffer, rs, 5, 0, gfx::enums::BufferDescType::STORAGE);
 }
 
 gfx::VkModelPool::~VkModelPool()
@@ -64,11 +64,11 @@ ModelHandle::MeshOffsets gfx::VkModelPool::AllocateMesh(void* vertex_data, std::
 	auto& rs_reg = RootSignatureRegistry::Get();
 	auto rs = rs_reg.Find(root_signatures::basic_mesh);
 
-	auto descriptor_set_id = m_heap->CreateSRVFromCB(mb, rs, 6, 0, false);
+	auto descriptor_set_id = m_heap->CreateSRVFromCB(mb, rs, 6, 0, gfx::enums::BufferDescType::STORAGE);
 	std::pair<std::uint64_t, std::uint64_t> vb_offset_size = { m_next_vb_offset, (std::uint64_t)vertex_stride * num_vertices };
 	std::pair<std::uint64_t, std::uint64_t> ib_offset_size = { m_next_ib_offset, (std::uint64_t)index_stride * num_indices };
-	auto vbi = m_heap->CreateSRVFromCB(m_big_vertex_buffer, rs, 4, 0, false, vb_offset_size);
-	auto ibi = m_heap->CreateSRVFromCB(m_big_index_buffer, rs, 5, 0, false, ib_offset_size);
+	auto vbi = m_heap->CreateSRVFromCB(m_big_vertex_buffer, rs, 4, 0, gfx::enums::BufferDescType::STORAGE, vb_offset_size);
+	auto ibi = m_heap->CreateSRVFromCB(m_big_index_buffer, rs, 5, 0, gfx::enums::BufferDescType::STORAGE, ib_offset_size);
 
 	m_meshlet_buffers.push_back(mb);
 	m_meshlet_desc_infos.push_back({ descriptor_set_id, num_meshlets });
@@ -101,8 +101,8 @@ void gfx::VkModelPool::AllocateMeshShadingBuffers(std::vector<std::uint32_t> ver
 
 	auto& rs_reg = RootSignatureRegistry::Get();
 	auto rs = rs_reg.Find(root_signatures::basic_mesh);
-	auto vi_desc = m_heap->CreateSRVFromCB(vi_buffer, rs, 7, 0, false);
-	auto fi_desc = m_heap->CreateSRVFromCB(fi_buffer, rs, 5, 0, false);
+	auto vi_desc = m_heap->CreateSRVFromCB(vi_buffer, rs, 7, 0, gfx::enums::BufferDescType::STORAGE);
+	auto fi_desc = m_heap->CreateSRVFromCB(fi_buffer, rs, 5, 0, gfx::enums::BufferDescType::STORAGE);
 
 	m_mesh_shading_index_buffer_descriptor_sets.push_back({ vi_desc, fi_desc });
 

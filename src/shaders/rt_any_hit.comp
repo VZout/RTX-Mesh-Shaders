@@ -26,7 +26,7 @@ layout(set = 7, binding = 7) buffer UniformBufferMaterialObject
     RaytracingMaterial materials[];
 } materials;
 
-layout(set = 8, binding = 8) uniform sampler2D ts_textures[500];
+layout(set = 8, binding = 8) uniform sampler2D ts_textures[100];
 
 ReadableVertex VertexToReadable(Vertex vertex)
 {

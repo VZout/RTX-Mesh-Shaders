@@ -41,7 +41,7 @@ layout(set = 7, binding = 7) buffer UniformBufferMaterialObject
     RaytracingMaterial materials[];
 } materials;
 
-layout(set = 8, binding = 8) uniform sampler2D ts_textures[500];
+layout(set = 8, binding = 8) uniform sampler2D ts_textures[100];
 
 layout(set = 10, binding = 10) uniform sampler2D t_brdf_lut;
 

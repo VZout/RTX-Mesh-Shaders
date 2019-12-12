@@ -1,3 +1,10 @@
+/*!
+ *  \author    Viktor Zoutman
+ *  \date      2019-2020
+ *  \copyright GNU General Public License v3.0
+ *  Thanks to `https://github.com/PixarAnimationStudios/` for the packing code.
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -18,42 +25,42 @@ constexpr inline T SizeAlignTwoPower(T size, A alignment)
 
 struct MeshletDesc
 {
-	MeshletDesc()
+	MeshletDesc() : m_x(0), m_y(0), m_z(0), m_w(0)
 	{
-		memset(this, 0, sizeof(MeshletDesc));
 	}
 
-	union
-	{
-		struct
-		{
-            unsigned bboxMinX : 8;
-            unsigned bboxMinY : 8;
-            unsigned bboxMinZ : 8;
-            unsigned vertexMax : 8;
-
-            unsigned bboxMaxX : 8;
-            unsigned bboxMaxY : 8;
-            unsigned bboxMaxZ : 8;
-            unsigned primMax : 8;
-
-            unsigned vertexBegin : 20;
-            signed coneOctX : 8;
-            unsigned coneAngleLo : 4;
-
-            unsigned primBegin : 20;
-            signed coneOctY : 8;
-            unsigned coneAngleHi : 4;
-		};
-
-		struct
-		{
-			std::uint32_t m_x;
-			std::uint32_t m_y;
-			std::uint32_t m_z;
-			std::uint32_t m_w;
-		};
-	};
+	//   m_x    | Bits | Content
+	//  ------------|:----:|----------------------------------------------
+	//  bboxMinX    | 8    | bounding box coord relative to object bbox
+	//  bboxMinY    | 8    | UNORM8
+	//  bboxMinZ    | 8    |
+	//  vertexMax   | 8    | number of vertex indices - 1 in the meshlet
+	//  ------------|:----:|----------------------------------------------
+	//   m_t    |      |
+	//  ------------|:----:|----------------------------------------------
+	//  bboxMaxX    | 8    | bounding box coord relative to object bbox
+	//  bboxMaxY    | 8    | UNORM8
+	//  bboxMaxZ    | 8    |
+	//  primMax     | 8    | number of primitives - 1 in the meshlet
+	//  ------------|:----:|----------------------------------------------
+	//   m_z    |      |
+	//  ------------|:----:|----------------------------------------------
+	//  vertexBegin | 20   | offset to the first vertex index, times alignment
+	//  coneOctX    | 8    | octant coordinate for cone normal, SNORM8
+	//  coneAngleLo | 4    | lower 4 bits of -sin(cone.angle),  SNORM8
+	//  ------------|:----:|----------------------------------------------
+	//   m_w    |      |
+	//  ------------|:----:|----------------------------------------------
+	//  primBegin   | 20   | offset to the first primitive index, times alignment
+	//  coneOctY    | 8    | octant coordinate for cone normal, SNORM8
+	//  coneAngleHi | 4    | higher 4 bits of -sin(cone.angle), SNORM8
+	//
+	// Note : the bitfield is not expanded in the struct due to differences in how
+	//        GPU & CPU compilers pack bit-fields and endian-ness.
+	std::uint32_t m_x;
+	std::uint32_t m_y;
+	std::uint32_t m_z;
+	std::uint32_t m_w;
 
 	std::uint32_t GetNumVertices() const {
 		return Unpack(m_x, 8, 24) + 1;
@@ -97,11 +104,6 @@ struct MeshletDesc
 		m_z |= Pack(begin / vertex_packing_alignment, 20, 0);
 	}
 
-	static std::uint32_t Pack(std::uint32_t value, int width, int offset)
-	{
-    	return (std::uint32_t)((value & ((1 << width) - 1)) << offset);
-    }
-
 	void SetBBox(uint8_t const bboxMin[3], uint8_t const bboxMax[3])
 	{
 		m_x |= Pack(bboxMin[0], 8, 0) | Pack(bboxMin[1], 8, 8) | Pack(bboxMin[2], 8, 16);
@@ -134,6 +136,13 @@ struct MeshletDesc
 		bboxMax[0] = Unpack(m_y, 8, 16);
 	}
 
+	// https://github.com/PixarAnimationStudios/OpenSubdiv/blob/master/opensubdiv/far/patchParam.h#L234
+	static std::uint32_t Pack(std::uint32_t value, int width, int offset)
+	{
+		return (std::uint32_t)((value & ((1 << width) - 1)) << offset);
+	}
+
+	// https://github.com/PixarAnimationStudios/OpenSubdiv/blob/master/opensubdiv/far/patchParam.h#L238
     static std::uint32_t Unpack(std::uint32_t value, int width, int offset)
 	{
     	return (std::uint32_t)((value >> offset) & ((1 << width) - 1));

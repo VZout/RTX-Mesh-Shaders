@@ -45,6 +45,7 @@ vec3 CalcPeturbedNormal(vec3 normal, vec3 normal_map, vec3 tangent, vec3 bitange
 	mat4x3 object_to_world = gl_ObjectToWorldNV;
 	vec3 N = normalize(object_to_world * vec4(normal, 0)).xyz;
 	vec3 T = normalize(object_to_world * vec4(tangent, 0)).xyz;
+#define CALC_BITANGENT
 #ifndef CALC_BITANGENT
 	const vec3 B = normalize(object_to_world * vec4(bitangent, 0)).xyz;
 #else

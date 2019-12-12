@@ -204,5 +204,5 @@ void main()
 		color = vec3(texture(t_brdf_lut, buv).rg, 0);
     }*/
 
-    imageStore(t_output, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1));
+    imageStore(t_output, ivec2(gl_GlobalInvocationID.xy), vec4(world_pos, 1));
 }

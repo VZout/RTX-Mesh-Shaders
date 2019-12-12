@@ -68,7 +68,7 @@ VkDescriptorSet gfx::DescriptorHeap::GetDescriptorSet(std::uint32_t frame_idx, s
 	return m_descriptor_sets[frame_idx % m_desc.m_versions][handle];
 }
 
-std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromCB(std::vector<GPUBuffer*> buffers, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx, bool uniform)
+std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromCB(std::vector<GPUBuffer*> buffers, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx, enums::BufferDescType type)
 {
 	auto logical_device = m_context->m_logical_device;
 
@@ -103,7 +103,7 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromCB(std::vector<GPUBuffer*> bu
 	descriptor_write.dstSet = m_descriptor_sets[frame_idx][descriptor_set_id];  // TODO: Don't use 0 but get the set that corresponds to the correct descriptor type.
 	descriptor_write.dstBinding = handle;
 	descriptor_write.dstArrayElement = 0;
-	descriptor_write.descriptorType = uniform ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	descriptor_write.descriptorType = VkDescriptorType(type);
 	descriptor_write.descriptorCount = buffer_infos.size();
 	descriptor_write.pBufferInfo = buffer_infos.data();
 	descriptor_write.pImageInfo = nullptr;
@@ -114,9 +114,9 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVSetFromCB(std::vector<GPUBuffer*> bu
 	return descriptor_set_id;
 }
 
-std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx, bool uniform, std::optional<std::pair<std::uint64_t, std::uint64_t>> offset_size)
+std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx, enums::BufferDescType type, std::optional<std::pair<std::uint64_t, std::uint64_t>> offset_size)
 {
-	return CreateSRVFromCB(buffer, root_signature->m_descriptor_set_layouts[handle], handle, frame_idx, uniform, offset_size);
+	return CreateSRVFromCB(buffer, root_signature->m_descriptor_set_layouts[handle], handle, frame_idx, type, offset_size);
 }
 
 std::uint32_t gfx::DescriptorHeap::CreateSRVFromAS(AccelerationStructure* as, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx)
@@ -163,7 +163,7 @@ constexpr inline T SizeAlignAnyAlignment(T size, A alignment)
 	return (size / alignment + (size % alignment > 0)) * alignment;
 }
 
-std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx, bool uniform, std::optional<std::pair<std::uint64_t, std::uint64_t>> offset_size)
+std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx, enums::BufferDescType type, std::optional<std::pair<std::uint64_t, std::uint64_t>> offset_size)
 {
 	auto logical_device = m_context->m_logical_device;
 
@@ -194,6 +194,29 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, VkDescript
 		buffer_info->range = buffer->m_size;
 	}
 
+	VkBufferView view = nullptr;
+	if (type == enums::BufferDescType::TEXEL_STORAGE || type == enums::BufferDescType::TEXEL_UNIFORM)
+	{
+		VkBufferViewCreateInfo view_create_info;
+		view_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
+		view_create_info.pNext = nullptr;
+		view_create_info.buffer = buffer->m_buffer;
+		view_create_info.flags = 0;
+		view_create_info.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+
+		if (offset_size.has_value()) {
+			view_create_info.offset = offset_size->first;
+			view_create_info.range = offset_size->second;
+		}
+		else
+		{
+			view_create_info.offset = 0;
+			view_create_info.range = buffer->m_size;
+		}
+
+		vkCreateBufferView(logical_device, &view_create_info, nullptr, &view);
+	}
+
 	auto descriptor_set_id = m_descriptor_sets[frame_idx].size() - 1;
 
 	VkWriteDescriptorSet descriptor_write = {};
@@ -201,11 +224,11 @@ std::uint32_t gfx::DescriptorHeap::CreateSRVFromCB(GPUBuffer* buffer, VkDescript
 	descriptor_write.dstSet = m_descriptor_sets[frame_idx][descriptor_set_id];  // TODO: Don't use 0 but get the set that corresponds to the correct descriptor type.
 	descriptor_write.dstBinding = handle;
 	descriptor_write.dstArrayElement = 0;
-	descriptor_write.descriptorType = uniform ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	descriptor_write.descriptorType = VkDescriptorType(type);
 	descriptor_write.descriptorCount = 1;
 	descriptor_write.pBufferInfo = buffer_info;
 	descriptor_write.pImageInfo = nullptr;
-	descriptor_write.pTexelBufferView = nullptr;
+	descriptor_write.pTexelBufferView = &view;
 
 	vkUpdateDescriptorSets(logical_device, 1u, &descriptor_write, 0, nullptr);
 
