@@ -148,65 +148,6 @@ void SetupEditor()
 			}
 		}, true, reinterpret_cast<const char*>(ICON_FA_GLOBE_EUROPE));
 
-	/*editor.RegisterWindow("Temp Material Settings", "Scene Graph", [&]()
-		{
-			ImGui::DragFloat("Ball Reflectivity", &m_ball_reflectivity, 0.01, -0, 1);
-			ImGui::DragFloat("Ball Anisotropy", &m_ball_anisotropy, 0.01, -1, 1);
-			ImGui::DragFloat3("Ball Anisotropy Dir", reinterpret_cast<float*>(&m_ball_anisotropy_dir), 0.01, -1, 1);
-			ImGui::DragFloat("Ball Clear Coat", &m_ball_clear_coat, 0.01, 0, 1);
-			ImGui::DragFloat("Ball Clear Coat Roughness", &m_ball_clear_coat_roughness, 0.01, 0, 1);
-
-			ImGui::Separator();
-
-			ImGui::ToggleButton("Override Color", &m_imgui_override_color);
-			ImGui::ColorPicker3("Color", m_temp_debug_mat_data.m_base_color, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoAlpha);
-
-			ImGui::Separator();
-
-			ImGui::Checkbox("Disable Normal Mapping", &m_imgui_disable_normal_mapping);
-			ImGui::DragFloat("Normal Strength", &m_temp_debug_mat_data.m_base_normal_strength, 0.01, 0, 10);
-
-			ImGui::Separator();
-
-			ImGui::Checkbox("##0", &m_imgui_override_roughness); ImGui::SameLine();
-			ImGui::DragFloat("Roughness", &m_temp_debug_mat_data.m_base_roughness, 0.01, 0, 1);
-			ImGui::Checkbox("##1", &m_imgui_override_metallic); ImGui::SameLine();
-			ImGui::DragFloat("Metallic", &m_temp_debug_mat_data.m_base_metallic, 0.01, -0, 1);
-			ImGui::Checkbox("##2", &m_imgui_override_reflectivity); ImGui::SameLine();
-			ImGui::DragFloat("Reflectivity", &m_temp_debug_mat_data.m_base_reflectivity, 0.01, -0, 1);
-			ImGui::DragFloat("Anisotropy ", &m_temp_debug_mat_data.m_base_anisotropy, 0.01, -1, 1);
-			ImGui::DragFloat("Clear Coat", &m_temp_debug_mat_data.m_base_clear_coat, 0.01, 0, 1);
-			ImGui::DragFloat("Clear Coat Roughness", &m_temp_debug_mat_data.m_base_clear_coat_roughness, 0.01, 0, 1);
-
-			m_temp_debug_mat_data.m_base_normal_strength = m_imgui_disable_normal_mapping ? -1 : m_temp_debug_mat_data.m_base_normal_strength;
-			m_temp_debug_mat_data.m_base_color[0] = m_imgui_override_color ? m_temp_debug_mat_data.m_base_color[0] : -1;
-			m_temp_debug_mat_data.m_base_roughness = m_imgui_override_roughness ? m_temp_debug_mat_data.m_base_roughness : -1;
-			m_temp_debug_mat_data.m_base_metallic = m_imgui_override_metallic ? m_temp_debug_mat_data.m_base_metallic : -1;
-			m_temp_debug_mat_data.m_base_reflectivity = m_imgui_override_reflectivity ? m_temp_debug_mat_data.m_base_reflectivity : -1;
-
-			int i = 0;
-			for (auto mesh_handle : m_sphere_material_handles)
-			{
-				m_sphere_materials[i].m_base_color[0] = m_imgui_override_color ? m_temp_debug_mat_data.m_base_color[0] : -1;
-				m_sphere_materials[i].m_base_color[1] = m_imgui_override_color ? m_temp_debug_mat_data.m_base_color[1] : -1;
-				m_sphere_materials[i].m_base_color[2] = m_imgui_override_color ? m_temp_debug_mat_data.m_base_color[2] : -1;
-
-				m_sphere_materials[i].m_base_reflectivity = m_ball_reflectivity;
-				m_sphere_materials[i].m_base_anisotropy = m_ball_anisotropy;
-				m_sphere_materials[i].m_base_clear_coat = m_ball_clear_coat;
-				m_sphere_materials[i].m_base_clear_coat_roughness = m_ball_clear_coat_roughness;
-				m_material_pool->Update(mesh_handle, m_sphere_materials[i]);
-				m_sphere_materials[i].m_base_anisotropy_dir = m_ball_anisotropy_dir;
-				i++;
-			}
-
-			for (auto mesh_handle : m_robot_model_handle.m_mesh_handles)
-			{
-				m_material_pool->Update(mesh_handle.m_material_handle.value(), m_temp_debug_mat_data);
-			}
-
-		}, false, reinterpret_cast<const char*>(ICON_FA_PALETTE));*/
-
 	editor.RegisterWindow("Inspector", "Scene Graph", [&]()
 		{
 			if (!m_selected_node.has_value()) return;
@@ -298,7 +239,7 @@ void SetupEditor()
 
 			ImGui::Separator();
 
-			for (auto const & it : util::CPUProfilerSystem::Get().GetScopes())
+			for (auto & it : util::CPUProfilerSystem::Get().GetScopes())
 			{
 				double total_ms = it.second.m_total / 1000000.0;
 				double average = total_ms / it.second.m_times;
@@ -306,6 +247,13 @@ void SetupEditor()
 
 				ImGui::Text(fmt::format("Scope Timer '{}'", it.first).c_str());
 				ImGui::Text(fmt::format("\t Num Samples: {}", it.second.m_times).c_str());
+				ImGui::SameLine(); 
+				std::string reset_button_text = "Reset Sample Count##" + it.first;
+				if (ImGui::Button(reset_button_text.c_str()))
+				{
+					it.second.m_times = 0;
+					it.second.m_total = 0;
+				}
 				ImGui::Text(fmt::format("\t Average: {}", average).c_str());
 				ImGui::Text(fmt::format("\t Last Sample: {}", last_ms).c_str());
 
@@ -314,9 +262,6 @@ void SetupEditor()
 				{
 					auto min_value = *std::min_element(it.second.m_samples.begin(), it.second.m_samples.end());
 					auto max_value = *std::max_element(it.second.m_samples.begin(), it.second.m_samples.end());
-
-					/*ImGui::PlotLines(it.first.c_str(), it.second.m_samples.data(), it.second.m_samples.size(), 0, nullptr, min_value,
-			               max_value, ImVec2(ImGui::GetContentRegionAvailWidth(), 100));*/
 
 					ImGui::PlotConfig conf;
 					//conf.values.xs = x_data; // this line is optional

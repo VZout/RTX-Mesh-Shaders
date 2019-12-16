@@ -17,6 +17,7 @@ namespace fg_manager
 
 	enum class FGType : std::int32_t
 	{
+		IMGUI_ONLY,
 		PBR_GENERIC,
 		PBR_MESH_SHADING,
 		RAYTRACING,
@@ -27,6 +28,7 @@ namespace fg_manager
 	{
 		switch (id)
 		{
+		case FGType::IMGUI_ONLY: return "ImGui Only";
 		case FGType::PBR_GENERIC: return "PBR Generic";
 		case FGType::PBR_MESH_SHADING: return "PBR Mesh Shading";
 		case FGType::RAYTRACING: return "Raytracing";
@@ -37,6 +39,16 @@ namespace fg_manager
 
 	static std::array<frame_graph_setup_func_t, static_cast<std::size_t>(FGType::COUNT)> frame_graph_setup_functions =
 	{
+		// PBR Generic
+		[](Renderer* rs, decltype(tasks::ImGuiTaskData::m_render_func) imgui_func)
+		{
+			auto fg = new fg::FrameGraph(1);
+			tasks::AddImGuiTask<tasks::NoTask>(*fg, imgui_func);
+
+			fg->Validate();
+			fg->Setup(rs);
+			return fg;
+		},
 		// PBR Generic
 		[](Renderer* rs, decltype(tasks::ImGuiTaskData::m_render_func) imgui_func)
 		{

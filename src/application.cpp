@@ -7,6 +7,8 @@
 #include "application.hpp"
 
 #include <imgui.h>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
 
 #include "util/log.hpp"
 #include "settings.hpp"
@@ -215,6 +217,28 @@ void Application::SetMouseVisibility(bool value)
 void Application::SetMousePos(float x, float y)
 {
 	glfwSetCursorPos(m_window, x, y);
+}
+
+void Application::DisableResizing()
+{
+	auto hwnd = glfwGetWin32Window(m_window);
+	SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) & ~WS_MINIMIZEBOX);
+	SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) & ~WS_MAXIMIZEBOX);
+	SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) & ~WS_THICKFRAME);
+
+	EnableMenuItem(GetSystemMenu(hwnd, FALSE), SC_CLOSE,
+		MF_BYCOMMAND | MF_DISABLED | MF_GRAYED);
+}
+
+void Application::EnableResizing()
+{
+	auto hwnd = glfwGetWin32Window(m_window);
+	SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) | WS_MINIMIZEBOX);
+	SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) | WS_MAXIMIZEBOX);
+	SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) | WS_THICKFRAME);
+
+	EnableMenuItem(GetSystemMenu(hwnd, FALSE), SC_CLOSE,
+		MF_BYCOMMAND | MF_ENABLED);
 }
 
 bool Application::GetGamepad(int id, GLFWgamepadstate* state)

@@ -29,19 +29,29 @@ Scene::~Scene()
 	delete m_scene_graph;
 }
 
-void Scene::Init(Renderer* renderer)
+void Scene::Init(Renderer* renderer, std::optional<std::reference_wrapper<util::Progress>> progress)
 {
+	if (progress) MAKE_CHILD_PROGRESS((*progress).get(), 3);
+
 	assert(renderer);
+
+	if (progress) PROGRESS((*progress).get(), "Aquiring Pools")
 
 	m_model_pool = renderer->GetModelPool();
 	m_texture_pool = renderer->GetTexturePool();
 	m_material_pool = renderer->GetMaterialPool();
 
-	LoadResources();
+	if (progress) PROGRESS((*progress).get(), "Loading Resources")
+
+	LoadResources(progress);
+
+	if (progress) PROGRESS((*progress).get(), "Building Scene Graph")
 
 	m_scene_graph = new sg::SceneGraph(renderer);
 
-	BuildScene();
+	BuildScene(progress);
+
+	if (progress) POP_CHILD_PROGRESS((*progress).get());
 }
 
 void Scene::Update(std::uint32_t frame_idx, float delta, float time)

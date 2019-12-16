@@ -28,6 +28,8 @@ public:
 	void SetVisibility(bool value);
 	void SetMouseVisibility(bool value);
 	void SetMousePos(float x, float y);
+	void DisableResizing();
+	void EnableResizing();
 	bool GetGamepad(int id, GLFWgamepadstate* state);
 	GLFWwindow* GetWindow();
 

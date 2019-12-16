@@ -6,8 +6,8 @@
 #extension GL_KHR_shader_subgroup_vote : require
 
 #define GROUP_SIZE 32
-#define NVMESHLET_VERTEX_COUNT      64
-#define NVMESHLET_PRIMITIVE_COUNT   63	
+#define NVMESHLET_VERTEX_COUNT      63
+#define NVMESHLET_PRIMITIVE_COUNT   63
 #define NVMESHLET_PRIM_ALIGNMENT        1
 #define NVMESHLET_VERTEX_ALIGNMENT      16
 
@@ -73,6 +73,15 @@ uint GetCullBits(vec4 hPos)
 	cullBits |= hPos.w <= 0      ? 64 : 0; 
 	
 	return cullBits;
+}
+
+void PixelBBoxEpsilon(inout vec2 pixelMin, inout vec2 pixelMax)
+{
+  // Apply some safety around the bbox to take into account fixed point rasterization.
+  // This logic will only work without MSAA active.
+  const float epsilon = (1.0 / 256.0);
+  pixelMin -= epsilon;
+  pixelMax += epsilon;
 }
 
 // oct_ code from "A Survey of Efficient Representations for Independent Unit Vectors"

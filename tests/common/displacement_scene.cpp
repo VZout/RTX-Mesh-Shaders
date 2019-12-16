@@ -17,7 +17,7 @@ DisplacementScene::DisplacementScene() :
 
 }
 
-void DisplacementScene::LoadResources()
+void DisplacementScene::LoadResources(std::optional<std::reference_wrapper<util::Progress>> progress)
 {
 	auto image_loader = new STBImageLoader(); // TODO: Memory leak
 
@@ -41,7 +41,7 @@ void DisplacementScene::LoadResources()
 	m_sphere_material_handle = m_material_pool->Load(mat, m_texture_pool);
 }
 
-void DisplacementScene::BuildScene()
+void DisplacementScene::BuildScene(std::optional<std::reference_wrapper<util::Progress>> progress)
 {
 	// Create Camera
 	m_camera_node = m_scene_graph->CreateNode<sg::CameraComponent>();

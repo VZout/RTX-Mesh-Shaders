@@ -113,7 +113,7 @@ namespace util
 			return false;
 		}
 
-		std::unordered_map<std::string, ScopeBlock> const & GetScopes() const
+		std::unordered_map<std::string, ScopeBlock> & GetScopes()
 		{
 			return m_scopes;
 		}

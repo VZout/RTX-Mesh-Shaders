@@ -15,14 +15,14 @@ SubsurfaceScene::SubsurfaceScene() :
 
 }
 
-void SubsurfaceScene::LoadResources()
+void SubsurfaceScene::LoadResources(std::optional<std::reference_wrapper<util::Progress>> progress)
 {
 	m_bodybuilder_model = m_model_pool->LoadWithMaterials<Vertex>("bigdude_custom/PBR - Metallic Roughness SSS.gltf", m_material_pool, m_texture_pool, false);
 	m_cube_model = m_model_pool->LoadWithMaterials<Vertex>("cube.fbx", m_material_pool, m_texture_pool, false);
 	m_sphere_model = m_model_pool->LoadWithMaterials<Vertex>("sphere.fbx", m_material_pool, m_texture_pool, false);
 }
 
-void SubsurfaceScene::BuildScene()
+void SubsurfaceScene::BuildScene(std::optional<std::reference_wrapper<util::Progress>> progress)
 {
 	STBImageLoader* img_loader = new STBImageLoader();
 

@@ -22,6 +22,11 @@
 namespace tasks
 {
 
+	struct NoTask
+	{
+
+	};
+
 	struct ImGuiTaskData
 	{
 #ifdef IMGUI
@@ -71,11 +76,12 @@ namespace tasks
 			data.m_imgui_impl = new ImGuiImpl();
 			data.m_imgui_impl->InitImGuiResources(rs.GetContext(), render_window, rs.GetDirectQueue());
 
-			auto predecessor_rt = fg.GetPredecessorRenderTarget<T>();
-			auto texture_desc_set_id = data.m_heap->CreateSRVSetFromRT(predecessor_rt, data.m_imgui_impl->descriptorSetLayout, 0, 0, false);
-			data.m_texture = data.m_heap->GetDescriptorSet(0, texture_desc_set_id);
-
-			LOG("Finished Initializing ImGui");
+			if constexpr (!std::is_same<T, NoTask>::value)
+			{
+				auto predecessor_rt = fg.GetPredecessorRenderTarget<T>();
+				auto texture_desc_set_id = data.m_heap->CreateSRVSetFromRT(predecessor_rt, data.m_imgui_impl->descriptorSetLayout, 0, 0, false);
+				data.m_texture = data.m_heap->GetDescriptorSet(0, texture_desc_set_id);
+			}
 #endif
 		}
 
@@ -99,12 +105,21 @@ namespace tasks
 
 			data.m_imgui_impl->UpdateBuffers(frame_idx);
 
-			auto predecessor_rt = fg.GetPredecessorRenderTarget<T>();
-			cmd_list->TransitionRenderTarget(predecessor_rt, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-			cmd_list->BindRenderTargetVersioned(rs.GetRenderWindow());
-			data.m_imgui_impl->Draw(cmd_list, frame_idx);
-			cmd_list->UnbindRenderTarget();
-			cmd_list->TransitionRenderTarget(predecessor_rt, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+			if constexpr (!std::is_same<T, NoTask>::value)
+			{
+				auto predecessor_rt = fg.GetPredecessorRenderTarget<T>();
+				cmd_list->TransitionRenderTarget(predecessor_rt, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+				cmd_list->BindRenderTargetVersioned(rs.GetRenderWindow());
+				data.m_imgui_impl->Draw(cmd_list, frame_idx);
+				cmd_list->UnbindRenderTarget();
+				cmd_list->TransitionRenderTarget(predecessor_rt, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+			}
+			else
+			{
+				cmd_list->BindRenderTargetVersioned(rs.GetRenderWindow());
+				data.m_imgui_impl->Draw(cmd_list, frame_idx);
+				cmd_list->UnbindRenderTarget();
+			}
 #endif
 		}
 
@@ -122,7 +137,7 @@ namespace tasks
 
 	} /* internal */
 
-	template<typename T>
+	template<typename T = ImGuiTaskData>
 	inline void AddImGuiTask(fg::FrameGraph& fg, decltype(ImGuiTaskData::m_render_func) const & imgui_render_func)
 	{
 		RenderTargetProperties rt_properties

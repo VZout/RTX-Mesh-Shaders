@@ -10,11 +10,12 @@
 #include <cassert>
 #include <cstring>
 
+#include "vertex.hpp"
 #include "util/bitfield.hpp"
 
-static inline const int max_vertex_count_limit = 256;
+static inline const int max_vertex_count_limit = 63;
 static inline const int primitive_packing_alignment = 1;
-static inline const int max_primitive_count_limit = 256;
+static inline const int max_primitive_count_limit = 63;
 static inline const std::uint32_t vertex_packing_alignment = 16;
 static inline const std::uint32_t meshlets_per_task = 32;
 
@@ -138,7 +139,82 @@ struct MeshletDesc
 
 };
 
-class MeshletBuilder
+struct MeshBoundingBox
 {
-	// todo
+	glm::vec3 m_average_normal = glm::vec3(0);
+	std::vector<glm::vec3> m_tri_normals;
+	glm::vec3 m_min = glm::vec3(std::numeric_limits<float>::max());
+	glm::vec3 m_max = glm::vec3(-std::numeric_limits<float>::max());
+};
+
+struct MeshletBuilder
+{
+	template<typename VT>
+	static MeshBoundingBox CalculateBoundingBox(MeshData const & mesh_data)
+	{
+		MeshBoundingBox bbox = {};
+
+		for (auto i = 0; i < mesh_data.m_num_indices; i += 3)
+		{
+			glm::ivec3 triangle;
+			memcpy(&triangle, &mesh_data.m_indices[i * mesh_data.m_indices_stride], mesh_data.m_indices_stride * 3);
+
+			auto v0 = mesh_data.m_positions[triangle[0]];
+			auto v1 = mesh_data.m_positions[triangle[1]];
+			auto v2 = mesh_data.m_positions[triangle[2]];
+
+			// bounding box
+			{
+				bbox.m_min = glm::min(bbox.m_min, v0);
+				bbox.m_min = glm::min(bbox.m_min, v1);
+				bbox.m_min = glm::min(bbox.m_min, v2);
+
+				bbox.m_max = glm::max(bbox.m_max, v0);
+				bbox.m_max = glm::max(bbox.m_max, v1);
+				bbox.m_max = glm::max(bbox.m_max, v2);
+			}
+
+			// cone
+			{
+				glm::vec3 cross = glm::cross(v1 - v0, v2 - v0);
+				float length = glm::length(cross);
+
+				glm::vec3 normal;
+				if (length > FLT_EPSILON)
+				{
+					normal = cross * (1.0f / length);
+				}
+				else
+				{
+					normal = cross;
+				}
+
+				bbox.m_average_normal += normal;
+				bbox.m_tri_normals.push_back(normal);
+			}
+		}
+
+		// potential improvement, instead of average maybe use
+		// http://www.cs.technion.ac.il/~cggc/files/gallery-pdfs/Barequet-1.pdf
+		float len = glm::length(bbox.m_average_normal);
+		if (len > FLT_EPSILON)
+		{
+			bbox.m_average_normal = bbox.m_average_normal / len;
+		}
+		else
+		{
+			bbox.m_average_normal = glm::vec3(0.0f);
+		}
+
+		return bbox;
+	}
+
+	static void TruncateBBoxToMeshBBox(glm::vec3& bbox_min, glm::vec3& bbox_max, MeshBoundingBox const& mesh_bbox)
+	{
+		glm::vec3 object_bbox_extent = mesh_bbox.m_max - mesh_bbox.m_min;
+		bbox_min = bbox_min - mesh_bbox.m_min;
+		bbox_max = bbox_max - mesh_bbox.m_min;
+		bbox_min = bbox_min / object_bbox_extent;
+		bbox_max = bbox_max / object_bbox_extent;
+	}
 };

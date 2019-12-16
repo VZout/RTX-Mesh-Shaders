@@ -14,8 +14,8 @@ public:
 	SubsurfaceScene();
 
 private:
-	void LoadResources() final;
-	void BuildScene() final;
+	void LoadResources(std::optional<std::reference_wrapper<util::Progress>> progress) final;
+	void BuildScene(std::optional<std::reference_wrapper<util::Progress>> progress) final;
 	void Update_Impl(float delta, float time) final;
 
 	ModelHandle m_bodybuilder_model;

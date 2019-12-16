@@ -11,6 +11,7 @@
 #include <util/version.hpp>
 #include <util/user_literals.hpp>
 #include <util/browser.hpp>
+#include <util/progress.hpp>
 #include <render_tasks/vulkan_tasks.hpp>
 #include <imgui/icons_font_awesome5.hpp>
 #include <imgui/imgui_plot.hpp>
@@ -40,6 +41,8 @@ public:
 
 	~Demo() final
 	{
+		delete m_empty_scene_graph;
+		delete m_loading_frame_graph;
 		delete m_frame_graph;
 		delete m_scene;
 		delete m_renderer;
@@ -85,31 +88,132 @@ protected:
 	{
 		TIME_THIS_SCOPE(Init);
 
+		DisableResizing();
+
 		SetupEditor();
 		editor.SetMainMenuBarText("FrameGraph: " + fg_manager::GetFrameGraphName(m_fg_type));
 
 		m_renderer = new Renderer();
 		m_renderer->Init(this);
 
-		m_scene = new DEFAULT_SCENE();
-		m_scene->Init(m_renderer);
-
-		m_frame_graph = fg_manager::CreateFrameGraph(m_fg_type, m_renderer, [this](ImTextureID texture)
+		// Init Loading Screen Resources
+		m_empty_scene_graph = new sg::SceneGraph(m_renderer);
+		m_loading_frame_graph = fg_manager::CreateFrameGraph(fg_manager::FGType::IMGUI_ONLY, m_renderer, [&](ImTextureID texture)
 		{
-			editor.SetTexture(texture);
-			editor.Render();
+			ImGuiLoadingScreen();
 		});
 
-		m_renderer->Upload();
+		m_loading_future = std::async(std::launch::async, [&]()
+		{
+			SET_NUM_TASKS(m_loading_progress, 4);
+
+			PROGRESS(m_loading_progress, "Allocating Scene");
+
+			m_scene = new DEFAULT_SCENE();
+
+			PROGRESS(m_loading_progress, "Initializing Scene");
+
+			m_scene->Init(m_renderer, m_loading_progress);
+
+			PROGRESS(m_loading_progress, "Setting Up Framegraph");
+
+			m_frame_graph = fg_manager::CreateFrameGraph(m_fg_type, m_renderer, [&](ImTextureID texture)
+			{
+				editor.SetTexture(texture);
+				editor.Render();
+			});
+
+			PROGRESS(m_loading_progress, "Setting Up Camera");
+
+			m_fps_camera.SetApplication(this);
+			m_fps_camera.SetSceneGraph(m_scene->GetSceneGraph());
+			m_fps_camera.SetCameraHandle(m_scene->GetCameraNodeHandle());
+
+			m_should_call_upload = true;
+			m_ready_to_render = true;
+		});
 
 		m_last = std::chrono::high_resolution_clock::now();
-
-		m_fps_camera.SetApplication(this);
-		m_fps_camera.SetSceneGraph(m_scene->GetSceneGraph());
-		m_fps_camera.SetCameraHandle(m_scene->GetCameraNodeHandle());
 	}
 
 	void Loop() final
+	{
+		if (m_ready_to_render)
+		{
+			if (m_loading_future.valid()) m_loading_future.get();
+			if (m_should_call_upload)
+			{
+				m_renderer->Upload();
+				m_should_call_upload = false;
+
+				EnableResizing();
+			}
+			Render();
+		}
+		else
+		{
+			RenderLoadingScreen();
+		}
+	}
+
+	void ImGuiLoadingScreen()
+	{
+		auto window_size = ImGui::GetMainViewport()->Size;
+
+		ImGui::Begin("Loading Window", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+		ImGui::SetWindowSize(window_size);
+		ImGui::SetWindowPos(ImVec2(0, 0));
+		ImGui::SetCursorPosY(window_size.y / 2.f - 120);
+
+		auto centered_text = [&](std::string text, ImVec4 color) {
+			auto text_size = ImGui::CalcTextSize(text.c_str());
+			ImGui::SetCursorPosX(window_size.x / 2.f - text_size.x / 2.f);
+			ImGui::TextColored(color, text.c_str());
+		};
+
+		constexpr auto version = util::GetVersion();
+
+#define TEXT(v) ImVec4(0.860f, 0.930f, 0.890f, v)
+
+		ImGui::Separator();
+		centered_text(fmt::format("{0}    RTX Mesh Shading    {0}", reinterpret_cast<const char*>(ICON_FA_ROCKET)), ImVec4(1.00f, 0.630f, 0, 1));
+		centered_text(fmt::format("{}", util::VersionToString(version)), TEXT(0.6));
+		centered_text("Viktor Zoutman", TEXT(0.6));
+		ImGui::Separator();
+
+		ImGui::NewLine(); ImGui::NewLine(); ImGui::NewLine(); ImGui::NewLine();
+
+		centered_text(fmt::format("{}  Loading... ({})", reinterpret_cast<const char*>(ICON_FA_CLOCK), m_loading_progress.GetAction()), TEXT(1));
+
+		ImGui::ProgressBar(m_loading_progress.GetFraction());
+
+		std::function<void(util::Progress*)> render_child_progress_bar = [&](util::Progress* progress) -> void
+		{
+			progress->Lock();
+			if (progress->HasChild())
+			{
+				auto child = progress->GetChild();
+				centered_text(fmt::format("{}", child->GetAction()), TEXT(1));
+
+				ImGui::ProgressBar(child->GetFraction());
+				render_child_progress_bar(child);
+			}
+			progress->Unlock();
+
+		};
+
+		render_child_progress_bar(&m_loading_progress);
+
+		ImGui::End();
+	}
+
+	void RenderLoadingScreen()
+	{
+		m_renderer->AquireNewFrame();
+		m_renderer->Render(*m_empty_scene_graph, *m_loading_frame_graph);
+	}
+
+	void Render()
 	{
 		TIME_THIS_SCOPE(Frame);
 
@@ -187,6 +291,8 @@ protected:
 
 	void ResizeCallback(std::uint32_t width, std::uint32_t height) final
 	{
+		if (!m_ready_to_render) return;
+
 		m_renderer->Resize(width, height);
 		m_frame_graph->Resize(width, height);
 
@@ -215,16 +321,22 @@ protected:
 
 	void MousePosCallback(float x, float y) final
 	{
+		if (!m_ready_to_render) return;
+
 		m_fps_camera.HandleMousePosition(m_delta, x, y);
 	}
 
 	void MouseButtonCallback(int key, int action) final
 	{
+		if (!m_ready_to_render) return;
+
 		m_fps_camera.HandleMouseButtons(key, action);
 	}
 
 	void KeyCallback(int key, int action, int mods) final
 	{
+		if (!m_ready_to_render) return;
+
 		// Frame graph swithcing
 		if (action == GLFW_PRESS && mods & GLFW_MOD_CONTROL)
 		{
@@ -291,6 +403,13 @@ protected:
 	Renderer* m_renderer;
 	fg::FrameGraph* m_frame_graph;
 
+	bool m_ready_to_render = false;
+	bool m_should_call_upload = false;
+	sg::SceneGraph* m_empty_scene_graph;
+	fg::FrameGraph* m_loading_frame_graph;
+	std::future<void> m_loading_future;
+	util::Progress m_loading_progress;
+
 	bool m_reload_fg = false;
 	bool m_reload_sg = false;
 
@@ -311,11 +430,11 @@ protected:
 	ImGuiTextFilter m_outliner_filter;
 	bool m_viewport_has_focus = false;
 	ImVec2 m_viewport_pos = { 0, 0 };
-	ImVec2 m_viewport_size = { 1280, 720};
+	ImVec2 m_viewport_size = { 1280, 720 };
 
 	bool m_viewport_has_changed = false;
 
-	fg_manager::FGType m_fg_type = fg_manager::FGType::RAYTRACING;
+	fg_manager::FGType m_fg_type = fg_manager::FGType::PBR_MESH_SHADING;
 };
 
 

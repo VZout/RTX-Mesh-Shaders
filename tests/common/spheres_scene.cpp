@@ -30,7 +30,7 @@ SpheresScene::SpheresScene() :
 
 }
 
-void SpheresScene::LoadResources()
+void SpheresScene::LoadResources(std::optional<std::reference_wrapper<util::Progress>> progress)
 {
 	m_sphere_model = m_model_pool->LoadWithMaterials<Vertex>("sphere.fbx", m_material_pool, m_texture_pool, false);
 
@@ -123,7 +123,7 @@ void SpheresScene::LoadResources()
 	m_light_sphere_material = m_material_pool->Load(sphere_mat, m_texture_pool);
 }
 
-void SpheresScene::BuildScene()
+void SpheresScene::BuildScene(std::optional<std::reference_wrapper<util::Progress>> progress)
 {
 	// Create Camera
 	m_camera_node = m_scene_graph->CreateNode<sg::CameraComponent>();
