@@ -17,8 +17,10 @@ namespace fg_manager
 
 	enum class FGType : std::int32_t
 	{
+		IMGUI_ONLY,
 		PBR_GENERIC,
 		PBR_MESH_SHADING,
+		RAYTRACING,
 		COUNT
 	};
 
@@ -26,8 +28,10 @@ namespace fg_manager
 	{
 		switch (id)
 		{
+		case FGType::IMGUI_ONLY: return "ImGui Only";
 		case FGType::PBR_GENERIC: return "PBR Generic";
 		case FGType::PBR_MESH_SHADING: return "PBR Mesh Shading";
+		case FGType::RAYTRACING: return "Raytracing";
 		default:
 			return "Unknown";
 		}
@@ -35,6 +39,16 @@ namespace fg_manager
 
 	static std::array<frame_graph_setup_func_t, static_cast<std::size_t>(FGType::COUNT)> frame_graph_setup_functions =
 	{
+		// PBR Generic
+		[](Renderer* rs, decltype(tasks::ImGuiTaskData::m_render_func) imgui_func)
+		{
+			auto fg = new fg::FrameGraph(1);
+			tasks::AddImGuiTask<tasks::NoTask>(*fg, imgui_func);
+
+			fg->Validate();
+			fg->Setup(rs);
+			return fg;
+		},
 		// PBR Generic
 		[](Renderer* rs, decltype(tasks::ImGuiTaskData::m_render_func) imgui_func)
 		{
@@ -64,6 +78,23 @@ namespace fg_manager
 			tasks::AddDeferredMainMeshTask(*fg);
 			tasks::AddDeferredCompositionTask(*fg);
 			tasks::AddPostProcessingTask<tasks::DeferredCompositionData>(*fg);
+			tasks::AddCopyToBackBufferTask<tasks::PostProcessingData>(*fg);
+			tasks::AddImGuiTask<tasks::PostProcessingData>(*fg, imgui_func);
+
+			fg->Validate();
+			fg->Setup(rs);
+			return fg;
+		},
+		// Raytracing
+		[](Renderer* rs, decltype(tasks::ImGuiTaskData::m_render_func) imgui_func)
+		{
+			auto fg = new fg::FrameGraph(7);
+			tasks::AddBuildASTask(*fg);
+			tasks::AddGenerateCubemapTask(*fg);
+			tasks::AddGenerateBRDFLutTask(*fg);
+			tasks::AddRaytracingTask(*fg);
+			//tasks::AddTemporalAntiAliasingTask<tasks::RaytracingData>(*fg);
+			tasks::AddPostProcessingTask<tasks::RaytracingData>(*fg);
 			tasks::AddCopyToBackBufferTask<tasks::PostProcessingData>(*fg);
 			tasks::AddImGuiTask<tasks::PostProcessingData>(*fg, imgui_func);
 

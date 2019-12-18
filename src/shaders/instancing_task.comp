@@ -1,0 +1,68 @@
+#version 450
+#pragma shader_stage(task)
+
+#define TASK
+
+layout(push_constant) uniform PushConstants {
+    uint batch_size;
+    uint num_meshlets;
+	uint paddingx;
+	uint paddingy;
+	vec4 object_bbox_min;
+	vec4 object_bbox_max;
+} drawcall_info;
+
+#include "mesh_shader_util.glsl"
+
+layout(local_size_x=GROUP_SIZE) in;
+
+layout(set = 0, binding = 0) uniform UniformBufferCameraObject {
+    mat4 view;
+    mat4 proj;
+} camera;
+
+layout(set = 1, binding = 1) uniform UniformBufferObject {
+    mat4 model[100];
+} ubo;
+
+layout(set = 6, binding = 6) buffer MeshletBufferObj {
+	uvec4 meshlet_descs[];
+} mb;
+
+taskNV out Task
+{
+	uint base_id;
+	uint8_t sub_ids[GROUP_SIZE];
+	uint num_meshlets;
+} OUT;
+
+void main()
+{
+	const uint base_id = gl_WorkGroupID.x * GROUP_SIZE;
+	const uint lane_id = gl_LocalInvocationID.x;
+	const uint global_id = gl_GlobalInvocationID.x;
+	const uint total_meshlet_count = subgroupBroadcastFirst(drawcall_info.num_meshlets * drawcall_info.batch_size);
+
+	uint meshlet_id = (base_id + lane_id) % drawcall_info.num_meshlets;
+	uint instance_id = uint(floor((float(base_id) + float(lane_id)) / float(drawcall_info.num_meshlets)));
+	mat4 model = ubo.model[instance_id];
+	uvec4 meshlet_desc = mb.meshlet_descs[meshlet_id];
+
+	mat4 inverse_view = inverse(camera.view);
+	bool render = !(global_id > total_meshlet_count || EarlyCull(meshlet_desc, model, vec3(inverse_view[3]), camera.proj * camera.view));
+	uvec4 vote = subgroupBallot(render);
+	uint tasks = subgroupBallotBitCount(vote);
+
+	if (lane_id == 0)
+	{
+		gl_TaskCountNV = tasks;
+		OUT.base_id = base_id;
+		OUT.num_meshlets = drawcall_info.num_meshlets;
+	}
+
+	uint idx_offset = subgroupBallotExclusiveBitCount(vote);
+	if (render)
+	{
+		OUT.sub_ids[idx_offset] = uint8_t(lane_id);
+	}
+}

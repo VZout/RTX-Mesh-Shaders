@@ -71,7 +71,7 @@ namespace tasks
 
 				for (std::size_t i = 0; i < model_handle.m_mesh_handles.size(); i++)
 				{
-					auto mesh_handle = model_handle.m_mesh_handles[i];
+					const auto & mesh_handle = model_handle.m_mesh_handles[i];
 
 					std::vector<std::pair<gfx::DescriptorHeap*, std::uint32_t>> sets
 					{
@@ -82,8 +82,8 @@ namespace tasks
 					};
 
 					cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
-					cmd_list->BindVertexBuffer(model_pool->m_vertex_buffers[mesh_handle.m_id]);
-					cmd_list->BindIndexBuffer(model_pool->m_index_buffers[mesh_handle.m_id]);
+					cmd_list->BindVertexBuffer(model_pool->m_big_vertex_buffer, mesh_handle.m_offsets.m_vb);
+					cmd_list->BindIndexBuffer(model_pool->m_big_index_buffer, mesh_handle.m_index_stride, mesh_handle.m_offsets.m_ib);
 					cmd_list->DrawIndexed(mesh_handle.m_num_indices, batch.m_num_meshes);
 				}
 			}

@@ -50,7 +50,7 @@ namespace tasks
 			auto render_target = fg.GetRenderTarget(handle);
 
 			auto texture_pool = static_cast<gfx::VkTexturePool*>(rs.GetTexturePool());
-			data.m_sky_texture_id = texture_pool->Load("gym_4k.hdr", false, false);
+			data.m_sky_texture_id = texture_pool->Load("epping_forest_01_4k.hdr", false, false);
 			auto textures = texture_pool->GetTextures({ data.m_sky_texture_id });
 
 			gfx::SamplerDesc input_sampler_desc
@@ -81,8 +81,8 @@ namespace tasks
 				{ data.m_desc_heap, data.m_uav_target_set },
 			};
 
-			cmd_list->BindComputePipelineState(pipeline);
-			cmd_list->BindComputeDescriptorHeap(data.m_root_sig, sets);
+			cmd_list->BindPipelineState(pipeline);
+			cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
 			cmd_list->Dispatch(render_target->GetWidth() / 8, render_target->GetHeight() / 8, 6);
 
 			cmd_list->TransitionRenderTarget(render_target, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
@@ -106,8 +106,8 @@ namespace tasks
 		RenderTargetProperties rt_properties
 		{
 			.m_is_render_window = false,
-			.m_width = 1024,
-			.m_height = 1024,
+			.m_width = 2048,
+			.m_height = 2048,
 			.m_dsv_format = VK_FORMAT_UNDEFINED,
 			.m_rtv_formats = { VK_FORMAT_R16G16B16A16_SFLOAT },
 			.m_state_execute = VK_IMAGE_LAYOUT_GENERAL,

@@ -26,6 +26,7 @@ namespace gfx
 		void Stage(gfx::CommandList* command_list) final;
 		void PostStage() final;
 		std::vector<gfx::StagingTexture*> GetTextures(std::vector<std::uint32_t> texture_handles) final;
+		std::vector<gfx::StagingTexture*> GetAllTexturesPadded(std::uint32_t num);
 
 	private:
 		void Load_Impl(TextureData const & data, std::uint32_t id, bool mipmap, bool srgb) final;

@@ -1,0 +1,279 @@
+#version 460
+#extension GL_NV_ray_tracing : require
+#extension GL_EXT_nonuniform_qualifier : enable
+#pragma shader_stage(closest)
+#define SCATTER
+
+#define POINT_LIGHT 0
+#define DIRECTIONAL_LIGHT 1
+#define SPOT_LIGHT 2
+
+#include "random.glsl"
+#include "structs.glsl"
+#include "fog.glsl"
+
+layout(location = 0) rayPayloadInNV Payload payload;
+layout(location = 1) rayPayloadNV bool shadow_payload;
+
+hitAttributeNV vec3 attribs;
+
+layout(binding = 0, set = 0) uniform accelerationStructureNV scene;
+
+layout(set = 3, binding = 3) uniform UniformBufferLightObject {
+    Light lights[25];
+} lights;
+
+layout(set = 4, binding = 4) buffer VertexBufferObj {
+	Vertex vertices[];
+} vb;
+
+layout(set = 5, binding = 5) buffer IndexBufferObj {
+	uint indices[];
+} ib;
+
+layout(set = 6, binding = 6) buffer UniformBufferOffsetObject
+{ 
+    RaytracingOffset offsets[];
+} offsets;
+
+layout(set = 7, binding = 7) buffer UniformBufferMaterialObject
+{ 
+    RaytracingMaterial materials[];
+} materials;
+
+layout(set = 8, binding = 8) uniform sampler2D ts_textures[100];
+
+layout(set = 10, binding = 10) uniform sampler2D t_brdf_lut;
+
+#include "pbr+_util.glsl"
+#include "rt_util.glsl"
+#include "lighting.glsl"
+
+ReadableVertex VertexToReadable(Vertex vertex)
+{
+	ReadableVertex retval;
+	retval.pos = vec3(vertex.x, vertex.y, vertex.z);
+	retval.uv = vec2(vertex.u, vertex.v);
+	retval.normal = vec3(vertex.nx, vertex.ny, vertex.nz);
+	retval.tangent = vec3(vertex.tx, vertex.ty, vertex.tz);
+	retval.bitangent = vec3(vertex.bx, vertex.by, vertex.bz);
+
+	return retval;
+}
+
+vec3 HitAttribute(vec3 a, vec3 b, vec3 c, vec3 bary)
+{
+	vec3 vertexAttribute[3];
+	vertexAttribute[0] = a;
+	vertexAttribute[1] = b;
+	vertexAttribute[2] = c;
+
+	return vertexAttribute[0] +
+		bary.x * (vertexAttribute[1] - vertexAttribute[0]) +
+		bary.y * (vertexAttribute[2] - vertexAttribute[0]);
+}
+
+vec3 HitWorldPosition()
+{
+	return gl_WorldRayOriginNV + gl_WorldRayDirectionNV * gl_HitTNV;
+}
+
+vec3 DirectLighting(vec3 world_pos,
+	vec3 N,
+	vec3 geometric_normal,
+	vec3 V,
+	float roughness,
+	vec3 diffuse_color,
+	float metallic,
+	float thickness,
+	float clear_coat,
+	float cc_roughness,
+	float subsurface_power,
+	vec3 subsurface_color,
+	float anisotropy,
+	vec3 anisotropic_t,
+	vec3 anisotropic_b,
+	vec3 F0,
+	vec3 energy_compensation,
+	uint seed,
+	uint depth)
+{
+	uint light_count = lights.lights[0].m_type >> 2;
+	if (light_count < 1) return vec3(0);
+
+	uint light_to_sample = min(int(nextRand(seed) * light_count), light_count - 1);
+	Light light = lights.lights[light_to_sample];
+
+	vec3 lighting = ShadeLight(light, world_pos, N, geometric_normal, V, roughness, diffuse_color, metallic, thickness, clear_coat, cc_roughness, subsurface_power, subsurface_color, anisotropy, anisotropic_t, anisotropic_b, F0, energy_compensation);
+
+	vec3 L = mix(light.m_pos - world_pos, light.m_dir, float(light.m_type == DIRECTIONAL_LIGHT));
+	float light_dist = length(L);
+	L /= light_dist;
+	float max_light_dist = mix(light_dist, 100000, float(light.m_type == DIRECTIONAL_LIGHT));
+
+	vec3 shadow_dir = normalize(GetUniformHemisphereSample(seed, L, light.m_physical_size));
+	float shadow_mult = float(light_count) * float(!TraceShadowRay(world_pos + (L * EPSILON), shadow_dir, max_light_dist, seed, depth + 1));
+
+	
+	vec3 result = lighting * shadow_mult; 
+
+	return result;
+}
+
+vec3 IndirectLighting(vec3 world_pos,
+	vec3 N,
+	vec3 geometric_normal,
+	vec3 V,
+	float perceptual_roughness,
+	vec3 albedo,
+	vec3 diffuse_color,
+	float metallic,
+	float thickness,
+	float clear_coat,
+	float cc_roughness,
+	float subsurface_power,
+	vec3 subsurface_color,
+	float anisotropy,
+	vec3 anisotropic_t,
+	vec3 anisotropic_b,
+	vec3 F0,
+	vec3 energy_compensation,
+	uint seed,
+	uint depth)
+{
+	float diffuse_probability = ProbabilityToSampleDiffuse(albedo, vec3(metallic));
+	bool choose_diffuse = (nextRand(payload.seed) < diffuse_probability);
+
+	vec2 dfg = texture(t_brdf_lut, vec2(dot(N, V), perceptual_roughness)).gr; // lut
+	vec3 E = SpecularDFG(F0, dfg);
+
+	if (choose_diffuse)
+	{
+		vec3 diffuse_color = (diffuse_color / diffuse_probability);
+		vec3 rand_dir = GetCosHemisphereSample(seed, N);
+
+		vec3 irradiance = TraceColorRay(world_pos + (vec3(EPSILON) * N), rand_dir, seed, depth + 1);
+		if (dot(geometric_normal, rand_dir) <= 0.0f) irradiance = vec3(0);
+
+		return diffuse_color * irradiance * (1.0 - E);
+	}
+	else
+	{
+		// TODO: for a true anisotropic BRDF, we need a real tangent space
+		vec3 up = abs(N.z) < 0.9999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+
+		mat3 tangentToWorld;
+		tangentToWorld[0] = normalize(cross(up, N));
+		tangentToWorld[1] = cross(N, tangentToWorld[0]);
+		tangentToWorld[2] = N;
+
+		float roughness = PerceptualRoughnessToRoughness(perceptual_roughness);
+
+		vec2 u = vec2(nextRand(seed), nextRand(seed));
+		//vec3 H = getGGXMicrofacet(seed, perceptual_roughness, N);
+		//vec3 L = normalize(2.f * dot(V, H) * H - V);
+		vec3 H = tangentToWorld * ImportanceSamplingNdfDggx(u, roughness);
+		vec3 L = reflect(-V, H);
+
+		vec3 irradiance = TraceColorRay(world_pos + (vec3(EPSILON) * N), L, seed, depth + 1);
+		if (dot(geometric_normal, L) <= 0.0f) irradiance = vec3(0);
+
+		// Compute some dot products needed for shading
+		float NdotV = max(dot(N, V), MIN_N_DOT_V);
+		float NdotL = clamp(dot(N, L), 0.0, 1.0);
+		float NdotH = clamp(dot(N, H), 0.0, 1.0);
+		float LdotH = clamp(dot(L, H), 0.0, 1.0);
+
+		float F90 = clamp(dot(F0, vec3(50.0 * 0.33)), 0.f, 1.f);
+
+		float D = D_GGX(NdotH, roughness);
+		float G = G_SchlicksmithGGX(NdotL, NdotV, roughness);
+		vec3 F = F_Schlick(F0, F90, LdotH);
+
+		vec3 spec = D * F * G / (4.0 * NdotL * NdotV);
+		float  ggx_probability = D * NdotH / (4 * LdotH);
+
+		vec3 specular_ibl = NdotL * irradiance * spec / (ggx_probability);
+		
+		return (specular_ibl * E * energy_compensation) * (1.0f - diffuse_probability);
+	}
+}
+
+void main()
+{
+	RaytracingOffset offset = offsets.offsets[gl_InstanceCustomIndexNV];
+	const uint vertex_offset = offset.vertex_offset / 56;
+	const uint index_offset = offset.idx_offset / 4;
+
+	const uint triangle_stride = 3;
+	uint base_idx = gl_PrimitiveID * triangle_stride;
+	base_idx += index_offset;
+
+	vec3 world_pos = HitWorldPosition();
+	vec3 view_pos = gl_WorldRayOriginNV;
+	vec3 V = normalize(gl_WorldRayOriginNV - world_pos);
+
+	uvec3 indices = uvec3(ib.indices[base_idx+0], ib.indices[base_idx+1], ib.indices[base_idx+2]);
+	indices += uvec3(vertex_offset, vertex_offset, vertex_offset); // offset the start
+
+	const ReadableVertex v0 = VertexToReadable(vb.vertices[indices.x]);
+	const ReadableVertex v1 = VertexToReadable(vb.vertices[indices.y]);
+	const ReadableVertex v2 = VertexToReadable(vb.vertices[indices.z]);
+
+	// Raytracing Material
+	RaytracingMaterial material = materials.materials[gl_InstanceCustomIndexNV];
+
+	vec3 normal = normalize(HitAttribute(v0.normal, v1.normal, v2.normal, attribs));
+
+	const vec3 tangent = normalize(HitAttribute(v0.tangent, v1.tangent, v2.tangent, attribs));
+	const vec3 bitangent = normalize(HitAttribute(v0.bitangent, v1.bitangent, v2.bitangent, attribs));
+	vec2 uv = HitAttribute(vec3(v0.uv, 0), vec3(v1.uv, 0), vec3(v2.uv, 0), attribs).xy;
+	uv.x *= material.u_scale;
+	uv.y *= material.v_scale;
+	uv.y = 1.0f - uv.y;
+
+	vec3 albedo = material.color.x > -1 ? material.color.rgb : texture(ts_textures[material.albedo_texture], uv).rgb;
+	vec3 normal_t = normalize(texture(ts_textures[material.normal_texture], uv).rgb * 2.0f - 1.0f);
+	vec4 compressed_mra = texture(ts_textures[material.roughness_texture], uv).rgba;
+
+	vec3 geometric_normal = vec3(0);
+	vec3 N = CalcPeturbedNormal(normal, normal_t, tangent, bitangent, V, geometric_normal);
+
+	if (dot(gl_WorldRayDirectionNV, geometric_normal) > 0) // Flip normal to direction
+	{
+		geometric_normal = -geometric_normal;
+		N = -N;
+	}
+
+	float thickness = texture(ts_textures[material.thickness_texture], uv).r;;
+    float metallic = material.metallic > -1 ? material.metallic : compressed_mra.b;
+	float roughness = clamp(material.roughness > -1 ? material.roughness : compressed_mra.g, MIN_PERCEPTUAL_ROUGHNESS, 1.f);
+	float anisotropy = 0;
+	vec3 anisotropic_t = vec3(0);
+	vec3 anisotropic_b = vec3(0);
+	float clear_coat = 0;
+	float cc_roughness = clamp(0, MIN_PERCEPTUAL_ROUGHNESS, 1.0);;
+	float reflectivity = material.reflectivity;
+	vec3 subsurface_color = vec3(24 / 255.f, 69 / 255.f, 0);
+	float subsurface_power = 0;
+
+	vec3 diffuse_color = ComputeDiffuseColor(albedo, metallic);
+	
+    float reflectance = ComputeDielectricF0(reflectivity); // TODO: proper material reflectance
+    vec3 F0 = ComputeF0(albedo, metallic, reflectance);
+	float NdotV = max(dot(N, V), MIN_N_DOT_V);
+	vec2 dfg = texture(t_brdf_lut, vec2(NdotV, roughness)).gr; // lut
+	vec3 energy_compensation = 1.0 + F0 * (1.0 / dfg.y - 1.0);
+	
+	vec3 lighting = vec3(0);
+
+	//lighting = DoFog(lighting, gl_HitTNV);
+
+	uint depth = payload.depth;
+
+	lighting += DirectLighting(world_pos, N, geometric_normal, V, roughness, diffuse_color, metallic, thickness, clear_coat, cc_roughness, subsurface_power, subsurface_color, anisotropy, anisotropic_t, anisotropic_b, F0, energy_compensation, payload.seed, depth);
+	
+	lighting += IndirectLighting(world_pos, N, geometric_normal, V, roughness, albedo, diffuse_color, metallic, thickness, clear_coat, cc_roughness, subsurface_power, subsurface_color, anisotropy, anisotropic_t, anisotropic_b, F0, energy_compensation, payload.seed, depth);
+
+	payload.color = lighting;
+}

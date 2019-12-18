@@ -24,6 +24,7 @@ namespace gfx
 	class Texture;
 	class StagingTexture;
 	class RenderTarget;
+	class AccelerationStructure;
 
 	struct SamplerDesc
 	{
@@ -61,9 +62,10 @@ namespace gfx
 
 		VkDescriptorSet GetDescriptorSet(std::uint32_t frame_idx, std::uint32_t handle);
 
-		std::uint32_t CreateSRVSetFromCB(std::vector<GPUBuffer*> buffers, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx, bool uniform = true);
-		std::uint32_t CreateSRVFromCB(GPUBuffer* buffer, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx, bool uniform = true);
-		std::uint32_t CreateSRVFromCB(GPUBuffer* buffer, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx, bool uniform = true);
+		std::uint32_t CreateSRVSetFromCB(std::vector<GPUBuffer*> buffers, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx, enums::BufferDescType type = enums::BufferDescType::UNIFORM);
+		std::uint32_t CreateSRVFromCB(GPUBuffer* buffer, VkDescriptorSetLayout layout, std::uint32_t handle, std::uint32_t frame_idx, enums::BufferDescType type = enums::BufferDescType::UNIFORM, std::optional<std::pair<std::uint64_t, std::uint64_t>> offset_size = std::nullopt);
+		std::uint32_t CreateSRVFromCB(GPUBuffer* buffer, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx, enums::BufferDescType type = enums::BufferDescType::UNIFORM, std::optional<std::pair<std::uint64_t, std::uint64_t>> offset_size = std::nullopt);
+		std::uint32_t CreateSRVFromAS(AccelerationStructure* as, RootSignature* root_signature, std::uint32_t handle, std::uint32_t frame_idx);
 		std::uint32_t CreateSRVSetFromTexture(std::vector<StagingTexture*> texture, RootSignature* root_signature,
 				std::uint32_t handle, std::uint32_t frame_idx, std::optional<SamplerDesc> sampler_desc = m_default_sampler_desc);
 		std::uint32_t CreateSRVSetFromTexture(std::vector<StagingTexture*> texture, VkDescriptorSetLayout layout, // TODO: Change this to texture instead of staging texture.
@@ -76,6 +78,8 @@ namespace gfx
 			std::uint32_t handle, std::uint32_t frame_idx, bool include_depth = true, std::optional<SamplerDesc> sampler_desc = m_default_sampler_desc);
 		std::uint32_t CreateUAVSetFromRT(RenderTarget* render_target, std::uint32_t rt_idx, RootSignature* root_signature,
 		                                 std::uint32_t handle,std::uint32_t frame_idx, SamplerDesc sampler_desc = m_default_sampler_desc, std::optional<float> mip_level = std::nullopt);
+		std::uint32_t CreateUAVSetFromRT(RenderTarget* render_target, std::uint32_t rt_idx, std::uint32_t num, RootSignature* root_signature,
+			std::uint32_t handle, std::uint32_t frame_idx, SamplerDesc sampler_desc = m_default_sampler_desc, std::optional<float> mip_level = std::nullopt);
 
 	private:
 		VkSampler CreateSampler(SamplerDesc sampler, std::uint32_t num_mips = 1);

@@ -38,6 +38,11 @@ namespace tasks
 	namespace internal
 	{
 
+		inline std::uint32_t ComputeTasksCount(std::uint32_t num_meshlets)
+		{
+			return (num_meshlets + meshlets_per_task - 1) / meshlets_per_task;
+		}
+
 		inline void SetupDeferredMainMeshTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
 		{
 			if (resize) return;
@@ -75,6 +80,7 @@ namespace tasks
 					auto mesh_handle = model_handle.m_mesh_handles[i];
 					auto meshlets_info = model_pool->m_meshlet_desc_infos[mesh_handle.m_id];
 					auto vb_ib_pair = model_pool->m_mesh_shading_buffer_descriptor_sets[mesh_handle.m_id];
+					auto meshlets_index_buffer_info = model_pool->m_mesh_shading_index_buffer_descriptor_sets[mesh_handle.m_id];
 
 					std::vector<std::pair<gfx::DescriptorHeap*, std::uint32_t>> sets
 					{
@@ -82,13 +88,35 @@ namespace tasks
 						{ per_obj_pool->GetDescriptorHeap(), cb_handle.m_cb_set_id }, // TODO: Shitty naming of set_id. just use a vector in the handle instead probably.
 						{ material_pool->GetDescriptorHeap(), material_pool->GetDescriptorSetID(mat_vec[i]) },
 						{ material_pool->GetDescriptorHeap(), material_pool->GetCBDescriptorSetID(mat_vec[i]) },
-						{ model_pool->GetDescriptorHeap(), vb_ib_pair.first },
-						{ model_pool->GetDescriptorHeap(), vb_ib_pair.second },
-						{ model_pool->GetDescriptorHeap(), meshlets_info.first }
+						{ model_pool->GetDescriptorHeap(), vb_ib_pair.first }, // vertices
+						{ model_pool->GetDescriptorHeap(), meshlets_index_buffer_info.second }, // indices
+						{ model_pool->GetDescriptorHeap(), meshlets_info.first }, // meshlets
+						{ model_pool->GetDescriptorHeap(), meshlets_index_buffer_info.first }, // vertex indices
 					};
 
 					cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
-					cmd_list->DrawMesh(meshlets_info.second, 0);
+
+					const std::uint32_t num_tasks = ComputeTasksCount(meshlets_info.second * batch.m_num_meshes);
+
+					//for (std::uint32_t i = 0; i < batch.m_num_meshes; i++)
+					{
+						struct PushBlock
+						{
+							unsigned int batch_size;
+							unsigned int num_meshlets;
+							unsigned int paddingx;
+							unsigned int paddingy;
+							glm::vec4 bbox_min;
+							glm::vec4 bbox_max;
+						} push_data;
+						push_data.batch_size = batch.m_num_meshes;
+						push_data.num_meshlets = meshlets_info.second;
+						push_data.bbox_min = glm::vec4(mesh_handle.m_bbox_min, 0);
+						push_data.bbox_max = glm::vec4(mesh_handle.m_bbox_max, 0);
+						cmd_list->BindTaskPushConstants(data.m_root_sig, &push_data, sizeof(PushBlock));
+
+						cmd_list->DrawMesh(num_tasks, 0);
+					}
 				}
 			}
 		}

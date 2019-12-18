@@ -94,7 +94,7 @@ void ImGui::StyleColorsCherry(ImGuiStyle* dst)
 	colors[ImGuiCol_Text] = TEXT(0.78f);
 	colors[ImGuiCol_TextDisabled] = TEXT(0.28f);
 	colors[ImGuiCol_WindowBg] = ImVec4(0.13f, 0.14f, 0.17f, 1.00f);
-	colors[ImGuiCol_ChildWindowBg] = BG(0.58f);
+	//colors[ImGuiCol_ChildWindowBg] = BG(0.58f);
 	colors[ImGuiCol_ChildBg] = ImVec4(0, 0, 0, 0);
 	colors[ImGuiCol_PopupBg] = BG(0.9f);
 	colors[ImGuiCol_Border] = ImVec4(0.31f, 0.31f, 1.00f, 0.00f);

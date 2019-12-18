@@ -16,12 +16,14 @@ void SetupEditor()
 	// Actions
 	editor.RegisterAction("Quit", "File", [&]() { Close(); }, reinterpret_cast<const char*>(ICON_FA_POWER_OFF));
 	editor.RegisterAction("Save ImGui Settings", "File", [&]() { ImGui::SaveIniSettingsToDisk(settings::imgui_ini_filename); }, reinterpret_cast<const char*>(ICON_FA_SAVE));
-	editor.RegisterAction("Contribute", "Help", [&]() { OpenURL("https://github.com/VZout/RTX-Mesh-Shaders"); }, reinterpret_cast<const char*>(ICON_FA_HANDS_HELPING));
-	editor.RegisterAction("Report Issue", "Help", [&]() { OpenURL("https://github.com/VZout/RTX-Mesh-Shaders/issues"); }, reinterpret_cast<const char*>(ICON_FA_BUG));
+	editor.RegisterAction("Contribute", "Help", [&]() { util::OpenURL("https://github.com/VZout/RTX-Mesh-Shaders"); }, reinterpret_cast<const char*>(ICON_FA_HANDS_HELPING));
+	editor.RegisterAction("Report Issue", "Help", [&]() { util::OpenURL("https://github.com/VZout/RTX-Mesh-Shaders/issues"); }, reinterpret_cast<const char*>(ICON_FA_BUG));
 	editor.RegisterAction("Key Bindings", "Help", [&]() { editor.OpenModal("Key Bindings"); });
 
 	editor.RegisterAction("Load Spheres Scene", "Scene Graph", [&]() { SwitchScene<SpheresScene>(); }, std::nullopt, "Scenes");
 	editor.RegisterAction("Load Subsurface Scene", "Scene Graph", [&]() { SwitchScene<SubsurfaceScene>(); }, std::nullopt, "Scenes");
+	editor.RegisterAction("Save Scene", "Scene Graph", [&]() { m_scene->SaveSceneToJSON(); }, std::nullopt);
+	editor.RegisterAction("Load Scene", "Scene Graph", [&]() { m_selected_node = std::nullopt; m_scene->LoadSceneFromJSON(); }, std::nullopt);
 
 	// Windows
 	editor.RegisterWindow("World Outliner", "Scene Graph", [&]()
@@ -146,65 +148,6 @@ void SetupEditor()
 			}
 		}, true, reinterpret_cast<const char*>(ICON_FA_GLOBE_EUROPE));
 
-	/*editor.RegisterWindow("Temp Material Settings", "Scene Graph", [&]()
-		{
-			ImGui::DragFloat("Ball Reflectivity", &m_ball_reflectivity, 0.01, -0, 1);
-			ImGui::DragFloat("Ball Anisotropy", &m_ball_anisotropy, 0.01, -1, 1);
-			ImGui::DragFloat3("Ball Anisotropy Dir", reinterpret_cast<float*>(&m_ball_anisotropy_dir), 0.01, -1, 1);
-			ImGui::DragFloat("Ball Clear Coat", &m_ball_clear_coat, 0.01, 0, 1);
-			ImGui::DragFloat("Ball Clear Coat Roughness", &m_ball_clear_coat_roughness, 0.01, 0, 1);
-
-			ImGui::Separator();
-
-			ImGui::ToggleButton("Override Color", &m_imgui_override_color);
-			ImGui::ColorPicker3("Color", m_temp_debug_mat_data.m_base_color, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoAlpha);
-
-			ImGui::Separator();
-
-			ImGui::Checkbox("Disable Normal Mapping", &m_imgui_disable_normal_mapping);
-			ImGui::DragFloat("Normal Strength", &m_temp_debug_mat_data.m_base_normal_strength, 0.01, 0, 10);
-
-			ImGui::Separator();
-
-			ImGui::Checkbox("##0", &m_imgui_override_roughness); ImGui::SameLine();
-			ImGui::DragFloat("Roughness", &m_temp_debug_mat_data.m_base_roughness, 0.01, 0, 1);
-			ImGui::Checkbox("##1", &m_imgui_override_metallic); ImGui::SameLine();
-			ImGui::DragFloat("Metallic", &m_temp_debug_mat_data.m_base_metallic, 0.01, -0, 1);
-			ImGui::Checkbox("##2", &m_imgui_override_reflectivity); ImGui::SameLine();
-			ImGui::DragFloat("Reflectivity", &m_temp_debug_mat_data.m_base_reflectivity, 0.01, -0, 1);
-			ImGui::DragFloat("Anisotropy ", &m_temp_debug_mat_data.m_base_anisotropy, 0.01, -1, 1);
-			ImGui::DragFloat("Clear Coat", &m_temp_debug_mat_data.m_base_clear_coat, 0.01, 0, 1);
-			ImGui::DragFloat("Clear Coat Roughness", &m_temp_debug_mat_data.m_base_clear_coat_roughness, 0.01, 0, 1);
-
-			m_temp_debug_mat_data.m_base_normal_strength = m_imgui_disable_normal_mapping ? -1 : m_temp_debug_mat_data.m_base_normal_strength;
-			m_temp_debug_mat_data.m_base_color[0] = m_imgui_override_color ? m_temp_debug_mat_data.m_base_color[0] : -1;
-			m_temp_debug_mat_data.m_base_roughness = m_imgui_override_roughness ? m_temp_debug_mat_data.m_base_roughness : -1;
-			m_temp_debug_mat_data.m_base_metallic = m_imgui_override_metallic ? m_temp_debug_mat_data.m_base_metallic : -1;
-			m_temp_debug_mat_data.m_base_reflectivity = m_imgui_override_reflectivity ? m_temp_debug_mat_data.m_base_reflectivity : -1;
-
-			int i = 0;
-			for (auto mesh_handle : m_sphere_material_handles)
-			{
-				m_sphere_materials[i].m_base_color[0] = m_imgui_override_color ? m_temp_debug_mat_data.m_base_color[0] : -1;
-				m_sphere_materials[i].m_base_color[1] = m_imgui_override_color ? m_temp_debug_mat_data.m_base_color[1] : -1;
-				m_sphere_materials[i].m_base_color[2] = m_imgui_override_color ? m_temp_debug_mat_data.m_base_color[2] : -1;
-
-				m_sphere_materials[i].m_base_reflectivity = m_ball_reflectivity;
-				m_sphere_materials[i].m_base_anisotropy = m_ball_anisotropy;
-				m_sphere_materials[i].m_base_clear_coat = m_ball_clear_coat;
-				m_sphere_materials[i].m_base_clear_coat_roughness = m_ball_clear_coat_roughness;
-				m_material_pool->Update(mesh_handle, m_sphere_materials[i]);
-				m_sphere_materials[i].m_base_anisotropy_dir = m_ball_anisotropy_dir;
-				i++;
-			}
-
-			for (auto mesh_handle : m_robot_model_handle.m_mesh_handles)
-			{
-				m_material_pool->Update(mesh_handle.m_material_handle.value(), m_temp_debug_mat_data);
-			}
-
-		}, false, reinterpret_cast<const char*>(ICON_FA_PALETTE));*/
-
 	editor.RegisterWindow("Inspector", "Scene Graph", [&]()
 		{
 			if (!m_selected_node.has_value()) return;
@@ -252,6 +195,7 @@ void SetupEditor()
 				scene_graph->m_light_types[node.m_light_component].m_value = (cb::LightType)selected_type;
 
 				ImGui::DragFloat3("Color", &scene_graph->m_colors[node.m_light_component].m_value[0], 0.1f);
+				ImGui::DragFloat("Physical Size", &scene_graph->m_light_physical_size[node.m_light_component].m_value, 0.01f);
 
 				if (scene_graph->m_light_types[node.m_light_component] == cb::LightType::POINT)
 				{
@@ -271,39 +215,73 @@ void SetupEditor()
 				}
 			}
 
+			if (node.m_camera_component > -1)
+			{
+				ImGui::Separator();
+				auto& lens_properties = scene_graph->m_camera_lens_properties[node.m_camera_component].m_value;
+				ImGui::DragFloat("Lens Diameter", &lens_properties.m_diameter, 0.01f);
+				ImGui::DragFloat("Focal Distance", &lens_properties.m_focal_dist, 0.01f);
+				ImGui::Separator();
+				ImGui::ToggleButton("Use Simple FoV", &lens_properties.m_use_simple_fov);
+				ImGui::DragFloat("FoV", &lens_properties.m_fov, 1.f);
+				ImGui::Separator();
+				ImGui::DragFloat("Film Size", &lens_properties.m_film_size, 0.01f);
+				ImGui::DragFloat("Focal Length", &lens_properties.m_focal_length, 0.01f);
+			}
+
 			scene_graph->m_requires_update[node.m_transform_component] = true;
 		}, true, reinterpret_cast<const char*>(ICON_FA_EYE));
 
 	editor.RegisterWindow("Performance", "Stats", [&]()
 		{
-			ImGui::Columns(2);
-			ImGui::SetColumnWidth(0, 100);
 			ImGui::Text("Delta: %.6f", m_delta);
 			ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
-			ImGui::NextColumn();
-			ImGui::InputInt("Max Samples", &m_max_frame_rates);
-			ImGui::SameLine();
-			if (ImGui::Button("Reset Scale"))
+
+			ImGui::Separator();
+
+			for (auto & it : util::CPUProfilerSystem::Get().GetScopes())
 			{
-				m_max_frame_rate = 1;
-				m_min_frame_rate = 0;
+				double total_ms = it.second.m_total / 1000000.0;
+				double average = total_ms / it.second.m_times;
+				double last_ms = it.second.m_last / 1000000.0;
+
+				ImGui::Text(fmt::format("Scope Timer '{}'", it.first).c_str());
+				ImGui::Text(fmt::format("\t Num Samples: {}", it.second.m_times).c_str());
+				ImGui::SameLine(); 
+				std::string reset_button_text = "Reset Sample Count##" + it.first;
+				if (ImGui::Button(reset_button_text.c_str()))
+				{
+					it.second.m_times = 0;
+					it.second.m_total = 0;
+				}
+				ImGui::Text(fmt::format("\t Average: {}", average).c_str());
+				ImGui::Text(fmt::format("\t Last Sample: {}", last_ms).c_str());
+
+#ifdef PROFILER_GRAPHING
+				if (it.second.m_samples.size() > 1)
+				{
+					auto min_value = *std::min_element(it.second.m_samples.begin(), it.second.m_samples.end());
+					auto max_value = *std::max_element(it.second.m_samples.begin(), it.second.m_samples.end());
+
+					ImGui::PlotConfig conf;
+					//conf.values.xs = x_data; // this line is optional
+					conf.values.ys = it.second.m_samples.data();
+					conf.values.count = it.second.m_samples.size();
+					conf.scale.min = min_value;
+					conf.scale.max = max_value;
+					conf.tooltip.show = true;
+					conf.tooltip.format = "%.2f";
+					conf.skip_small_lines = true;
+					conf.grid_x.show = true;
+					conf.grid_y.show = false;
+					conf.values.color = ImColor(0, 255, 0);
+					conf.frame_size = ImVec2(ImGui::GetContentRegionAvailWidth(), 100);
+					conf.line_thickness = 2.5f;
+
+					ImGui::Plot("plot", conf);
+				}
+#endif
 			}
-			ImGui::Columns(1);
-
-			ImGui::PlotConfig conf;
-			conf.values.ys = m_frame_rates.data();
-			conf.values.count = m_frame_rates.size();
-			conf.scale.min = m_min_frame_rate;
-			conf.values.color = ImColor(0, 255, 0);
-			conf.scale.max = m_max_frame_rate;
-			conf.tooltip.show = true;
-			conf.tooltip.format = "fps=%.2f";
-			conf.grid_x.show = false;
-			conf.grid_y.show = false;
-			conf.frame_size = ImGui::GetContentRegionAvail();
-			conf.line_thickness = 3.f;
-
-			ImGui::Plot("plot", conf);
 		}, false, reinterpret_cast<const char*>(ICON_FA_CHART_AREA));
 
 	editor.RegisterWindow("GPU Info", "Stats", [&]()
@@ -424,6 +402,8 @@ void SetupEditor()
 				auto camera_node = m_scene->GetCameraNodeHandle();
 				m_viewport_size = size;
 				sg::helper::SetAspectRatio(scene_graph, camera_node, (float)size.x / (float)size.y);
+
+				m_viewport_has_changed = true;
 			}
 
 			ImGui::Image(editor.GetTexture(), size);
@@ -452,9 +432,9 @@ void SetupEditor()
 			ImGui::InfoText("Version", util::VersionToString(version), false);
 			ImGui::Separator();
 			ImGui::Text("Copyright 2019 Viktor Zoutman");
-			if (ImGui::Button("License")) OpenURL("https://github.com/VZout/RTX-Mesh-Shaders/blob/master/LICENSE");
+			if (ImGui::Button("License")) util::OpenURL("https://github.com/VZout/RTX-Mesh-Shaders/blob/master/LICENSE");
 			ImGui::SameLine();
-			if (ImGui::Button("Portfolio")) OpenURL("http://www.vzout.com/");
+			if (ImGui::Button("Portfolio")) util::OpenURL("http://www.vzout.com/");
 		}, false, reinterpret_cast<const char*>(ICON_FA_ADDRESS_CARD));
 
 	// Modals

@@ -48,6 +48,8 @@ namespace gfx
 		friend class Texture;
 		friend class VkMaterialPool;
 		friend class VkConstantBufferPool;
+		friend class AccelerationStructure;
+		friend class ShaderTable;
 
 		friend class ::ImGuiImpl; // TODO: probably dont want this
 	public:

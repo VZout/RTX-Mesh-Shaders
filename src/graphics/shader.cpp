@@ -63,10 +63,20 @@ void gfx::Shader::Compile(gfx::enums::ShaderType type)
 			break;
 		case enums::ShaderType::MESH: vulkan_shader_type = VK_SHADER_STAGE_MESH_BIT_NV;
 			break;
+		case enums::ShaderType::TASK: vulkan_shader_type = VK_SHADER_STAGE_TASK_BIT_NV;
+			break;
+		case enums::ShaderType::RT_RAYGEN: vulkan_shader_type = VK_SHADER_STAGE_RAYGEN_BIT_NV;
+			break;
+		case enums::ShaderType::RT_CLOSEST: vulkan_shader_type = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+			break;
+		case enums::ShaderType::RT_MISS: vulkan_shader_type = VK_SHADER_STAGE_MISS_BIT_NV;
+			break;
+		case enums::ShaderType::RT_ANY: vulkan_shader_type = VK_SHADER_STAGE_ANY_HIT_BIT_NV;
+			break;
 		default:
 			LOGC("Tried to compile a shader with a unknown shader type ({})", m_path);
 	}
-
+	
 	auto logical_device = m_context->m_logical_device;
 
 	VkShaderModuleCreateInfo create_info = {};

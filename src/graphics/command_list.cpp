@@ -8,6 +8,7 @@
 
 #include <array>
 
+#include "shader_table.hpp"
 #include "../util/log.hpp"
 #include "context.hpp"
 #include "gfx_settings.hpp"
@@ -140,25 +141,31 @@ void gfx::CommandList::UnbindRenderTarget()
 
 void gfx::CommandList::BindPipelineState(gfx::PipelineState* pipeline)
 {
-	vkCmdBindPipeline(m_cmd_buffers[m_frame_idx], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->m_pipeline);
+	switch (pipeline->m_desc.m_type)
+	{
+	case enums::PipelineType::RAYTRACING_PIPE: m_current_bind_point = VK_PIPELINE_BIND_POINT_RAY_TRACING_NV;
+		break;
+	case enums::PipelineType::COMPUTE_PIPE: m_current_bind_point = VK_PIPELINE_BIND_POINT_COMPUTE;
+		break;
+	case enums::PipelineType::GRAPHICS_PIPE: m_current_bind_point = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		break;
+	default: LOGE("Unknown pipeline type"); m_current_bind_point = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		break;
+	}
+
+	vkCmdBindPipeline(m_cmd_buffers[m_frame_idx], m_current_bind_point, pipeline->m_pipeline);
 }
 
-void gfx::CommandList::BindComputePipelineState(gfx::PipelineState* pipeline)
+void gfx::CommandList::BindVertexBuffer(GPUBuffer* buffer, std::uint64_t offset)
 {
-	vkCmdBindPipeline(m_cmd_buffers[m_frame_idx], VK_PIPELINE_BIND_POINT_COMPUTE, pipeline->m_pipeline);
-}
-
-void gfx::CommandList::BindVertexBuffer(StagingBuffer* staging_buffer)
-{
-	std::vector<VkBuffer> buffers = { staging_buffer->m_buffer };
-	std::vector<VkDeviceSize> offsets = { 0 };
+	std::vector<VkBuffer> buffers = { buffer->m_buffer };
+	std::vector<VkDeviceSize> offsets = { offset };
 	vkCmdBindVertexBuffers(m_cmd_buffers[m_frame_idx], 0, buffers.size(), buffers.data(), offsets.data());
 }
 
-void gfx::CommandList::BindIndexBuffer(StagingBuffer* staging_buffer)
+void gfx::CommandList::BindIndexBuffer(GPUBuffer* buffer, std::uint64_t stride, std::uint64_t offset)
 {
-	VkDeviceSize offset = { 0 };
-	vkCmdBindIndexBuffer(m_cmd_buffers[m_frame_idx], staging_buffer->m_buffer, offset, staging_buffer->m_stride == 4 ? VkIndexType::VK_INDEX_TYPE_UINT32 : VkIndexType::VK_INDEX_TYPE_UINT16);
+	vkCmdBindIndexBuffer(m_cmd_buffers[m_frame_idx], buffer->m_buffer, offset, stride == 4 ? VkIndexType::VK_INDEX_TYPE_UINT32 : VkIndexType::VK_INDEX_TYPE_UINT16);
 }
 
 void gfx::CommandList::BindDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets)
@@ -171,23 +178,18 @@ void gfx::CommandList::BindDescriptorHeap(RootSignature* root_signature, std::ve
 		descriptor_sets[i] = sets[i].first->m_descriptor_sets[m_frame_idx % versions][sets[i].second];
 	}
 
-	vkCmdBindDescriptorSets(m_cmd_buffers[m_frame_idx], VK_PIPELINE_BIND_POINT_GRAPHICS, root_signature->m_pipeline_layout,
+	vkCmdBindDescriptorSets(m_cmd_buffers[m_frame_idx], m_current_bind_point, root_signature->m_pipeline_layout,
 	                        0, descriptor_sets.size(), descriptor_sets.data(), 0, nullptr);
 }
 
-// TODO: Duplicate with binddescriptorheap
-void gfx::CommandList::BindComputeDescriptorHeap(RootSignature* root_signature, std::vector<std::pair<DescriptorHeap*, std::uint32_t>> sets)
+void gfx::CommandList::BindTaskPushConstants(RootSignature* root_signature, void* data, std::uint32_t size)
 {
-	std::vector<VkDescriptorSet> descriptor_sets(sets.size());
+	vkCmdPushConstants(m_cmd_buffers[m_frame_idx], root_signature->m_pipeline_layout, VK_SHADER_STAGE_TASK_BIT_NV, 0, size, data);
+}
 
-	for (std::size_t i = 0; i < sets.size(); i++)
-	{
-		auto versions = sets[i].first->m_descriptor_sets.size();
-		descriptor_sets[i] = sets[i].first->m_descriptor_sets[m_frame_idx % versions][sets[i].second];
-	}
-
-	vkCmdBindDescriptorSets(m_cmd_buffers[m_frame_idx], VK_PIPELINE_BIND_POINT_COMPUTE, root_signature->m_pipeline_layout,
-	                        0, descriptor_sets.size(), descriptor_sets.data(), 0, nullptr);
+void gfx::CommandList::BindRaygenPushConstants(RootSignature* root_signature, void* data, std::uint32_t size)
+{
+	vkCmdPushConstants(m_cmd_buffers[m_frame_idx], root_signature->m_pipeline_layout, VK_SHADER_STAGE_RAYGEN_BIT_NV, 0, size, data);
 }
 
 void gfx::CommandList::BindComputePushConstants(RootSignature* root_signature, void* data, std::uint32_t size)
@@ -202,6 +204,15 @@ void gfx::CommandList::StageBuffer(StagingBuffer* staging_buffer)
 	copy_region.dstOffset = 0;
 	copy_region.size = staging_buffer->m_size;
 	vkCmdCopyBuffer(m_cmd_buffers[m_frame_idx], staging_buffer->m_staging_buffer, staging_buffer->m_buffer, 1, &copy_region);
+}
+
+void gfx::CommandList::StageBuffer(GPUBuffer* buffer, GPUBuffer* staging_buffer, std::uint64_t offset)
+{
+	VkBufferCopy copy_region = {};
+	copy_region.srcOffset = 0;
+	copy_region.dstOffset = offset;
+	copy_region.size = staging_buffer->m_size;
+	vkCmdCopyBuffer(m_cmd_buffers[m_frame_idx], staging_buffer->m_buffer, buffer->m_buffer, 1, &copy_region);
 }
 
 void gfx::CommandList::StageTexture(StagingTexture* texture)
@@ -692,6 +703,32 @@ void gfx::CommandList::DrawIndexed(std::uint32_t idx_count, std::uint32_t instan
 void gfx::CommandList::Dispatch(std::uint32_t tg_count_x, std::uint32_t tg_count_y, std::uint32_t tg_count_z)
 {
 	vkCmdDispatch(m_cmd_buffers[m_frame_idx], tg_count_x, tg_count_y, tg_count_z);
+}
+
+void gfx::CommandList::DispatchRays(ShaderTable* raygen_table, ShaderTable* miss_table, ShaderTable* hit_table, std::uint32_t width, std::uint32_t height, std::uint32_t depth)
+{
+	auto rt_properties = m_context->GetRayTracingDeviceProperties();
+	auto shader_group_handle_size = rt_properties.shaderGroupHandleSize;
+
+	// TODO: Temporary
+	VkDeviceSize raygen_offset = raygen_table->m_shader_record_size * 0;
+	VkDeviceSize miss_offset = miss_table->m_shader_record_size * 1;
+	VkDeviceSize hit_offset = hit_table->m_shader_record_size * 3;
+
+	//raygen_offset = miss_offset = hit_offset = 0;
+
+	auto binding_stride = shader_group_handle_size;
+
+	auto raygen_buffer = raygen_table->m_buffer->m_buffer;
+	auto miss_buffer = miss_table->m_buffer->m_buffer;
+	auto hit_buffer = hit_table->m_buffer->m_buffer;
+
+	Context::vkCmdTraceRaysNV(m_cmd_buffers[m_frame_idx],
+		raygen_buffer, raygen_offset,
+		miss_buffer, miss_offset, binding_stride,
+		hit_buffer, hit_offset, binding_stride,
+		VK_NULL_HANDLE, 0, 0,
+		width, height, depth);
 }
 
 void gfx::CommandList::DrawMesh(std::uint32_t count, std::uint32_t first)

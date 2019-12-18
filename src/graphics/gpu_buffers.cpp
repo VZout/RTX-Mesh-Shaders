@@ -60,12 +60,12 @@ gfx::GPUBuffer::GPUBuffer(gfx::Context* context, std::optional<MemoryPool*> pool
 {
 }
 
-gfx::GPUBuffer::GPUBuffer(Context* context, std::optional<MemoryPool*> pool, std::uint64_t size, enums::BufferUsageFlag usage)
+gfx::GPUBuffer::GPUBuffer(Context* context, std::optional<MemoryPool*> pool, std::uint64_t size, enums::BufferUsageFlag usage, VmaMemoryUsage memory_usage)
 	: m_context(context), m_pool(pool), m_size(size), m_mapped(false), m_mapped_data(nullptr), m_buffer(VK_NULL_HANDLE),
 	m_buffer_allocation(VK_NULL_HANDLE)
 {
 	// Create default buffer
-	CreateBufferAndMemory(m_pool, m_size, (int)usage, VMA_MEMORY_USAGE_CPU_TO_GPU,
+	CreateBufferAndMemory(m_pool, m_size, (int)usage, memory_usage,
 	                      m_buffer, m_buffer_allocation);
 }
 
@@ -76,6 +76,19 @@ gfx::GPUBuffer::GPUBuffer(Context* context, std::optional<MemoryPool*> pool, voi
 	// Create default buffer
 	CreateBufferAndMemory(m_pool, m_size, (int)usage, VMA_MEMORY_USAGE_CPU_TO_GPU,
 	                      m_buffer, m_buffer_allocation);
+
+	Map();
+	Update(data, m_size);
+	Unmap();
+}
+
+gfx::GPUBuffer::GPUBuffer(Context* context, std::optional<MemoryPool*> pool, void* data, std::uint64_t size, std::uint64_t stride, enums::BufferUsageFlag usage, VmaMemoryUsage memory_usage)
+	: m_context(context), m_pool(pool), m_size(size* stride), m_mapped(false), m_mapped_data(nullptr), m_buffer(VK_NULL_HANDLE),
+	m_buffer_allocation(VK_NULL_HANDLE)
+{
+	// Create default buffer
+	CreateBufferAndMemory(m_pool, m_size, (int)usage, memory_usage,
+		m_buffer, m_buffer_allocation);
 
 	Map();
 	Update(data, m_size);

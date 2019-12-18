@@ -11,9 +11,15 @@
 #include "application.hpp"
 #include "scene_graph/scene_graph.hpp"
 
-FPSCamera::FPSCamera(Settings settings)
-	: m_settings(settings), m_kb_axis(0), m_rmb(false), m_last_mouse_pos(0)
+FPSCamera::FPSCamera(std::optional<Settings> settings)
+	: m_kb_axis(0), m_rmb(false), m_last_mouse_pos(0)
 {
+	if (settings.has_value())
+	{
+
+	} else{
+		m_settings = Settings();
+	}
 }
 
 void FPSCamera::Update(float delta)

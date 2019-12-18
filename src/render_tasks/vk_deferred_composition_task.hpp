@@ -150,8 +150,8 @@ namespace tasks
 				{ data.m_gbuffer_heap, data.m_brdf_set },
 			};
 
-			cmd_list->BindComputePipelineState(data.m_pipeline);
-			cmd_list->BindComputeDescriptorHeap(data.m_root_sig, sets);
+			cmd_list->BindPipelineState(data.m_pipeline);
+			cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
 			cmd_list->Dispatch(render_target->GetWidth() / 16, render_target->GetHeight() / 16, 1);
 		}
 

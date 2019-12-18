@@ -13,6 +13,8 @@
 #include "gfx_settings.hpp"
 #include "shader.hpp"
 
+#include <array>
+
 gfx::PipelineState::PipelineState(Context* context, Desc desc)
 	: m_context(context), m_desc(desc),
 	m_vertex_input_info(),
@@ -39,7 +41,7 @@ gfx::PipelineState::PipelineState(Context* context, Desc desc)
 	m_raster_info.depthClampEnable = VK_FALSE;
 	m_raster_info.rasterizerDiscardEnable = VK_FALSE;
 	m_raster_info.polygonMode = VK_POLYGON_MODE_FILL;
-	m_raster_info.lineWidth = 1.0f;
+	m_raster_info.lineWidth = 2.0f;
 	m_raster_info.cullMode = gfx::settings::cull_mode;
 	m_raster_info.frontFace = m_desc.m_counter_clockwise ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE;
 	m_raster_info.depthBiasEnable = VK_FALSE;
@@ -124,6 +126,24 @@ void gfx::PipelineState::SetInputLayout(InputLayout const & input_layout)
 
 void gfx::PipelineState::Compile()
 {
+	if (m_desc.m_type == enums::PipelineType::RAYTRACING_PIPE)
+	{
+		CompileRaytracing();
+	}
+	else
+	{
+		CompileGeneric();
+	}
+}
+
+void gfx::PipelineState::Recompile()
+{
+	Cleanup();
+	Compile();
+}
+
+void gfx::PipelineState::CompileGeneric()
+{
 	auto logical_device = m_context->m_logical_device;
 
 	if (m_desc.m_depth_format != VK_FORMAT_UNDEFINED || !m_desc.m_rtv_formats.empty())
@@ -148,27 +168,27 @@ void gfx::PipelineState::Compile()
 
 	if (m_desc.m_type == enums::PipelineType::GRAPHICS_PIPE)
 	{
-		VkGraphicsPipelineCreateInfo m_create_info = {};
-		m_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		m_create_info.stageCount = m_shader_info.size();
-		m_create_info.pStages = m_shader_info.data();
-		m_create_info.pVertexInputState = &m_vertex_input_info;
-		m_create_info.pInputAssemblyState = &m_ia_info;
-		m_create_info.pViewportState = &m_viewport_info;
-		m_create_info.pRasterizationState = &m_raster_info;
-		m_create_info.pMultisampleState = &m_ms_info;
-		m_create_info.pDepthStencilState =
-				m_desc.m_depth_format != VK_FORMAT_UNDEFINED ? &m_depth_stencil_info : nullptr;
-		m_create_info.pColorBlendState = &m_color_blend_info;
-		m_create_info.pDynamicState = nullptr;
-		m_create_info.layout = m_root_signature->m_pipeline_layout;
-		m_create_info.renderPass = m_render_pass;
-		m_create_info.subpass = 0;
-		m_create_info.basePipelineHandle = VK_NULL_HANDLE;
-		m_create_info.basePipelineIndex = -1;
-		m_create_info.flags = 0;
+		VkGraphicsPipelineCreateInfo create_info = {};
+		create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		create_info.stageCount = m_shader_info.size();
+		create_info.pStages = m_shader_info.data();
+		create_info.pVertexInputState = &m_vertex_input_info;
+		create_info.pInputAssemblyState = &m_ia_info;
+		create_info.pViewportState = &m_viewport_info;
+		create_info.pRasterizationState = &m_raster_info;
+		create_info.pMultisampleState = &m_ms_info;
+		create_info.pDepthStencilState =
+			m_desc.m_depth_format != VK_FORMAT_UNDEFINED ? &m_depth_stencil_info : nullptr;
+		create_info.pColorBlendState = &m_color_blend_info;
+		create_info.pDynamicState = nullptr;
+		create_info.layout = m_root_signature->m_pipeline_layout;
+		create_info.renderPass = m_render_pass;
+		create_info.subpass = 0;
+		create_info.basePipelineHandle = VK_NULL_HANDLE;
+		create_info.basePipelineIndex = -1;
+		create_info.flags = 0;
 
-		if (vkCreateGraphicsPipelines(logical_device, VK_NULL_HANDLE, 1, &m_create_info, nullptr, &m_pipeline)
+		if (vkCreateGraphicsPipelines(logical_device, VK_NULL_HANDLE, 1, &create_info, nullptr, &m_pipeline)
 			!= VK_SUCCESS)
 		{
 			LOGC("failed to create graphics pipeline!");
@@ -176,15 +196,15 @@ void gfx::PipelineState::Compile()
 	}
 	else if (m_desc.m_type == enums::PipelineType::COMPUTE_PIPE)
 	{
-		VkComputePipelineCreateInfo m_create_info = {};
-		m_create_info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-		m_create_info.layout = m_root_signature->m_pipeline_layout;
-		m_create_info.basePipelineHandle = VK_NULL_HANDLE;
-		m_create_info.basePipelineIndex = -1;
-		m_create_info.stage = m_shader_info[0];
-		m_create_info.flags = 0;
+		VkComputePipelineCreateInfo create_info = {};
+		create_info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+		create_info.layout = m_root_signature->m_pipeline_layout;
+		create_info.basePipelineHandle = VK_NULL_HANDLE;
+		create_info.basePipelineIndex = -1;
+		create_info.stage = m_shader_info[0];
+		create_info.flags = 0;
 
-		if (vkCreateComputePipelines(logical_device, VK_NULL_HANDLE, 1, &m_create_info, nullptr, &m_pipeline)
+		if (vkCreateComputePipelines(logical_device, VK_NULL_HANDLE, 1, &create_info, nullptr, &m_pipeline)
 			!= VK_SUCCESS)
 		{
 			LOGC("failed to create compute pipeline!");
@@ -196,10 +216,24 @@ void gfx::PipelineState::Compile()
 	}
 }
 
-void gfx::PipelineState::Recompile()
+void gfx::PipelineState::CompileRaytracing()
 {
-	Cleanup();
-	Compile();
+	auto logical_device = m_context->m_logical_device;
+
+	VkRayTracingPipelineCreateInfoNV create_info = {};
+	create_info.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_NV;
+	create_info.layout = m_root_signature->m_pipeline_layout;
+	create_info.stageCount = m_shader_info.size();
+	create_info.pStages = m_shader_info.data();
+	create_info.maxRecursionDepth = m_desc.m_raytracing_desc.m_recursion_depth;
+	create_info.groupCount = m_desc.m_raytracing_desc.m_shader_groups.size();
+	create_info.pGroups = m_desc.m_raytracing_desc.m_shader_groups.data();
+	
+	if (Context::vkCreateRayTracingPipelinesNV(logical_device, VK_NULL_HANDLE, 1, &create_info, nullptr, &m_pipeline)
+		!= VK_SUCCESS)
+	{
+		LOGC("failed to create raytracing pipeline!");
+	}
 }
 
 // This is inneficient because we create 2 render passess for everything. But this brings us closer to DX12 behaviour.

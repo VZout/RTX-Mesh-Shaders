@@ -8,6 +8,7 @@
 #include "imgui/imgui_style.hpp"
 
 #include <util/log.hpp>
+#include <util/cpu_profiler.hpp>
 
 Editor::Editor()
 	: m_show_main_menu(true), m_editor_visibility(true)
@@ -82,6 +83,8 @@ void Editor::RegisterModal(const std::string& name, modal_func_t modal_func)
 
 void Editor::Render()
 {
+	TIME_THIS_SCOPE(Editor_Render);
+
 	if (!m_editor_visibility) return;
 
 	// Render the menu bar

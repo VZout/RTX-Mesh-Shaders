@@ -46,6 +46,7 @@ Renderer::~Renderer()
 	DestroyRegistry<ShaderRegistry>();
 	DestroyRegistry<RootSignatureRegistry>();
 	DestroyRegistry<PipelineRegistry>();
+	DestroyRegistry<RTPipelineRegistry>();
 
 	delete m_viewport;
 	for (auto& fence : m_present_fences)
@@ -66,23 +67,6 @@ void Renderer::Init(Application* app)
 	m_application = app;
 	m_context = new gfx::Context(app);
 
-	auto supported_extensions = m_context->GetSupportedExtensions();
-	auto supported_device_extensions = m_context->GetSupportedDeviceExtensions();
-
-	auto print_extensions_func = [](auto extensions)
-	{
-		for (auto extension : extensions)
-		{
-			LOG("\t- {} ({})", extension.extensionName, std::to_string(extension.specVersion));
-		}
-	};
-
-	LOG("Supported Instance Extensions:");
-	print_extensions_func(supported_extensions);
-
-	LOG("Supported Device Extensions:");
-	print_extensions_func(supported_device_extensions);
-
 	LOG("Initialized Vulkan");
 
 	m_viewport = new gfx::Viewport(app->GetWidth(), app->GetHeight());
@@ -90,6 +74,7 @@ void Renderer::Init(Application* app)
 	PrepareShaderRegistry();
 	PrepareRootSignatureRegistry();
 	PreparePipelineRegistry();
+	PrepareRaytracingPipelineRegistry();
 
 	m_render_window = new gfx::RenderWindow(m_context);
 	m_direct_queue = new gfx::CommandQueue(m_context, gfx::CommandQueueType::DIRECT);
@@ -132,9 +117,6 @@ void Renderer::Render(sg::SceneGraph& sg, fg::FrameGraph& fg)
 {
 	auto frame_idx = m_render_window->GetFrameIdx();
 
-	m_present_fences[frame_idx]->Wait();
-	m_render_window->AquireBackBuffer(m_present_fences[frame_idx]);
-
 	fg.Execute(sg);
 
 	auto fg_cmd_lists = fg.GetAllCommandLists<gfx::CommandList>();
@@ -143,18 +125,29 @@ void Renderer::Render(sg::SceneGraph& sg, fg::FrameGraph& fg)
 	m_render_window->Present(m_direct_queue, m_present_fences[frame_idx]);
 }
 
+void Renderer::AquireNewFrame()
+{
+	auto frame_idx = m_render_window->GetFrameIdx();
+
+	m_present_fences[frame_idx]->Wait();
+	m_render_window->AquireBackBuffer(m_present_fences[frame_idx]);
+}
+
 void Renderer::WaitForAllPreviousWork()
 {
 	m_context->WaitForDevice();
 }
 
-void Renderer::Resize(std::uint32_t width, std::uint32_t height)
+void Renderer::Resize(std::uint32_t width, std::uint32_t height, bool resize_render_window)
 {
 	WaitForAllPreviousWork();
 
 	m_viewport->Resize(width, height);
 
-	m_render_window->Resize(width, height);
+	if (resize_render_window)
+	{
+		m_render_window->Resize(width, height);
+	}
 	// TODO: REMOVE THIS. use dyn viewport instead.
 	PipelineRegistry::SFind(pipelines::basic)->Recompile();
 	PipelineRegistry::SFind(pipelines::basic_mesh)->Recompile();
@@ -242,6 +235,36 @@ void Renderer::PreparePipelineRegistry()
 		}
 		if (desc.m_input_layout.has_value()) ps->SetInputLayout(desc.m_input_layout.value());
 		ps->SetViewport(m_viewport);
+		ps->Compile();
+		objects.push_back(ps);
+	}
+}
+
+void Renderer::PrepareRaytracingPipelineRegistry()
+{
+	auto& registry = RTPipelineRegistry::Get();
+	auto& rs_registry = RootSignatureRegistry::Get();
+	auto& s_registry = ShaderRegistry::Get();
+	auto const& descs = registry.GetDescriptions();
+	auto& objects = registry.GetObjects();
+
+	for (auto const& desc : descs)
+	{
+		gfx::PipelineState::Desc n_desc;
+		n_desc.m_type = gfx::enums::PipelineType::RAYTRACING_PIPE;
+
+		gfx::PipelineState::RTDesc n_rt_desc;
+		n_rt_desc.m_recursion_depth = desc.m_recursion_depth;
+		n_rt_desc.m_shader_groups = desc.m_shader_groups;
+
+		n_desc.m_raytracing_desc = n_rt_desc;
+
+		auto ps = new gfx::PipelineState(m_context, n_desc);
+		ps->SetRootSignature(rs_registry.Find(desc.m_root_signature_handle));
+		for (auto const& shader_handle : desc.m_shader_handles)
+		{
+			ps->AddShader(s_registry.Find(shader_handle));
+		}
 		ps->Compile();
 		objects.push_back(ps);
 	}

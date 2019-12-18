@@ -25,12 +25,12 @@ static const float sphere_spacing = 2.1f * sphere_scale;
 static const unsigned int split = 5;
 
 SpheresScene::SpheresScene() :
-	Scene("Spheres Scene")
+	Scene("Spheres Scene", "spheres_scene.json")
 {
 
 }
 
-void SpheresScene::LoadResources()
+void SpheresScene::LoadResources(std::optional<std::reference_wrapper<util::Progress>> progress)
 {
 	m_sphere_model = m_model_pool->LoadWithMaterials<Vertex>("sphere.fbx", m_material_pool, m_texture_pool, false);
 
@@ -111,9 +111,19 @@ void SpheresScene::LoadResources()
 			i++;
 		}
 	}
+
+	// Light Sphere Material
+	MaterialData sphere_mat{};
+	sphere_mat.m_base_color[0] = 10;
+	sphere_mat.m_base_color[1] = 10;
+	sphere_mat.m_base_color[2] = 10;
+	sphere_mat.m_base_roughness = 1.f;
+	sphere_mat.m_base_metallic = 0;;
+	sphere_mat.m_base_reflectivity = 0.5f;
+	m_light_sphere_material = m_material_pool->Load(sphere_mat, m_texture_pool);
 }
 
-void SpheresScene::BuildScene()
+void SpheresScene::BuildScene(std::optional<std::reference_wrapper<util::Progress>> progress)
 {
 	// Create Camera
 	m_camera_node = m_scene_graph->CreateNode<sg::CameraComponent>();
@@ -142,6 +152,11 @@ void SpheresScene::BuildScene()
 	m_light_node = m_scene_graph->CreateNode<sg::LightComponent>(cb::LightType::POINT, glm::vec3(20, 20, 20));
 	sg::helper::SetPosition(m_scene_graph, m_light_node, glm::vec3(0, 0, 2));
 	sg::helper::SetRadius(m_scene_graph, m_light_node, 4);
+
+	// Create Light Sphere
+	m_light_sphere_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_sphere_model);
+	sg::helper::SetScale(m_scene_graph, m_light_sphere_node, glm::vec3(0.1f));
+	sg::helper::SetMaterial(m_scene_graph, m_light_sphere_node, { m_light_sphere_material });
 }
 
 void SpheresScene::Update_Impl(float delta, float time)
@@ -150,4 +165,5 @@ void SpheresScene::Update_Impl(float delta, float time)
 	float light_x = sin(time * 2) * 2;
 	float light_y = cos(time * 2) * 2;
 	sg::helper::SetPosition(m_scene_graph, m_light_node, glm::vec3(light_x, light_y, 2));
+	sg::helper::SetPosition(m_scene_graph, m_light_sphere_node, glm::vec3(light_x, light_y, 2));
 }

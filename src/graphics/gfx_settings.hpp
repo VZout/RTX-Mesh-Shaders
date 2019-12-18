@@ -25,13 +25,16 @@ namespace gfx::settings
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 		VK_NV_MESH_SHADER_EXTENSION_NAME,
 		VK_NV_RAY_TRACING_EXTENSION_NAME,
-		
+		VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME,
+		VK_KHR_8BIT_STORAGE_EXTENSION_NAME,
 	};
-	static const std::uint32_t num_back_buffers = 2;
+	static const std::uint32_t num_back_buffers = 3;
 	static const VkFormat swapchain_format = VK_FORMAT_B8G8R8A8_UNORM;
 	static const VkPresentModeKHR swapchain_present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
 	static const VkColorSpaceKHR swapchain_color_space = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-	static const VkCullModeFlags cull_mode = VK_CULL_MODE_BACK_BIT;
-	static const std::uint32_t max_lights = 50;
-	static const std::uint32_t max_render_batch_size = 100;
+	static const VkCullModeFlags cull_mode = VK_CULL_MODE_NONE;
+	static const std::uint32_t max_lights = 25;
+	static const std::uint32_t max_render_batch_size = 700;
+	static const std::uint32_t max_num_rtx_materials = 2000;
+	static const std::uint32_t max_num_rtx_textures = 100;
 }

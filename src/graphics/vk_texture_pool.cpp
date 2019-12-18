@@ -120,3 +120,15 @@ std::vector<gfx::StagingTexture*> gfx::VkTexturePool::GetTextures(std::vector<st
 
 	return textures;
 }
+
+std::vector<gfx::StagingTexture*> gfx::VkTexturePool::GetAllTexturesPadded(std::uint32_t num)
+{
+	std::vector<gfx::StagingTexture*> all_textures;
+	for (auto& texture : m_staged_textures)
+	{
+		all_textures.push_back(texture.second);
+	}
+	all_textures.resize(num, m_staged_textures.begin()->second);
+
+	return all_textures;
+}

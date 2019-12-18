@@ -22,6 +22,8 @@ namespace gfx
 		explicit VkConstantBufferPool(Context* context, std::size_t buffer_size, std::size_t num_buffers, std::uint32_t binding, VkShaderStageFlags flags = VK_SHADER_STAGE_VERTEX_BIT);
 		~VkConstantBufferPool() final;
 
+		void Flush(std::uint32_t frame_idx) final;
+
 		std::vector<std::uint32_t> CreateConstantBufferSet(std::vector<ConstantBufferHandle> handles) final;
 		void Update(ConstantBufferHandle handle, std::uint64_t size, void* data, std::uint32_t frame_idx, std::uint64_t offset = 0) final;
 

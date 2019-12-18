@@ -65,7 +65,7 @@ public:
 		}
 	};
 
-	FPSCamera(Settings settings = {});
+	FPSCamera(std::optional<Settings> settings = std::nullopt);
 
 	void Update(float delta);
 	void HandleKeyboardInput(int key, int action);

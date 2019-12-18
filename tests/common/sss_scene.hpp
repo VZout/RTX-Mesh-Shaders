@@ -14,13 +14,16 @@ public:
 	SubsurfaceScene();
 
 private:
-	void LoadResources() final;
-	void BuildScene() final;
+	void LoadResources(std::optional<std::reference_wrapper<util::Progress>> progress) final;
+	void BuildScene(std::optional<std::reference_wrapper<util::Progress>> progress) final;
 	void Update_Impl(float delta, float time) final;
 
 	ModelHandle m_bodybuilder_model;
 	ModelHandle m_cube_model;
+	ModelHandle m_sphere_model;
+	sg::NodeHandle m_light_sphere_node;
 	sg::NodeHandle m_light_node;
 	MaterialHandle m_bodybuilder_material;
 	MaterialHandle m_cube_material;
+	MaterialHandle m_light_sphere_material;
 };

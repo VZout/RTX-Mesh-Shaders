@@ -15,13 +15,14 @@ SubsurfaceScene::SubsurfaceScene() :
 
 }
 
-void SubsurfaceScene::LoadResources()
+void SubsurfaceScene::LoadResources(std::optional<std::reference_wrapper<util::Progress>> progress)
 {
 	m_bodybuilder_model = m_model_pool->LoadWithMaterials<Vertex>("bigdude_custom/PBR - Metallic Roughness SSS.gltf", m_material_pool, m_texture_pool, false);
 	m_cube_model = m_model_pool->LoadWithMaterials<Vertex>("cube.fbx", m_material_pool, m_texture_pool, false);
+	m_sphere_model = m_model_pool->LoadWithMaterials<Vertex>("sphere.fbx", m_material_pool, m_texture_pool, false);
 }
 
-void SubsurfaceScene::BuildScene()
+void SubsurfaceScene::BuildScene(std::optional<std::reference_wrapper<util::Progress>> progress)
 {
 	STBImageLoader* img_loader = new STBImageLoader();
 
@@ -42,6 +43,16 @@ void SubsurfaceScene::BuildScene()
 	mat.m_normal_map_texture = *img_loader->Load("bigdude_custom/blinn1SG_normal.png");
 	m_bodybuilder_material = m_material_pool->Load(mat, m_texture_pool);
 
+	// Light Sphere Material
+	MaterialData sphere_mat{};
+	sphere_mat.m_base_color[0] = 10;
+	sphere_mat.m_base_color[1] = 10;
+	sphere_mat.m_base_color[2] = 10;
+	sphere_mat.m_base_roughness = 1.f;
+	sphere_mat.m_base_metallic = 0;;
+	sphere_mat.m_base_reflectivity = 0.5f;
+	m_light_sphere_material = m_material_pool->Load(sphere_mat, m_texture_pool);
+
 	// Cube Material
 	MaterialData jelly_mat{};
 	jelly_mat.m_base_color[0] = 0;
@@ -55,7 +66,6 @@ void SubsurfaceScene::BuildScene()
 
 	// Create Bodybuilder
 	auto bodybuilder_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_bodybuilder_model);
-	sg::helper::SetPosition(m_scene_graph, bodybuilder_node, {});
 	sg::helper::SetScale(m_scene_graph, bodybuilder_node, glm::vec3(2));
 	sg::helper::SetMaterial(m_scene_graph, bodybuilder_node, { m_bodybuilder_material, m_bodybuilder_material });
 
@@ -76,6 +86,11 @@ void SubsurfaceScene::BuildScene()
 	// Create Light
 	m_light_node = m_scene_graph->CreateNode<sg::LightComponent>(cb::LightType::POINT, glm::vec3(15, 15, 15));
 	sg::helper::SetRadius(m_scene_graph, m_light_node, 4);
+
+	// Create Light Sphere
+	m_light_sphere_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_sphere_model);
+	sg::helper::SetScale(m_scene_graph, m_light_sphere_node, glm::vec3(0.1f));
+	sg::helper::SetMaterial(m_scene_graph, m_light_sphere_node, { m_light_sphere_material });
 }
 
 void SubsurfaceScene::Update_Impl(float delta, float time)
@@ -83,4 +98,5 @@ void SubsurfaceScene::Update_Impl(float delta, float time)
 	// animate light
 	float light_x = sin(time * 2) * 4;
 	sg::helper::SetPosition(m_scene_graph, m_light_node, glm::vec3(light_x, 0, -1.5));
+	sg::helper::SetPosition(m_scene_graph, m_light_sphere_node, glm::vec3(light_x, 0, -1.5));
 }

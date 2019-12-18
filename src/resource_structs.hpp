@@ -30,11 +30,12 @@ struct MaterialData
 	TextureData m_normal_map_texture;
 	TextureData m_emissive_texture;
 	TextureData m_thickness_texture;
+	TextureData m_displacement_texture;
 
-	float m_base_color[3] = { -1, -1, -1 };
+	glm::vec3 m_base_color = { -1, -1, -1 };
 	float m_base_metallic = -1;
 	float m_base_roughness = -1;
-	float m_base_reflectivity = -1;
+	float m_base_reflectivity = 0.5f;
 	float m_base_transparency = -1;
 	float m_base_emissive = -1;
 	float m_base_normal_strength = 1;
@@ -42,11 +43,13 @@ struct MaterialData
 	glm::vec2 m_base_anisotropy_dir = { 1, 0 };
 	float m_base_clear_coat = 0;
 	float m_base_clear_coat_roughness = 0;
+	glm::vec2 m_base_uv_scale = { 1, 1 };
 };
 
 struct ExtraMaterialData
 {
 	std::vector<const char*> m_thickness_texture_paths;
+	std::vector<const char*> m_displacement_texture_paths;
 };
 
 struct MeshData
@@ -56,9 +59,6 @@ struct MeshData
 	std::vector<glm::vec3> m_uvw;
 	std::vector<glm::vec3> m_tangents;
 	std::vector<glm::vec3> m_bitangents;
-
-	//std::vector<glm::vec4> m_bone_weights;
-	//std::vector<glm::vec4> m_bone_ids;
 
 	std::vector<unsigned char> m_indices;
 	std::size_t m_num_indices;

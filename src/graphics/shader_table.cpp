@@ -7,44 +7,55 @@
 #include "shader_table.hpp"
 
 #include "context.hpp"
+#include "pipeline_state.hpp"
 #include "gpu_buffers.hpp"
 
-template<typename T, typename A>
-constexpr inline T SizeAlignTwoPower(T size, A alignment)
-{
-	return (size + (alignment - 1U)) & ~(alignment - 1U);
-}
-
-gfx::ShaderTable::ShaderTable(Context* context, std::uint64_t num_shader_records, std::uint64_t shader_record_size)
-	: m_shader_record_size(shader_record_size), m_context(context)
+gfx::ShaderTable::ShaderTable(Context* context, std::uint64_t num_shader_records)
+	: m_context(context)
 {
 	auto rt_properties = context->GetRayTracingDeviceProperties();
+	m_shader_record_size = rt_properties.shaderGroupHandleSize;
 
-	m_shader_record_size = SizeAlignTwoPower(shader_record_size, rt_properties.shaderGroupBaseAlignment);
+	m_buffer_size = m_shader_record_size * num_shader_records;
 	m_shader_records.reserve(num_shader_records);
 
 	CreateBuffer();
-
-	auto data = (std::uint8_t*) m_buffer->m_mapped_data;
-
-	// TODO: Replace nullptr and the indices with a enumerator.
-	data += CopyShaderIdentifier(data, nullptr, 0);
-	data += CopyShaderIdentifier(data, nullptr, 1);
-	data += CopyShaderIdentifier(data, nullptr, 2);
 }
 
-std::uint64_t gfx::ShaderTable::CopyShaderIdentifier(uint8_t* data, const uint8_t* shader_handle_storage, uint32_t group_index)
+gfx::ShaderTable::~ShaderTable()
 {
-	auto rt_properties = m_context->GetRayTracingDeviceProperties();
+	delete m_buffer;
+}
 
-	const uint32_t shader_group_handle_size = rt_properties.shaderGroupHandleSize;
-	memcpy(data, shader_handle_storage + group_index * shader_group_handle_size, shader_group_handle_size);
-	data += shader_group_handle_size;
-	return shader_group_handle_size;
+std::uint64_t gfx::ShaderTable::CopyShaderIdentifier(uint8_t* data, const uint8_t* shader_handle_storage, std::uint32_t group_index)
+{
+	memcpy(data, shader_handle_storage + group_index * m_shader_record_size, m_shader_record_size);
+	return m_shader_record_size;
+}
+
+void gfx::ShaderTable::AddShaderRecord(PipelineState* pipeline_state, std::uint32_t first_group, std::uint32_t num_groups)
+{
+	auto logical_device = m_context->m_logical_device;
+
+	auto shader_record_storage = new uint8_t[m_shader_record_size * num_groups];
+
+	if (Context::vkGetRayTracingShaderGroupHandlesNV(logical_device, pipeline_state->m_pipeline,
+		first_group, num_groups, m_shader_record_size * num_groups, shader_record_storage) != VK_SUCCESS)
+	{
+		LOGE("Failed to get ray tracing shader group handles.");
+	}
+
+	auto data = static_cast<std::uint8_t*>(m_buffer->m_mapped_data);
+	for (auto i = 0; i < num_groups; i++)
+	{
+		m_offset += CopyShaderIdentifier(data + m_offset, shader_record_storage, first_group + i);
+	}
+
+	delete[] shader_record_storage;
 }
 
 void gfx::ShaderTable::CreateBuffer()
 {
-	m_buffer = new GPUBuffer(m_context, std::nullopt, m_shader_record_size, gfx::enums::BufferUsageFlag::RAYTRACING);
+	m_buffer = new GPUBuffer(m_context, std::nullopt, m_buffer_size, gfx::enums::BufferUsageFlag::RAYTRACING);
 	m_buffer->Map();
 }

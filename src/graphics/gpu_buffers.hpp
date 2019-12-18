@@ -42,10 +42,13 @@ namespace gfx
 		friend class DescriptorHeap;
 		friend class ShaderTable;
 		friend class ::ImGuiImpl;
+		friend class VkConstantBufferPool;
+		friend class AccelerationStructure;
 	public:
 		GPUBuffer(Context* context, std::optional<MemoryPool*> pool, std::uint64_t size);
-		GPUBuffer(Context* context, std::optional<MemoryPool*> pool, std::uint64_t size, enums::BufferUsageFlag usage);
+		GPUBuffer(Context* context, std::optional<MemoryPool*> pool, std::uint64_t size, enums::BufferUsageFlag usage, VmaMemoryUsage memory_usage = VMA_MEMORY_USAGE_CPU_TO_GPU);
 		GPUBuffer(Context* context, std::optional<MemoryPool*> pool, void* data, std::uint64_t size, std::uint64_t stride, enums::BufferUsageFlag usage);
+		GPUBuffer(Context* context, std::optional<MemoryPool*> pool, void* data, std::uint64_t size, std::uint64_t stride, enums::BufferUsageFlag usage, VmaMemoryUsage memory_usage);
 		virtual ~GPUBuffer();
 
 		virtual void Map();
@@ -71,6 +74,7 @@ namespace gfx
 	class StagingBuffer : public GPUBuffer
 	{
 		friend class CommandList;
+		friend class AccelerationStructure;
 	public:
 		StagingBuffer(Context* context, std::optional<MemoryPool*> pool, std::optional<MemoryPool*> staging_pool, void* data, std::uint64_t size, std::uint64_t stride, enums::BufferUsageFlag usage);
 		~StagingBuffer() final;

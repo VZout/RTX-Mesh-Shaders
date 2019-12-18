@@ -14,13 +14,15 @@ public:
 	SpheresScene();
 
 private:
-	void LoadResources() final;
-	void BuildScene() final;
+	void LoadResources(std::optional<std::reference_wrapper<util::Progress>> progress) final;
+	void BuildScene(std::optional<std::reference_wrapper<util::Progress>> progress) final;
 	void Update_Impl(float delta, float time) final;
 
 	ModelHandle m_sphere_model;
 	std::vector<sg::NodeHandle> m_sphere_nodes;
 	std::vector<MaterialHandle> m_sphere_material_handles;
 	std::vector<MaterialData> m_sphere_materials;
+	MaterialHandle m_light_sphere_material;
 	sg::NodeHandle m_light_node;
+	sg::NodeHandle m_light_sphere_node;
 };

@@ -6,16 +6,19 @@
 
 #include "scene_graph.hpp"
 
+#include "../util/bitfield.hpp"
 #include "../renderer.hpp"
 
 sg::SceneGraph::SceneGraph(Renderer* renderer)
 {
+	m_meshes_require_batching.resize(gfx::settings::num_back_buffers);
 	m_batch_requires_update.resize(gfx::settings::num_back_buffers);
 	m_num_lights.resize(gfx::settings::num_back_buffers, 0);
 
-	m_per_object_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Basic) * gfx::settings::max_render_batch_size, 300, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_MESH_BIT_NV);
-	m_camera_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Camera), 1, 0, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_MESH_BIT_NV);
-	m_light_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Light) * gfx::settings::max_lights, 1, 3, VK_SHADER_STAGE_COMPUTE_BIT);
+	m_per_object_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Basic) * gfx::settings::max_render_batch_size, 100, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_TASK_BIT_NV);
+	m_camera_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Camera), 1, 0, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_TASK_BIT_NV);
+	m_inverse_camera_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::CameraInverse), 1, 2, VK_SHADER_STAGE_RAYGEN_BIT_NV);
+	m_light_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Light) * gfx::settings::max_lights, 1, 3, VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV | VK_SHADER_STAGE_MISS_BIT_NV);
 
 	// Initialize the light buffer as empty.
 	cb::Light light = {};
@@ -32,6 +35,7 @@ sg::SceneGraph::~SceneGraph()
 {
 	delete m_per_object_buffer_pool;
 	delete m_camera_buffer_pool;
+	delete m_inverse_camera_buffer_pool;
 	delete m_light_buffer_pool;
 }
 
@@ -113,13 +117,49 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 
 		float aspect_ratio = m_camera_aspect_ratios[node.m_camera_component].m_value;
 
+		auto lens_properties = m_camera_lens_properties[node.m_camera_component].m_value;
+
+		float vertical_size = lens_properties.m_film_size / aspect_ratio;
+		float fov = lens_properties.m_fov;
+		if (!lens_properties.m_use_simple_fov)
+		{
+			fov = 2.0f * std::atan2(vertical_size, 2.0f * lens_properties.m_focal_length);
+		}
+
 		cb::Camera data;
 		data.m_view = glm::lookAt(cam_pos, cam_pos + forward, up);
-		data.m_proj = glm::perspective(glm::radians(45.0f), aspect_ratio, 0.01f, 1000.0f);
+		data.m_proj = glm::perspective(glm::radians(fov), aspect_ratio, 0.01f, 1000.0f);
 		data.m_proj[1][1] *= -1;
 
 		// TODO: In theory right now the cb handle and the mesh component will always have the same value.
 		m_camera_buffer_pool->Update(m_camera_cb_handles[node.m_camera_component], sizeof(cb::Camera), &data, frame_idx);
+
+		// Update inverse
+		cb::CameraInverse inv_data;
+		//inv_data.m_view = glm::inverse(data.m_view);
+		//inv_data.m_proj = glm::inverse(data.m_proj);
+
+		inv_data.cameraPositionAspect.x = cam_pos.x;
+		inv_data.cameraPositionAspect.y = cam_pos.y;
+		inv_data.cameraPositionAspect.z = cam_pos.z;
+		inv_data.cameraPositionAspect.a = aspect_ratio;
+
+		inv_data.cameraUpVectorTanHalfFOV.x = up.x;
+		inv_data.cameraUpVectorTanHalfFOV.y = up.y;
+		inv_data.cameraUpVectorTanHalfFOV.z = up.z;
+		inv_data.cameraUpVectorTanHalfFOV.a = std::tan(0.5f * glm::radians(fov));;
+
+		inv_data.cameraRightVectorLensR.x = right.x;
+		inv_data.cameraRightVectorLensR.y = right.y;
+		inv_data.cameraRightVectorLensR.z = right.z;
+		inv_data.cameraRightVectorLensR.a = 0.5f * lens_properties.m_diameter;
+
+		inv_data.cameraForwardVectorLensF.x = forward.x;
+		inv_data.cameraForwardVectorLensF.y = forward.y;
+		inv_data.cameraForwardVectorLensF.z = forward.z;
+		inv_data.cameraForwardVectorLensF.a = lens_properties.m_focal_dist;
+
+		m_inverse_camera_buffer_pool->Update(m_inverse_camera_cb_handles[node.m_camera_component], sizeof(cb::CameraInverse), &inv_data, frame_idx);
 
 		m_requires_camera_buffer_update[node.m_camera_component].m_value[frame_idx] = false;
 	}
@@ -136,25 +176,26 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 		auto color = m_colors[node.m_light_component].m_value;
 		auto type = m_light_types[node.m_light_component].m_value;
 		auto radius = m_radius[node.m_light_component].m_value;
+		auto physical_size = m_light_physical_size[node.m_light_component].m_value;
 		auto angles = m_light_angles[node.m_light_component].m_value;
 
 		cb::Light light;
 		light.m_pos = pos;
 		light.m_radius = radius;
 		light.m_direction = rot;
-		light.m_type =(uint32_t)type;
+		light.m_type = (std::uint32_t)type;
 		light.m_inner_angle = angles.first;
 		light.m_outer_angle = angles.second;
+		light.m_physical_size = physical_size;
 		if (node.m_light_component == 0)
 		{
-			light.m_type &= 0x3; // Keep id
-			light.m_type |= std::uint32_t(m_light_node_handles.size() + 1) << 2; // Set number of lights
+			light.m_type |= util::Pack(2, 30, (std::uint32_t)m_light_node_handles.size());
 			m_num_lights[frame_idx] = m_light_node_handles.size(); // no need to update the size twice.
 		}
 		light.m_color = color;
 
 		auto light_id = node.m_light_component;
-		auto offset = light_id * sizeof(cb::Light);
+		auto offset = light_id * (sizeof(cb::Light) + sizeof(glm::vec4)); // TODO: fix this random padding?
 
 		m_light_buffer_pool->Update(m_light_buffer_handle, sizeof(cb::Light), &light, frame_idx, offset);
 
@@ -174,20 +215,21 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 			auto color = m_colors[node.m_light_component].m_value;
 			auto type = m_light_types[node.m_light_component].m_value;
 			auto radius = m_radius[node.m_light_component].m_value;
+			auto physical_size = m_light_physical_size[node.m_light_component].m_value;
 			auto angles = m_light_angles[node.m_light_component].m_value;
 
 			light.m_pos = pos;
 			light.m_radius = radius;
+			light.m_physical_size = physical_size;
 			light.m_direction = rot;
-			light.m_type = (uint32_t)type;
+
 			light.m_inner_angle = angles.first;
 			light.m_outer_angle = angles.second;
 			light.m_color = color;
 
-			light.m_type = (std::uint32_t)cb::LightType::POINT;
+			light.m_type = (std::uint32_t)type;
 		}
-		light.m_type &= 0x3; // Keep id
-		light.m_type |= std::uint32_t(m_light_node_handles.size()) << 2; // Set number of lights
+		light.m_type |= util::Pack(2, 30, (std::uint32_t)m_light_node_handles.size());
 
 		m_light_buffer_pool->Update(m_light_buffer_handle, sizeof(cb::Light), &light, frame_idx, 0);
 
@@ -195,7 +237,7 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 	}
 
 	// Generate Batches
-	for (auto& node_handle : m_meshes_require_batching)
+	for (auto& node_handle : m_meshes_require_batching[0])
 	{
 		auto node = m_nodes[node_handle];
 		auto model_handle = m_model_handles[node.m_mesh_component].m_value;
@@ -239,7 +281,7 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 			}
 		}
 	}
-	m_meshes_require_batching.clear();
+	m_meshes_require_batching[0].clear();
 
 	// Efficient batch update. (new/delete)
 	for (auto& batch_handle_pair : m_batch_requires_update[frame_idx])
@@ -264,6 +306,8 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 
 		// TODO: In theory right now the cb handle and the mesh component will always have the same value.
 		m_per_object_buffer_pool->Update(batch.m_big_cb, sizeof(cb::Basic), &data, frame_idx, update_offset * sizeof(cb::Basic));
+
+		m_requires_buffer_update[node.m_mesh_component].m_value[frame_idx] = false;
 	}
 	m_batch_requires_update[frame_idx].clear();
 
@@ -300,8 +344,8 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 				m_per_object_buffer_pool->Update(batch.m_big_cb, sizeof(cb::Basic), &data, frame_idx, update_offset * sizeof(cb::Basic));
 
 				updated_batch = true;
-				m_requires_buffer_update[node.m_mesh_component].m_value[frame_idx] = false;
-				return;
+				requires_update.m_value[frame_idx] = false;
+				break;
 			}
 		}
 
@@ -327,6 +371,11 @@ ConstantBufferPool* sg::SceneGraph::GetCameraConstantBufferPool()
 	return m_camera_buffer_pool;
 }
 
+ConstantBufferPool* sg::SceneGraph::GetInverseCameraConstantBufferPool()
+{
+	return m_inverse_camera_buffer_pool;
+}
+
 ConstantBufferPool* sg::SceneGraph::GetLightConstantBufferPool()
 {
 	return m_light_buffer_pool;
@@ -340,6 +389,11 @@ ConstantBufferHandle sg::SceneGraph::GetLightBufferHandle()
 sg::Node sg::SceneGraph::GetNode(sg::NodeHandle handle)
 {
 	return m_nodes[handle];
+}
+
+std::vector<sg::Node> const& sg::SceneGraph::GetNodes() const
+{
+	return m_nodes;
 }
 
 std::vector<sg::NodeHandle> const & sg::SceneGraph::GetNodeHandles() const
