@@ -9,6 +9,7 @@ void SetupEditor()
 	// Categories
 	editor.RegisterCategory("File", reinterpret_cast<const char*>(ICON_FA_FILE));
 	editor.RegisterCategory("Scene Graph", reinterpret_cast<const char*>(ICON_FA_PROJECT_DIAGRAM), "Scenes");
+	editor.RegisterCategory("Frame Graph", reinterpret_cast<const char*>(ICON_FA_IMAGE));
 	editor.RegisterCategory("Stats", reinterpret_cast<const char*>(ICON_FA_CHART_BAR));
 	editor.RegisterCategory("Debug", reinterpret_cast<const char*>(ICON_FA_BUG));
 	editor.RegisterCategory("Help", reinterpret_cast<const char*>(ICON_FA_INFO_CIRCLE));
@@ -22,10 +23,53 @@ void SetupEditor()
 
 	editor.RegisterAction("Load Spheres Scene", "Scene Graph", [&]() { SwitchScene<SpheresScene>(); }, std::nullopt, "Scenes");
 	editor.RegisterAction("Load Subsurface Scene", "Scene Graph", [&]() { SwitchScene<SubsurfaceScene>(); }, std::nullopt, "Scenes");
-	editor.RegisterAction("Save Scene", "Scene Graph", [&]() { m_scene->SaveSceneToJSON(); }, std::nullopt);
-	editor.RegisterAction("Load Scene", "Scene Graph", [&]() { m_selected_node = std::nullopt; m_scene->LoadSceneFromJSON(); }, std::nullopt);
+	editor.RegisterAction("Load Displacement Scene", "Scene Graph", [&]() { SwitchScene<DisplacementScene>(); }, std::nullopt, "Scenes");
+	editor.RegisterAction("Load Forrest Scene", "Scene Graph", [&]() { SwitchScene<ForrestScene>(); }, std::nullopt, "Scenes");
+	editor.RegisterAction("Load Star Wars Scene", "Scene Graph", [&]() { SwitchScene<SpaceshipScene>(); }, std::nullopt, "Scenes");
+
+	editor.RegisterAction("Save Scene Layout", "Scene Graph", [&]() { m_scene->SaveSceneToJSON(); }, std::nullopt);
+	editor.RegisterAction("Reload Scene Layout", "Scene Graph", [&]() { m_selected_node = std::nullopt; m_scene->LoadSceneFromJSON(); }, std::nullopt);
 
 	// Windows
+	editor.RegisterWindow("Frame Graph Outliner", "Frame Graph", [&]()
+	{
+		ImVec2 size = ImGui::GetContentRegionAvail();
+		if (ImGui::ListBoxHeader("##", size))
+		{
+			for (std::size_t i = 0; i < m_frame_graph->GetNumTasks(); i++)
+			{
+				std::string task_name = m_frame_graph->GetTaskName(i);
+
+				bool has_settings = m_frame_graph->HasSettings(i);
+				auto should_execute = m_frame_graph->ShouldExecute(i);
+
+				if (!should_execute)
+				{
+					ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+				}
+				else if (has_settings)
+				{
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5, 0.9, 0.5, 1));
+				}
+
+				bool pressed = ImGui::Selectable(task_name.c_str(), m_selected_task == i);
+
+				if (!should_execute || has_settings)
+				{
+					ImGui::PopStyleColor();
+				}
+
+				if (pressed)
+				{
+					m_selected_task = i;
+					m_selected_node = std::nullopt;
+				}
+			}
+			ImGui::ListBoxFooter();
+		}
+
+	}, true, reinterpret_cast<const char*>(ICON_FA_LAYER_GROUP));
+
 	editor.RegisterWindow("World Outliner", "Scene Graph", [&]()
 		{
 			auto scene_graph = m_scene->GetSceneGraph();
@@ -105,6 +149,7 @@ void SetupEditor()
 					if (pressed)
 					{
 						m_selected_node = handle;
+						m_selected_task = std::nullopt;
 					}
 				}
 				ImGui::ListBoxFooter();
@@ -149,9 +194,9 @@ void SetupEditor()
 		}, true, reinterpret_cast<const char*>(ICON_FA_GLOBE_EUROPE));
 
 	editor.RegisterWindow("Inspector", "Scene Graph", [&]()
+	{
+		if (m_selected_node.has_value())
 		{
-			if (!m_selected_node.has_value()) return;
-
 			auto scene_graph = m_scene->GetSceneGraph();
 
 			auto node = scene_graph->GetNode(m_selected_node.value());
@@ -230,7 +275,85 @@ void SetupEditor()
 			}
 
 			scene_graph->m_requires_update[node.m_transform_component] = true;
-		}, true, reinterpret_cast<const char*>(ICON_FA_EYE));
+		}
+		else if (m_selected_task.has_value())
+		{
+			auto task = m_selected_task.value();
+			auto data_type_info = m_frame_graph->GetDataTypeInfo(task);
+			auto type = m_frame_graph->GetTaskType(task);
+			auto task_rt = m_frame_graph->GetRenderTarget(task);
+			auto should_execute = m_frame_graph->ShouldExecute(task);
+
+			std::string type_str = "Unknown";
+			switch (type)
+			{
+			case fg::RenderTaskType::DIRECT: type_str = "Direct"; break;
+			case fg::RenderTaskType::COMPUTE: type_str = "Compute"; break;
+			case fg::RenderTaskType::COPY: type_str = "Copy"; break;
+			}
+
+			ImGui::InfoText("Typeid", data_type_info.get().name());
+			ImGui::InfoText("Type", type_str);
+			if (m_frame_graph->HasRenderTarget(task))
+			{
+				ImGui::InfoText("Resolution", fmt::format("({} ,{})", task_rt->GetWidth(), task_rt->GetHeight()));
+				auto mip_levels = task_rt->GetMipLevels();
+				if (mip_levels > 1)
+				{
+					ImGui::InfoText("Mip Levels", std::to_string(mip_levels));
+				}
+			}
+
+			bool new_should_execute = should_execute;
+			ImGui::ToggleButton("Should Execute", &new_should_execute);
+
+			if (new_should_execute != should_execute)
+			{
+				m_frame_graph->SetShouldExecute(task, new_should_execute);
+			}
+
+			ImGui::Separator();
+
+			if (typeid(tasks::PostProcessingData) == data_type_info)
+			{
+				auto settings = m_frame_graph->GetSettings<tasks::PostProcessingSettings>(task);
+
+				std::vector<const char*> tonemapping_algs = {
+					"ACES (High Performance)",
+					"ACES (High Quality)",
+					"Unreal3",
+					"Lottes",
+					"Uchimura",
+					"Filmic",
+					"Rainhard",
+					"Reinhard (Luma Based)",
+					"Reinhard (White Preserving Luma Based)",
+					"RomBinDaHouse",
+					"HaarmPeterDuiker",
+					"Uncharted2",
+					"None"
+				};
+				ImGui::Combo("Tonemapping", &settings.m_tonemapping_alg, tonemapping_algs.data(), tonemapping_algs.size());
+
+				ImGui::DragFloat("Exposure", &settings.m_exposure, 0.1f, 0);
+				ImGui::DragFloat("Gamma", &settings.m_gamma, 0.1f, 0);
+
+				m_frame_graph->UpdateSettings<tasks::PostProcessingData>(settings);
+			}
+		}
+
+	}, true, reinterpret_cast<const char*>(ICON_FA_EYE));
+
+	editor.RegisterWindow("Batching Details", "Scene Graph", [&]()
+	{
+		auto scene_graph = m_scene->GetSceneGraph();
+		auto batches = scene_graph->GetRenderBatches();
+
+		ImGui::InfoText("Num Mesh Nodes", std::to_string(scene_graph->GetMeshNodeHandles().size()));
+		ImGui::InfoText("Num Batches", std::to_string(batches.size()));
+		ImGui::InfoText("Max Batch Size", std::to_string(gfx::settings::max_render_batch_size));
+
+	}, false, reinterpret_cast<const char*>(ICON_FA_CUBES));
 
 	editor.RegisterWindow("Performance", "Stats", [&]()
 		{
@@ -311,13 +434,29 @@ void SetupEditor()
 			case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU: type_str = "Virtual GPU"; break;
 			}
 
+			std::string vendor = fmt::format("{:x}", device_properties.vendorID);
+			switch (device_properties.vendorID)
+			{
+			case 0x10DE: vendor = "NVIDIA"; break;
+			case 0x1022:
+			case 0x1002: vendor = "AMD"; break;
+			case 0x15EF:
+			case 0x116C:
+			case 0x16E5:
+			case 0x8086: vendor = "Intel"; break;
+			}
+
+			std::uint32_t api_version_major = ((std::uint32_t)(device_properties.apiVersion) >> 22);
+			std::uint32_t api_version_minor = (((uint32_t)(device_properties.apiVersion) >> 12) & 0x3ff);
+			std::uint32_t api_version_patch = ((uint32_t)(device_properties.apiVersion) & 0xfff);
+
 			ImGui::InfoText("Name", std::string(device_properties.deviceName));
 			ImGui::InfoText("Device Type", type_str);
 			ImGui::InfoText("VRAM", std::to_string(vram / 1024.f / 1024.f / 1024.f) + " (GB)");
-			ImGui::InfoText("API Version", device_properties.apiVersion);
+			ImGui::InfoText("API Version", fmt::format("{}.{}.{}", api_version_major, api_version_minor, api_version_patch));
 			ImGui::InfoText("Driver Version", device_properties.driverVersion);
-			ImGui::InfoText("Device ID", device_properties.deviceID);
-			ImGui::InfoText("Vendor ID", device_properties.vendorID);
+			ImGui::InfoText("Device ID", fmt::format("{:x}", device_properties.deviceID));
+			ImGui::InfoText("Vendor", vendor);
 		}, true, reinterpret_cast<const char*>(ICON_FA_MICROCHIP));
 
 	editor.RegisterWindow("Memory Allocator Stats", "Stats", [&]()

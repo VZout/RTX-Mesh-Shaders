@@ -6,6 +6,7 @@
 
 #include "assimp_model_loader.hpp"
 
+#include <assimp/pbrmaterial.h>
 #include <mat4x4.hpp>
 #include <functional>
 #include <mat3x3.hpp>
@@ -19,7 +20,7 @@
 #include "stb_image_loader.hpp"
 
 AssimpModelLoader::AssimpModelLoader()
-	: ResourceLoader(std::vector<std::string>{ "fbx", "obj" })
+	: ResourceLoader(std::vector<std::string>{ "fbx", "obj", "gltf" })
 {
 
 }
@@ -28,13 +29,13 @@ AssimpModelLoader::AnonResource AssimpModelLoader::LoadFromDisc(std::string cons
 {
 	Assimp::Importer importer;
 	const aiScene* scene = importer.ReadFile(path.data(),
-		aiProcess_FlipWindingOrder |
+		//aiProcess_FlipWindingOrder |
 		aiProcess_Triangulate |
 		aiProcess_CalcTangentSpace |
 		aiProcess_JoinIdenticalVertices |
 		aiProcess_OptimizeMeshes |
-		aiProcess_ImproveCacheLocality |
-		aiProcess_MakeLeftHanded);
+		aiProcess_PreTransformVertices |
+		aiProcess_ImproveCacheLocality);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 	{
@@ -52,7 +53,13 @@ AssimpModelLoader::AnonResource AssimpModelLoader::LoadFromDisc(std::string cons
 		LoadEmbeddedTextures(model.get(), scene);
 	}
 
-	LoadMaterials(model.get(), scene);
+	std::string base_dir = "./";
+	if (path.find("/") != std::string::npos)
+	{
+		base_dir = path.substr(0, path.find_last_of("/")) + "/";
+	}
+
+	LoadMaterials(model.get(), scene, base_dir);
 	LoadMeshes(model.get(), scene, scene->mRootNode);
 
 	return model;
@@ -130,7 +137,7 @@ void AssimpModelLoader::LoadMeshes(ModelData* model, const aiScene* scene, aiNod
 	}
 }
 
-void AssimpModelLoader::LoadMaterials(ModelData* model, const aiScene* scene)
+void AssimpModelLoader::LoadMaterials(ModelData* model, const aiScene* scene, std::string base_path)
 {
 	auto image_loader = new STBImageLoader();
 
@@ -153,11 +160,32 @@ void AssimpModelLoader::LoadMaterials(ModelData* model, const aiScene* scene)
 			}
 			else
 			{
-				material_data.m_albedo_texture = *image_loader->LoadFromDisc(path.C_Str()).get();
+				material_data.m_albedo_texture = *image_loader->LoadFromDisc(base_path + path.C_Str()).get();
 			}
 		}
 
-		if (material->GetTextureCount(aiTextureType_SPECULAR) > 0)
+		if (material->GetTextureCount(aiTextureType_UNKNOWN) > 0)
+		{
+			aiString path;
+			auto retval = material->GetTexture(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLICROUGHNESS_TEXTURE, &path);
+
+			if (retval == aiReturn_SUCCESS)
+			{
+				if (path.data[0] == '*')
+				{
+					LOGW("Failed to get embeded texture");
+					//uint32_t index = atoi(path.C_Str() + 1);
+					//material_data->m_roughness_embedded_texture = index;
+				}
+				else
+				{
+					material_data.m_roughness_texture = *image_loader->LoadFromDisc(base_path + path.C_Str()).get();
+					material_data.m_metallic_texture = *image_loader->LoadFromDisc(base_path + path.C_Str()).get();
+				}
+			}
+		}
+
+		if (material->GetTextureCount(aiTextureType_SPECULAR) > 0 && !material_data.m_metallic_texture.m_pixels)
 		{
 			aiString path;
 			material->GetTexture(aiTextureType_SPECULAR, 0, &path);
@@ -169,11 +197,11 @@ void AssimpModelLoader::LoadMaterials(ModelData* model, const aiScene* scene)
 			}
 			else
 			{
-				material_data.m_metallic_texture = *image_loader->LoadFromDisc(path.C_Str()).get();
+				material_data.m_metallic_texture = *image_loader->LoadFromDisc(base_path + path.C_Str()).get();
 			}
 		}
 
-		if (material->GetTextureCount(aiTextureType_SHININESS) > 0)
+		if (material->GetTextureCount(aiTextureType_SHININESS) > 0 && !material_data.m_roughness_texture.m_pixels)
 		{
 			aiString path;
 			material->GetTexture(aiTextureType_SHININESS, 0, &path);
@@ -185,7 +213,7 @@ void AssimpModelLoader::LoadMaterials(ModelData* model, const aiScene* scene)
 			}
 			else
 			{
-				material_data.m_roughness_texture = *image_loader->LoadFromDisc(path.C_Str()).get();
+				material_data.m_roughness_texture = *image_loader->LoadFromDisc(base_path + path.C_Str()).get();
 			}
 		}
 
@@ -201,7 +229,7 @@ void AssimpModelLoader::LoadMaterials(ModelData* model, const aiScene* scene)
 			}
 			else
 			{
-				material_data.m_ambient_occlusion_texture = *image_loader->LoadFromDisc(path.C_Str()).get();
+				material_data.m_ambient_occlusion_texture = *image_loader->LoadFromDisc(base_path + path.C_Str()).get();
 			}
 		}
 
@@ -217,7 +245,7 @@ void AssimpModelLoader::LoadMaterials(ModelData* model, const aiScene* scene)
 			}
 			else
 			{
-				material_data.m_normal_map_texture = *image_loader->LoadFromDisc(path.C_Str()).get();
+				material_data.m_normal_map_texture = *image_loader->LoadFromDisc(base_path + path.C_Str()).get();
 			}
 		}
 
@@ -235,7 +263,7 @@ void AssimpModelLoader::LoadMaterials(ModelData* model, const aiScene* scene)
 			}
 			else
 			{
-				material_data.m_emissive_texture = *image_loader->LoadFromDisc(path.C_Str()).get();
+				material_data.m_emissive_texture = *image_loader->LoadFromDisc(base_path + path.C_Str()).get();
 				material_data.m_base_emissive = 1;
 			}
 		}
@@ -249,16 +277,36 @@ void AssimpModelLoader::LoadMaterials(ModelData* model, const aiScene* scene)
 
 		if (!material_data.m_metallic_texture.m_pixels)
 		{
-			aiColor3D color;
-			material->Get(AI_MATKEY_COLOR_SPECULAR, color);
-			memcpy(&material_data.m_base_metallic, &color, sizeof(color));
+			float metalicness;
+			auto retval = material->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLIC_FACTOR, metalicness);
+
+			if (retval == aiReturn_SUCCESS)
+			{
+				memcpy(&material_data.m_base_metallic, &metalicness, sizeof(metalicness));
+			}
+			else
+			{
+				aiColor3D color;
+				material->Get(AI_MATKEY_COLOR_SPECULAR, color);
+				memcpy(&material_data.m_base_metallic, &color, sizeof(color));
+			}
 		}
 
 		if (!material_data.m_roughness_texture.m_pixels)
 		{
 			float roughness;
-			material->Get(AI_MATKEY_SHININESS, roughness);
-			material_data.m_base_roughness = roughness;
+			auto retval = material->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_ROUGHNESS_FACTOR, roughness);
+
+
+			if (retval == aiReturn_SUCCESS)
+			{
+				memcpy(&material_data.m_base_roughness, &roughness, sizeof(roughness));
+			}
+			else
+			{
+				material->Get(AI_MATKEY_SHININESS, roughness);
+				material_data.m_base_roughness = roughness;
+			}
 		}
 
 		float opacity;

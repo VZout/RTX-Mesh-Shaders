@@ -196,7 +196,7 @@ namespace tasks
 		desc.m_type = fg::RenderTaskType::COMPUTE;
 		desc.m_allow_multithreading = true;
 
-		fg.AddTask<DeferredCompositionData>(desc, L"Deferred Composition Task");
+		fg.AddTask<DeferredCompositionData>(desc, "Deferred Composition Task");
 	}
 
 } /* tasks */

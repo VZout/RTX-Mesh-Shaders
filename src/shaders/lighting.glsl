@@ -39,11 +39,12 @@ vec3 ShadeLight(Light light,
 	if (type == DIRECTIONAL_LIGHT)
 	{
 		attenuation = 1;
+
 		L = -light_dir;
 	}
 	else if (type == SPOT_LIGHT)
 	{
-		attenuation *= GetAngleAttenuation(light_dir, L, inner_angle, outer_angle);
+		attenuation *= GetAngleAttenuation(-light_dir, L, inner_angle, outer_angle);
 	}
 
 	float NdotL = clamp(dot(N, L), 0.0, 1.0); // TODO: Duplicate ndotl
@@ -81,7 +82,7 @@ vec3 DoFog(vec3 lighting, float time)
 		fog = true;
 	}
 	
-	if ( fog && payload.depth == 0)
+	if (fog)
 	{
 		// fog - bounce in random sphere direction
 		vec2 angle = vec2(nextRand(payload.seed), nextRand(payload.seed));
@@ -89,7 +90,7 @@ vec3 DoFog(vec3 lighting, float time)
 		angle.y = angle.y * 2. - 1.;//asin(angle.y*2.-1.); // I think this is right
 		vec3 fog_r = vec2(sqrt(1.-angle.y*angle.y),angle.y).xyx * vec3(cos(angle.x),1,sin(angle.x));
 		vec3 fog_pos = gl_WorldRayOriginNV + gl_WorldRayDirectionNV * t2;
-		vec3 fog_cont = TraceColorRay(fog_pos, fog_r, payload.seed, payload.depth + 1);
+		//vec3 fog_cont = TraceColorRay(fog_pos, fog_r, payload.seed, payload.depth + 1);
 		//payload.color = lighting + (fog_cont * FOG_POWER);
 
 		uint light_count = lights.lights[0].m_type >> 2;

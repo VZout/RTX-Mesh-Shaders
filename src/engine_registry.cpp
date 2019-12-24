@@ -252,6 +252,14 @@ REGISTER(root_signatures::post_processing, RootSignatureRegistry)({
 	    params[1].pImmutableSamplers = nullptr;
         return params;
     }(),
+	.m_push_constants = []() -> decltype(RootSignatureDesc::m_push_constants)
+	{
+		decltype(RootSignatureDesc::m_push_constants) constants(1);
+		constants[0].offset = 0;
+		constants[0].size = (sizeof(float) * 2) + sizeof(std::int32_t); // exposure, gamma
+		constants[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+		return constants;
+	}()
 });
 
 REGISTER(root_signatures::taa, RootSignatureRegistry)({

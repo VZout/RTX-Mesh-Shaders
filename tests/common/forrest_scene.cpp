@@ -60,6 +60,7 @@ void ForrestScene::LoadResources(std::optional<std::reference_wrapper<util::Prog
 	ExtraMaterialData data_tree;
 	data_tree.m_thickness_texture_paths = { "white.png", "black.png" };
 
+	m_tree_model = m_model_pool->LoadWithMaterials<Vertex>("tree/scene.gltf", m_material_pool, m_texture_pool, false, data_tree);
 	if (progress) PROGRESS((*progress).get(), "Loading Floor Model")
 	m_plane_model = m_model_pool->LoadWithMaterials<Vertex>("plane.fbx", m_material_pool, m_texture_pool, false);
 	if (progress) PROGRESS((*progress).get(), "Loading Robot Model")
@@ -67,7 +68,6 @@ void ForrestScene::LoadResources(std::optional<std::reference_wrapper<util::Prog
 	if (progress) PROGRESS((*progress).get(), "Loading Grass Model")
 	m_grass_model = m_model_pool->LoadWithMaterials<Vertex>("grass/scene.gltf", m_material_pool, m_texture_pool, false, data_gass);
 	if (progress) PROGRESS((*progress).get(), "Loading Tree Model")
-	m_tree_model = m_model_pool->LoadWithMaterials<Vertex>("tree/scene.gltf", m_material_pool, m_texture_pool, false, data_tree);
 
 	if (progress) POP_CHILD_PROGRESS((*progress).get());
 	int x = 0;
@@ -90,7 +90,6 @@ void ForrestScene::BuildScene(std::optional<std::reference_wrapper<util::Progres
 	auto object = m_scene_graph->CreateNode<sg::MeshComponent>(m_object_model);
 	sg::helper::SetPosition(m_scene_graph, object, glm::vec3(0, 0, 0));
 	sg::helper::SetScale(m_scene_graph, object, glm::vec3(0.008));
-	sg::helper::SetRotation(m_scene_graph, object, glm::vec3(-90._deg, 0, 0));
 
 	auto plane_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_plane_model);
 	sg::helper::SetMaterial(m_scene_graph, plane_node, { m_plane_material_handle });
@@ -123,7 +122,7 @@ void ForrestScene::BuildScene(std::optional<std::reference_wrapper<util::Progres
 
 		auto grass_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_grass_model);
 		sg::helper::SetScale(m_scene_graph, grass_node, glm::vec3(0.01f, 0.01f, 0.01f));
-		sg::helper::SetRotation(m_scene_graph, grass_node, glm::vec3(-90._deg, glm::degrees(dis_rot(gen)), 0));
+		sg::helper::SetRotation(m_scene_graph, grass_node, glm::vec3(0, glm::degrees(dis_rot(gen)), 0));
 		sg::helper::SetPosition(m_scene_graph, grass_node, glm::vec3(dis(gen), 0, dis(gen)));
 	}
 
@@ -134,7 +133,7 @@ void ForrestScene::BuildScene(std::optional<std::reference_wrapper<util::Progres
 
 		auto tree_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_tree_model);
 		sg::helper::SetScale(m_scene_graph, tree_node, glm::vec3(dis_tree_scale(gen)));
-		sg::helper::SetRotation(m_scene_graph, tree_node, glm::vec3(-90._deg, glm::degrees(dis_rot(gen)), 0));
+		sg::helper::SetRotation(m_scene_graph, tree_node, glm::vec3(0, glm::degrees(dis_rot(gen)), 0));
 		sg::helper::SetPosition(m_scene_graph, tree_node, glm::vec3(dis(gen), 0, dis(gen)));
 	}
 

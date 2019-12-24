@@ -9,7 +9,14 @@ layout(set = 1, binding = 1, rgba8) uniform writeonly image2D t_output;
 #include "lens_fx.glsl"
 #include "tone_mapping.glsl"
 
+layout(push_constant) uniform PushConstants {
+    float exposure;
+	float gamma;
+	int tone_mapping_alg;
+} settings;
+
 //#define SHOW_TONEMAPPING_ALGOS
+#define RUNTIME_TONEMAPPING_SELECTION
 #define NUM_TONEMAPPING_ALGOS 12
 
 void main()
@@ -20,21 +27,17 @@ void main()
     vec2 n_uv = vec2(gl_GlobalInvocationID.xy);
 #ifdef SHOW_TONEMAPPING_ALGOS
     n_uv.x = mod(n_uv.x, ceil(resolution.x / NUM_TONEMAPPING_ALGOS)); // Repeate a part of the frame
-#endif
+#endif /* SHOW_TONEMAPPING_ALGOS */
 
     //ImageData data = GetNeighbours();
     //vec3 rgb_0 = Sharpen(data);
     //vec3 rgb_1 = imageLoad(t_input, ivec2(n_uv)).rgb;
-	//vec3 rgb = mix(rgb_0, rgb_1, 0.7); 
+	//vec3 rgb = mix(rgb_0, rgb_1, 0.8); 
     vec3 rgb = ChromaticAberration(uv, 0.1, 0.97f, resolution);
 
+    vec3 color = ExposureCorrect(rgb, settings.exposure);
 
-    const float gamma = 2.2;
-    const float exposure = 1;
-
-    vec3 color = ExposureCorrect(rgb, exposure);
-
-    #ifdef SHOW_TONEMAPPING_ALGOS
+#ifdef SHOW_TONEMAPPING_ALGOS
     float rotation = uv.x;
     int i = int(floor(NUM_TONEMAPPING_ALGOS * rotation));
     if (i == 0) color = ACESHighPerformance(color);
@@ -50,11 +53,29 @@ void main()
     else if (i == 10) color = HaarmPeterDuiker_Gamma(color);
     else if (i == 11) color = Uncharted2(color);
 
-    if (i != 2 && i != 10) color = GammaCorrect(color, gamma);
-    #else
-    color = ACESHighPerformance(color);
-	color = GammaCorrect(color, gamma);
-    #endif
+    if (i != 2 && i != 10) color = GammaCorrect(color, settings.gamma);
+#else
+#ifdef RUNTIME_TONEMAPPING_SELECTION
+	int i = settings.tone_mapping_alg;
+    if (i == 0) color = ACESHighPerformance(color);
+    else if (i == 1) color = ACESHighQuality(color);
+    else if (i == 2) color = Unreal3_Gamma(color);
+    else if (i == 3) color = Lottes(color);
+    else if (i == 4) color = Uchimura(color);
+    else if (i == 5) color = Filmic(color);
+    else if (i == 6) color = Reinhard(color);
+    else if (i == 7) color = LumaBasedReinhard(color);
+    else if (i == 8) color = WhitePreservingLumaBasedReinhard(color);
+    else if (i == 9) color = RomBinDaHouse(color);
+    else if (i == 10) color = HaarmPeterDuiker_Gamma(color);
+    else if (i == 11) color = Uncharted2(color);
+
+    if (i != 2 && i != 10) color = GammaCorrect(color, settings.gamma);
+#else
+	color = ACESHighPerformance(color);
+	color = GammaCorrect(color, settings.gamma);
+#endif /* RUNTIME_TONEMAPPING_SELECTION */
+#endif /* SHOW_TONEMAPPING_ALGOS */
 
 	color = Vignette(color, uv, 1.5, 0.5, 0.5);
 

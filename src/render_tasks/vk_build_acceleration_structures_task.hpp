@@ -233,7 +233,7 @@ namespace tasks
 		desc.m_type = fg::RenderTaskType::COMPUTE;
 		desc.m_allow_multithreading = true;
 
-		fg.AddTask<BuildASData>(desc, L"Build Acceleration Structures Task");
+		fg.AddTask<BuildASData>(desc, "Build Acceleration Structures Task");
 	}
 
 } /* tasks */

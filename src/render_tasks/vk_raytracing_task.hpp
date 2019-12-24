@@ -51,6 +51,7 @@ namespace tasks
 
 		glm::vec3 last_pos;
 		glm::vec3 last_rot;
+		float last_ratio;
 
 		bool m_first_execute = true;
 
@@ -135,11 +136,13 @@ namespace tasks
 
 			auto new_pos = sg.m_positions[sg.GetActiveCamera().m_transform_component].m_value;
 			auto new_rot = sg.m_rotations[sg.GetActiveCamera().m_transform_component].m_value;
-			if (data.last_pos != new_pos || new_rot != data.last_rot)
+			auto new_ratio = sg.m_camera_aspect_ratios[sg.GetActiveCamera().m_transform_component].m_value;
+			if (data.last_pos != new_pos || new_rot != data.last_rot || data.last_ratio != new_ratio)
 			{
 				data.frame_number = 0;
 				data.last_pos = new_pos;
 				data.last_rot = new_rot;
+				data.last_ratio = new_ratio;
 			}
 
 			auto light_pool = static_cast<gfx::VkConstantBufferPool*>(sg.GetLightConstantBufferPool());
@@ -228,7 +231,7 @@ namespace tasks
 		desc.m_type = fg::RenderTaskType::COMPUTE;
 		desc.m_allow_multithreading = true;
 
-		fg.AddTask<RaytracingData>(desc, L"Raytracing Task", FG_DEPS<BuildASData>());
+		fg.AddTask<RaytracingData>(desc, "Raytracing Task", FG_DEPS<BuildASData>());
 	}
 
 } /* tasks */

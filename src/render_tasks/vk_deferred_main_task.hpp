@@ -130,7 +130,7 @@ namespace tasks
 		desc.m_type = fg::RenderTaskType::DIRECT;
 		desc.m_allow_multithreading = true;
 
-		fg.AddTask<DeferredMainData>(desc, L"Deferred Rasterization Task");
+		fg.AddTask<DeferredMainData>(desc, "Deferred Rasterization Task");
 	}
 
 } /* tasks */
