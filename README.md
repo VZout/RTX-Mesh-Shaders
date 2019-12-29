@@ -31,6 +31,7 @@
 * Normal and Ambient Occlusion Mapping
 * High Dynamic Range Tonemapping
 * Image-Based Lighting
+* RTX Path Tracing
 
 ## Building
 
