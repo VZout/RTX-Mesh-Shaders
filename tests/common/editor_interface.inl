@@ -338,8 +338,28 @@ void SetupEditor()
 				ImGui::DragFloat("Exposure", &settings.m_exposure, 0.1f, 0);
 				ImGui::DragFloat("Gamma", &settings.m_gamma, 0.1f, 0);
 
+				ImGui::Separator();
+
+				ImGui::DragFloat("Vignette Radius", &settings.vignette_radius, 0.1f, 0);
+				ImGui::DragFloat("Vignette Softness", &settings.vignette_softness, 0.1f, 0);
+				ImGui::DragFloat("Vignette Strength", &settings.vignette_strength, 0.1f, 0);
+
+				ImGui::Separator();
+
+				ImGui::DragFloat("Chromatic Aberration Strength", &settings.ca_strength, 0.1f, 0);
+				ImGui::DragFloat("Chromatic Aberration Zoom", &settings.ca_zoom, 0.1f, 0);
+
 				m_frame_graph->UpdateSettings<tasks::PostProcessingData>(settings);
 			}
+			else if (typeid(tasks::SharpeningData) == data_type_info)
+			{
+				auto settings = m_frame_graph->GetSettings<tasks::SharpeningSettings>(task);
+
+				ImGui::DragFloat("Sharpening Strength", &settings.m_strength, 0.1f, 0);
+
+				m_frame_graph->UpdateSettings<tasks::SharpeningData>(settings);
+			}
+			
 		}
 
 	}, true, reinterpret_cast<const char*>(ICON_FA_EYE));

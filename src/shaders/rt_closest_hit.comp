@@ -233,7 +233,7 @@ void main()
 	vec3 geometric_normal = vec3(0);
 	vec3 N = CalcPeturbedNormal(normal, normal_t, tangent, bitangent, V, geometric_normal);
 
-	if (dot(gl_WorldRayDirectionNV, N) > 0 && dot(gl_WorldRayDirectionNV, geometric_normal) > 0) // Flip normal to direction
+	if (material.two_sided != 0 && dot(gl_WorldRayDirectionNV, N) > 0 && dot(gl_WorldRayDirectionNV, geometric_normal) > 0) // Flip normal to direction
 	{
 		geometric_normal = -geometric_normal;
 		N = -N;
@@ -264,6 +264,7 @@ void main()
 	//lighting = DoFog(lighting, gl_HitTNV);
 
 	uint depth = payload.depth;
+
 
 	lighting += DirectLighting(world_pos, N, geometric_normal, V, roughness, diffuse_color, metallic, thickness, clear_coat, cc_roughness, subsurface_power, subsurface_color, anisotropy, anisotropic_t, anisotropic_b, F0, energy_compensation, payload.seed, depth);
 

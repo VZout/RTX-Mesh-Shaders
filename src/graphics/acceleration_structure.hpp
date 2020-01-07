@@ -40,6 +40,7 @@ namespace gfx
 		AccelerationStructure* m_blas;
 		glm::mat3x4 m_transform;
 		std::uint32_t m_material;
+		bool m_two_sided;
 	};
 
 	struct InstanceDesc_Internal {

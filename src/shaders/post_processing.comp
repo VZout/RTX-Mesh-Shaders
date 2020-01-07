@@ -13,6 +13,11 @@ layout(push_constant) uniform PushConstants {
     float exposure;
 	float gamma;
 	int tone_mapping_alg;
+	float vignette_radius;
+	float vignette_softness;
+	float vignette_strength;
+	float ca_strength;
+	float ca_zoom;
 } settings;
 
 //#define SHOW_TONEMAPPING_ALGOS
@@ -29,11 +34,7 @@ void main()
     n_uv.x = mod(n_uv.x, ceil(resolution.x / NUM_TONEMAPPING_ALGOS)); // Repeate a part of the frame
 #endif /* SHOW_TONEMAPPING_ALGOS */
 
-    //ImageData data = GetNeighbours();
-    //vec3 rgb_0 = Sharpen(data);
-    //vec3 rgb_1 = imageLoad(t_input, ivec2(n_uv)).rgb;
-	//vec3 rgb = mix(rgb_0, rgb_1, 0.8); 
-    vec3 rgb = ChromaticAberration(uv, 0.1, 0.97f, resolution);
+    vec3 rgb = ChromaticAberration(uv, settings.ca_strength, settings.ca_zoom, resolution);
 
     vec3 color = ExposureCorrect(rgb, settings.exposure);
 
@@ -77,7 +78,7 @@ void main()
 #endif /* RUNTIME_TONEMAPPING_SELECTION */
 #endif /* SHOW_TONEMAPPING_ALGOS */
 
-	color = Vignette(color, uv, 1.5, 0.5, 0.5);
+	color = Vignette(color, uv, settings.vignette_radius, settings.vignette_softness, settings.vignette_strength);
 
     imageStore(t_output, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1));
 }

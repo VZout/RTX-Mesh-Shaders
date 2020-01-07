@@ -275,6 +275,10 @@ void AssimpModelLoader::LoadMaterials(ModelData* model, const aiScene* scene, st
 			memcpy(&material_data.m_base_color, &color, sizeof(color));
 		}
 
+		bool two_sided;
+		material->Get(AI_MATKEY_TWOSIDED, two_sided);
+		memcpy(&material_data.m_two_sided, &two_sided, sizeof(two_sided));
+
 		if (!material_data.m_metallic_texture.m_pixels)
 		{
 			float metalicness;

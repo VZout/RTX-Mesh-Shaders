@@ -440,7 +440,7 @@ protected:
 
 	bool m_viewport_has_changed = false;
 
-	fg_manager::FGType m_fg_type = fg_manager::FGType::PBR_MESH_SHADING;
+	fg_manager::FGType m_fg_type = fg_manager::FGType::RAYTRACING;
 };
 
 

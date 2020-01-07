@@ -3528,7 +3528,7 @@
     },
     {
       "alphaMode": "BLEND",
-      "doubleSided": false,
+      "doubleSided": true,
       "emissiveFactor": [
         0,
         0,

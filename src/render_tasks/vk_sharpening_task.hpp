@@ -27,35 +27,28 @@
 namespace tasks
 {
 
-	struct PostProcessingData
+	struct SharpeningData
 	{
 		std::uint32_t m_input_set;
 		std::uint32_t m_uav_target_set;
-		gfx::DescriptorHeap* m_gbuffer_heap;
+		gfx::DescriptorHeap* m_gbuffer_heap; // TODO: Could use the post processing heap for this.
 
 		gfx::RootSignature* m_root_sig;
 	};
 
-	struct PostProcessingSettings
+	struct SharpeningSettings
 	{
-		float m_exposure = 1.f;
-		float m_gamma = 2.2f;
-		std::int32_t m_tonemapping_alg = 0;
-		float vignette_radius = 1.6;
-		float vignette_softness = 0.6;
-		float vignette_strength = 0.5;
-		float ca_strength = -0.17;
-		float ca_zoom = 1.f;
+		float m_strength = 0.f;
 	};
 
 	namespace internal
 	{
 
 		template<typename T>
-		inline void SetupPostProcessingTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool)
+		inline void SetupSharpeningTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool)
 		{
-			auto& data = fg.GetData<PostProcessingData>(handle);
-			data.m_root_sig = RootSignatureRegistry::SFind(root_signatures::post_processing);
+			auto& data = fg.GetData<SharpeningData>(handle);
+			data.m_root_sig = RootSignatureRegistry::SFind(root_signatures::sharpening);
 			auto render_target = fg.GetRenderTarget(handle);
 			auto predecessor_rt = fg.GetPredecessorRenderTarget<T>();
 
@@ -74,13 +67,13 @@ namespace tasks
 			data.m_uav_target_set = data.m_gbuffer_heap->CreateUAVSetFromRT(render_target, 0, data.m_root_sig, 1, 0, input_sampler_desc);
 		}
 
-		inline void ExecutePostProcessingTask(Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, fg::RenderTaskHandle handle)
+		inline void ExecuteSharpeningTask(Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, fg::RenderTaskHandle handle)
 		{
-			auto& data = fg.GetData<PostProcessingData>(handle);
+			auto& data = fg.GetData<SharpeningData>(handle);
 			auto cmd_list = fg.GetCommandList(handle);
-			auto pipeline = PipelineRegistry::SFind(pipelines::post_processing);
+			auto pipeline = PipelineRegistry::SFind(pipelines::sharpening);
 			auto render_target = fg.GetRenderTarget(handle);
-			auto settings = fg.GetSettings<PostProcessingSettings>(handle);
+			auto settings = fg.GetSettings<SharpeningSettings>(handle);
 
 			cb::Basic basic_cb_data;
 			std::vector<std::pair<gfx::DescriptorHeap*, std::uint32_t>> sets
@@ -91,20 +84,20 @@ namespace tasks
 
 			cmd_list->BindPipelineState(pipeline);
 			cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
-			cmd_list->BindComputePushConstants(data.m_root_sig, &settings, sizeof(PostProcessingSettings));
+			cmd_list->BindComputePushConstants(data.m_root_sig, &settings, sizeof(SharpeningSettings));
 			cmd_list->Dispatch(render_target->GetWidth() / 16, render_target->GetHeight() / 16, 1);
 		}
 
-		inline void DestroyPostProcessingTask(fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool)
+		inline void DestroySharpeningTask(fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool)
 		{
-			auto& data = fg.GetData<PostProcessingData>(handle);
+			auto& data = fg.GetData<SharpeningData>(handle);
 			delete data.m_gbuffer_heap;
 		}
 
 	} /* internal */
 
 	template<typename T>
-	inline void AddPostProcessingTask(fg::FrameGraph& fg)
+	inline void AddSharpeningTask(fg::FrameGraph& fg)
 	{
 		RenderTargetProperties rt_properties
 		{
@@ -114,7 +107,7 @@ namespace tasks
 			.m_dsv_format = VK_FORMAT_UNDEFINED,
 			.m_rtv_formats = { VK_FORMAT_B8G8R8A8_UNORM },
 			.m_state_execute = VK_IMAGE_LAYOUT_GENERAL,
-			.m_state_finished = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			.m_state_finished = std::nullopt,
 			.m_clear = false,
 			.m_clear_depth = false
 		};
@@ -122,23 +115,23 @@ namespace tasks
 		fg::RenderTaskDesc desc;
 		desc.m_setup_func = [](Renderer& rs, fg::FrameGraph& fg, ::fg::RenderTaskHandle handle, bool resize)
 		{
-			internal::SetupPostProcessingTask<T>(rs, fg, handle, resize);
+			internal::SetupSharpeningTask<T>(rs, fg, handle, resize);
 		};
 		desc.m_execute_func = [](Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, ::fg::RenderTaskHandle handle)
 		{
-			internal::ExecutePostProcessingTask(rs, fg, sg, handle);
+			internal::ExecuteSharpeningTask(rs, fg, sg, handle);
 		};
 		desc.m_destroy_func = [](fg::FrameGraph& fg, ::fg::RenderTaskHandle handle, bool resize)
 		{
-			internal::DestroyPostProcessingTask(fg, handle, resize);
+			internal::DestroySharpeningTask(fg, handle, resize);
 		};
 
 		desc.m_properties = rt_properties;
 		desc.m_type = fg::RenderTaskType::COMPUTE;
 		desc.m_allow_multithreading = true;
 
-		fg.AddTask<PostProcessingData>(desc, "Post Processing Task", FG_DEPS<T>());
-		fg.UpdateSettings<PostProcessingData>(PostProcessingSettings());
+		fg.AddTask<SharpeningData>(desc, "Sharpening Task", FG_DEPS<T>());
+		fg.UpdateSettings<SharpeningData>(SharpeningSettings());
 	}
 
 } /* tasks */

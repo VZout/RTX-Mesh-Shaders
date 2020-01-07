@@ -47,7 +47,7 @@ void gfx::AccelerationStructure::CreateTopLevel(CommandList* cmd_list, std::vect
 		int_desc.mask = 0xff;
 		int_desc.instanceCustomIndex = desc.m_material;
 		int_desc.instanceOffset = 0;
-		int_desc.flags = 0;
+		int_desc.flags = desc.m_two_sided ? VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV : 0;
 		int_desc.transform = desc.m_transform;
 		int_desc.accelerationStructureHandle = desc.m_blas->GetHandle();
 		geom_instances.push_back(int_desc);

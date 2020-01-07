@@ -5,7 +5,7 @@
 
 vec3 TraceColorRay(vec3 origin, vec3 direction, uint seed, uint depth)
 {
-	uint flags = 0;
+	uint flags = gl_RayFlagsCullBackFacingTrianglesNV;
 	float tmin = 0.001;
 	float tmax = 10000.0;
 
