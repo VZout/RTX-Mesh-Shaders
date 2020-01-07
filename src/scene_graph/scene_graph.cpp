@@ -179,10 +179,18 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 		auto physical_size = m_light_physical_size[node.m_light_component].m_value;
 		auto angles = m_light_angles[node.m_light_component].m_value;
 
+		auto model = m_models[node.m_transform_component].m_value;
+
+		glm::vec3 forward;
+		forward.x = cos(rot.y) * cos(rot.x);
+		forward.y = sin(rot.x);
+		forward.z = sin(rot.y) * cos(rot.x);
+		forward = glm::normalize(forward);
+
 		cb::Light light;
 		light.m_pos = pos;
 		light.m_radius = radius;
-		light.m_direction = rot;
+		light.m_direction = forward;
 		light.m_type = (std::uint32_t)type;
 		light.m_inner_angle = angles.first;
 		light.m_outer_angle = angles.second;
@@ -218,10 +226,16 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 			auto physical_size = m_light_physical_size[node.m_light_component].m_value;
 			auto angles = m_light_angles[node.m_light_component].m_value;
 
+			glm::vec3 forward;
+			forward.x = cos(rot.y) * cos(rot.x);
+			forward.y = sin(rot.x);
+			forward.z = sin(rot.y) * cos(rot.x);
+			forward = glm::normalize(forward);
+
 			light.m_pos = pos;
 			light.m_radius = radius;
 			light.m_physical_size = physical_size;
-			light.m_direction = rot;
+			light.m_direction = forward;
 
 			light.m_inner_angle = angles.first;
 			light.m_outer_angle = angles.second;

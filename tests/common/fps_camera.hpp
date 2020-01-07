@@ -32,7 +32,7 @@ public:
 		float m_move_speed = 5;
 		float m_mouse_sensitivity = 0.4;
 		float m_controller_sensitivity = 2.5;
-		bool m_flip_controller_y = false;
+		bool m_flip_controller_y = true;
 
 		std::optional<std::string> IsValid()
 		{

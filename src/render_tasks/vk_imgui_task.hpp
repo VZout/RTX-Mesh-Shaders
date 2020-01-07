@@ -176,7 +176,7 @@ namespace tasks
 		desc.m_type = fg::RenderTaskType::DIRECT;
 		desc.m_allow_multithreading = false;
 
-		fg.AddTask<ImGuiTaskData>(desc, L"ImGui Task");
+		fg.AddTask<ImGuiTaskData>(desc, "ImGui Task");
 	}
 
 } /* tasks */

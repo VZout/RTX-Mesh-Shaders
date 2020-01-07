@@ -124,6 +124,7 @@ void gfx::VkMaterialPool::Update(MaterialHandle handle, MaterialData const & dat
 	material_cb_data.clear_coat = data.m_base_clear_coat;
 	material_cb_data.clear_coat_roughness = data.m_base_clear_coat_roughness;
 	material_cb_data.uv_scale = data.m_base_uv_scale;
+	material_cb_data.two_sided = data.m_two_sided;
 
 	auto buffer = GetCBBuffer(handle);
 
@@ -156,6 +157,7 @@ void gfx::VkMaterialPool::Load_Impl(MaterialHandle& handle, MaterialData const &
 	material_cb_data.clear_coat = data.m_base_clear_coat;
 	material_cb_data.clear_coat_roughness = data.m_base_clear_coat_roughness;
 	material_cb_data.uv_scale = data.m_base_uv_scale;
+	material_cb_data.two_sided = data.m_two_sided;
 
 	buffer->Map();
 	buffer->Update(&material_cb_data, sizeof(cb::BasicMaterial));

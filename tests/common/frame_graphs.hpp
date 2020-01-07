@@ -94,7 +94,8 @@ namespace fg_manager
 			tasks::AddGenerateBRDFLutTask(*fg);
 			tasks::AddRaytracingTask(*fg);
 			//tasks::AddTemporalAntiAliasingTask<tasks::RaytracingData>(*fg);
-			tasks::AddPostProcessingTask<tasks::RaytracingData>(*fg);
+			tasks::AddSharpeningTask<tasks::RaytracingData>(*fg);
+			tasks::AddPostProcessingTask<tasks::SharpeningData>(*fg);
 			tasks::AddCopyToBackBufferTask<tasks::PostProcessingData>(*fg);
 			tasks::AddImGuiTask<tasks::PostProcessingData>(*fg, imgui_func);
 

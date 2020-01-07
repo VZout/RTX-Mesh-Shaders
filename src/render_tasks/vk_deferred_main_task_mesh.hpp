@@ -162,7 +162,7 @@ namespace tasks
 		desc.m_type = fg::RenderTaskType::DIRECT;
 		desc.m_allow_multithreading = true;
 
-		fg.AddTask<DeferredMainMeshData>(desc, L"Deferred Mesh Shading Task");
+		fg.AddTask<DeferredMainMeshData>(desc, "Deferred Mesh Shading Task");
 	}
 
 } /* tasks */

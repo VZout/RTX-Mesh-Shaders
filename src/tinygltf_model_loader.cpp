@@ -19,11 +19,13 @@
 #include <gtc/matrix_transform.hpp>
 #include <utility>
 
+#include <gtx/matrix_decompose.hpp>
+
 #include "util/log.hpp"
 #include "resource_structs.hpp"
 
 TinyGLTFModelLoader::TinyGLTFModelLoader()
-	: ResourceLoader(std::vector<std::string>{ "gltf" })
+	: ResourceLoader(std::vector<std::string>{ "nothing" })
 {
 
 }
@@ -149,12 +151,12 @@ inline void LoadMaterial(ModelData* model, tinygltf::Model tg_model, tinygltf::M
 		else if (value.first == "roughnessFactor")
 		{
 			auto factor = value.second.Factor();
-			mat_data.m_base_roughness = factor;
+			//mat_data.m_base_roughness = factor;
 		}
 		else if (value.first == "metallicFactor")
 		{
 			auto factor = value.second.Factor();
-			mat_data.m_base_metallic = factor;
+			//mat_data.m_base_metallic = factor;
 		}
 	}
 
@@ -238,6 +240,7 @@ inline void LoadMesh(ModelData* model, tinygltf::Model const & tg_model, tinyglt
 			}
 			else if (attrib.first == "NORMAL")
 			{
+
 				mesh_data.m_normals.resize(normal_buffer_offset + count);
 
 				memcpy(mesh_data.m_normals.data() + normal_buffer_offset, data_address, count * byte_stride);
@@ -262,7 +265,7 @@ inline void LoadMesh(ModelData* model, tinygltf::Model const & tg_model, tinyglt
 		// Apply Transformation
 		for (auto& position : mesh_data.m_positions)
 		{
-			position = parent_transform * glm::vec4(position,1);
+			position = parent_transform * glm::vec4(position, 1);
 		}
 
 		auto tangent_bitangent = ComputeTangents(mesh_data);
@@ -313,11 +316,11 @@ TinyGLTFModelLoader::AnonResource TinyGLTFModelLoader::LoadFromDisc(std::string 
 		auto rotation = node.rotation;
 		auto matrix = node.matrix;
 
-		glm::mat4 transform;
+		glm::mat4 transform = glm::mat4(1);
 
 		if (matrix.empty())
 		{
-			glm::mat4 translation_mat(1);
+			/*glm::mat4 translation_mat(1);
 			glm::mat4 rotation_mat(1);
 			glm::mat4 scale_mat(1);
 			if (!translation.empty())
@@ -337,6 +340,27 @@ TinyGLTFModelLoader::AnonResource TinyGLTFModelLoader::LoadFromDisc(std::string 
 			}
 
 			transform = scale_mat * rotation_mat * translation_mat;
+			*/
+
+			if (!scale.empty())
+			{
+				transform = glm::scale(transform,
+					glm::vec3{ (float)scale[0], (float)scale[1], (float)scale[2] });
+			}
+
+			if (!rotation.empty())
+			{
+				transform = glm::rotate(transform,
+					glm::radians((float)rotation[0]), glm::vec3((float)rotation[1], (float)rotation[2], (float)rotation[3]));
+			}
+
+			if (!translation.empty())
+			{
+				transform = glm::translate(transform,
+					glm::vec3{ (float)translation[0], (float)translation[1], (float)translation[2] });
+			}
+
+
 		}
 		else
 		{
@@ -361,7 +385,8 @@ TinyGLTFModelLoader::AnonResource TinyGLTFModelLoader::LoadFromDisc(std::string 
 			transform[3][3] = matrix[15];
 		}
 
-		parent_transform = parent_transform * transform;
+		parent_transform = transform * parent_transform;
+		//parent_transform = glm::mat4(1);
 
 		if (node.mesh > -1)
 		{
@@ -373,8 +398,6 @@ TinyGLTFModelLoader::AnonResource TinyGLTFModelLoader::LoadFromDisc(std::string 
 			recursive_func(child_id, parent_transform);
 		}
 	};
-
-	//tg_model.
 
 	glm::mat4 parent_transform(1);
 	for (auto node_id : tg_model.scenes[tg_model.defaultScene].nodes)

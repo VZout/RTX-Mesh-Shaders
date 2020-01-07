@@ -28,7 +28,8 @@ namespace cb
 		float clear_coat;
 		float clear_coat_roughness;
 		glm::vec2 uv_scale;
-		glm::vec2 padding;
+		float two_sided = true;
+		float padding;
 	};
 
 	struct Camera

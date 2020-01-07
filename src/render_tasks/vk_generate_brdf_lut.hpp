@@ -118,7 +118,7 @@ namespace tasks
 		desc.m_type = fg::RenderTaskType::COMPUTE;
 		desc.m_allow_multithreading = true;
 
-		fg.AddTask<GenerateBRDFLutData>(desc, L"Generate Environment map Task");
+		fg.AddTask<GenerateBRDFLutData>(desc, "Generate BRDF Lut Task");
 	}
 
 } /* tasks */

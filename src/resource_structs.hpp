@@ -44,6 +44,7 @@ struct MaterialData
 	float m_base_clear_coat = 0;
 	float m_base_clear_coat_roughness = 0;
 	glm::vec2 m_base_uv_scale = { 1, 1 };
+	bool m_two_sided = true;
 };
 
 struct ExtraMaterialData

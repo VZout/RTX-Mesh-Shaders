@@ -135,7 +135,7 @@ namespace tasks
 		desc.m_type = fg::RenderTaskType::COMPUTE;
 		desc.m_allow_multithreading = true;
 
-		fg.AddTask<GenerateIrradianceMapData>(desc, L"Generate Irradianec map Task");
+		fg.AddTask<GenerateIrradianceMapData>(desc, "Generate Irradianec map Task");
 	}
 
 } /* tasks */

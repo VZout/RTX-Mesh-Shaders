@@ -36,6 +36,18 @@ namespace tasks
 		gfx::RootSignature* m_root_sig;
 	};
 
+	struct PostProcessingSettings
+	{
+		float m_exposure = 1.f;
+		float m_gamma = 2.2f;
+		std::int32_t m_tonemapping_alg = 0;
+		float vignette_radius = 1.6;
+		float vignette_softness = 0.6;
+		float vignette_strength = 0.5;
+		float ca_strength = -0.17;
+		float ca_zoom = 1.f;
+	};
+
 	namespace internal
 	{
 
@@ -68,6 +80,7 @@ namespace tasks
 			auto cmd_list = fg.GetCommandList(handle);
 			auto pipeline = PipelineRegistry::SFind(pipelines::post_processing);
 			auto render_target = fg.GetRenderTarget(handle);
+			auto settings = fg.GetSettings<PostProcessingSettings>(handle);
 
 			cb::Basic basic_cb_data;
 			std::vector<std::pair<gfx::DescriptorHeap*, std::uint32_t>> sets
@@ -78,6 +91,7 @@ namespace tasks
 
 			cmd_list->BindPipelineState(pipeline);
 			cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
+			cmd_list->BindComputePushConstants(data.m_root_sig, &settings, sizeof(PostProcessingSettings));
 			cmd_list->Dispatch(render_target->GetWidth() / 16, render_target->GetHeight() / 16, 1);
 		}
 
@@ -123,7 +137,8 @@ namespace tasks
 		desc.m_type = fg::RenderTaskType::COMPUTE;
 		desc.m_allow_multithreading = true;
 
-		fg.AddTask<PostProcessingData>(desc, L"Post Processing Task", FG_DEPS<T>());
+		fg.AddTask<PostProcessingData>(desc, "Post Processing Task", FG_DEPS<T>());
+		fg.UpdateSettings<PostProcessingData>(PostProcessingSettings());
 	}
 
 } /* tasks */

@@ -63,14 +63,9 @@ ReadableVertex VertexToReadable(Vertex vertex)
 
 vec3 HitAttribute(vec3 a, vec3 b, vec3 c, vec3 bary)
 {
-	vec3 vertexAttribute[3];
-	vertexAttribute[0] = a;
-	vertexAttribute[1] = b;
-	vertexAttribute[2] = c;
-
-	return vertexAttribute[0] +
-		bary.x * (vertexAttribute[1] - vertexAttribute[0]) +
-		bary.y * (vertexAttribute[2] - vertexAttribute[0]);
+	return a + bary.x * (b - a) + bary.y * (c - a);
+	//const vec3 barycentricCoords = vec3(1.0f - attribs.x - attribs.y, attribs.x, attribs.y);
+	//return a * barycentricCoords.x + b * barycentricCoords.y + c * barycentricCoords.z;
 }
 
 vec3 HitWorldPosition()
@@ -106,7 +101,7 @@ vec3 DirectLighting(vec3 world_pos,
 
 	vec3 lighting = ShadeLight(light, world_pos, N, geometric_normal, V, roughness, diffuse_color, metallic, thickness, clear_coat, cc_roughness, subsurface_power, subsurface_color, anisotropy, anisotropic_t, anisotropic_b, F0, energy_compensation);
 
-	vec3 L = mix(light.m_pos - world_pos, light.m_dir, float(light.m_type == DIRECTIONAL_LIGHT));
+	vec3 L = mix(light.m_pos - world_pos, -light.m_dir, float(light.m_type == DIRECTIONAL_LIGHT));
 	float light_dist = length(L);
 	L /= light_dist;
 	float max_light_dist = mix(light_dist, 100000, float(light.m_type == DIRECTIONAL_LIGHT));
@@ -114,7 +109,6 @@ vec3 DirectLighting(vec3 world_pos,
 	vec3 shadow_dir = normalize(GetUniformHemisphereSample(seed, L, light.m_physical_size));
 	float shadow_mult = float(light_count) * float(!TraceShadowRay(world_pos + (L * EPSILON), shadow_dir, max_light_dist, seed, depth + 1));
 
-	
 	vec3 result = lighting * shadow_mult; 
 
 	return result;
@@ -153,9 +147,9 @@ vec3 IndirectLighting(vec3 world_pos,
 		vec3 rand_dir = GetCosHemisphereSample(seed, N);
 
 		vec3 irradiance = TraceColorRay(world_pos + (vec3(EPSILON) * N), rand_dir, seed, depth + 1);
-		if (dot(geometric_normal, rand_dir) <= 0.0f) irradiance = vec3(0);
+		if (dot(geometric_normal, rand_dir) <= 0.0f) irradiance = vec3(0, 0, 0);
 
-		return diffuse_color * irradiance * (1.0 - E);
+		return diffuse_color * irradiance /** (1.0 - E)*/;
 	}
 	else
 	{
@@ -171,12 +165,12 @@ vec3 IndirectLighting(vec3 world_pos,
 
 		vec2 u = vec2(nextRand(seed), nextRand(seed));
 		//vec3 H = getGGXMicrofacet(seed, perceptual_roughness, N);
-		//vec3 L = normalize(2.f * dot(V, H) * H - V);
 		vec3 H = tangentToWorld * ImportanceSamplingNdfDggx(u, roughness);
+		//vec3 L = normalize(2.f * dot(V, H) * H - V);
 		vec3 L = reflect(-V, H);
 
 		vec3 irradiance = TraceColorRay(world_pos + (vec3(EPSILON) * N), L, seed, depth + 1);
-		if (dot(geometric_normal, L) <= 0.0f) irradiance = vec3(0);
+		if (dot(geometric_normal, L) <= 0.0f) irradiance = vec3(0, 0, 0);
 
 		// Compute some dot products needed for shading
 		float NdotV = max(dot(N, V), MIN_N_DOT_V);
@@ -195,7 +189,7 @@ vec3 IndirectLighting(vec3 world_pos,
 
 		vec3 specular_ibl = NdotL * irradiance * spec / (ggx_probability);
 		
-		return (specular_ibl * E * energy_compensation) * (1.0f - diffuse_probability);
+		return (specular_ibl * energy_compensation) * (1.0f - diffuse_probability);
 	}
 }
 
@@ -211,7 +205,7 @@ void main()
 
 	vec3 world_pos = HitWorldPosition();
 	vec3 view_pos = gl_WorldRayOriginNV;
-	vec3 V = normalize(gl_WorldRayOriginNV - world_pos);
+	vec3 V = -gl_WorldRayDirectionNV;
 
 	uvec3 indices = uvec3(ib.indices[base_idx+0], ib.indices[base_idx+1], ib.indices[base_idx+2]);
 	indices += uvec3(vertex_offset, vertex_offset, vertex_offset); // offset the start
@@ -239,7 +233,7 @@ void main()
 	vec3 geometric_normal = vec3(0);
 	vec3 N = CalcPeturbedNormal(normal, normal_t, tangent, bitangent, V, geometric_normal);
 
-	if (dot(gl_WorldRayDirectionNV, geometric_normal) > 0) // Flip normal to direction
+	if (material.two_sided != 0 && dot(gl_WorldRayDirectionNV, N) > 0 && dot(gl_WorldRayDirectionNV, geometric_normal) > 0) // Flip normal to direction
 	{
 		geometric_normal = -geometric_normal;
 		N = -N;
@@ -271,8 +265,9 @@ void main()
 
 	uint depth = payload.depth;
 
+
 	lighting += DirectLighting(world_pos, N, geometric_normal, V, roughness, diffuse_color, metallic, thickness, clear_coat, cc_roughness, subsurface_power, subsurface_color, anisotropy, anisotropic_t, anisotropic_b, F0, energy_compensation, payload.seed, depth);
-	
+
 	lighting += IndirectLighting(world_pos, N, geometric_normal, V, roughness, albedo, diffuse_color, metallic, thickness, clear_coat, cc_roughness, subsurface_power, subsurface_color, anisotropy, anisotropic_t, anisotropic_b, F0, energy_compensation, payload.seed, depth);
 
 	payload.color = lighting;

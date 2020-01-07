@@ -135,7 +135,6 @@ void main()
     float reflectance = ComputeDielectricF0(reflectivity); // TODO: proper material reflectance
     vec3 F0 = ComputeF0(albedo, metallic, reflectance);
     vec3 energy_compensation = 1.0 + F0 * (1.0 / dfg.y - 1.0);
-    //energy_compensation = vec3(1);
 
     float diff_ao = ao;
     float spec_ao = ComputeSpecularAO(NdotV, diff_ao, PerceptualRoughnessToRoughness(roughness)); // TODO: Specular ao

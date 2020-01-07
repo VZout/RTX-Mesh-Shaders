@@ -54,10 +54,10 @@ namespace tasks
 		float m_clear_coat_roughness = 0;
 		float m_u_scale = 1;
 		float m_v_scale = 1;
+		float m_two_sided = true;
 
 		float m_pad0 = 1;
 		float m_pad1 = 1;
-		float m_pad2 = 1;
 	};
 
 	struct BuildASData
@@ -162,6 +162,7 @@ namespace tasks
 						material.m_clear_coat_roughness = raw.m_base_clear_coat_roughness;
 						material.m_u_scale = raw.m_base_uv_scale.x;
 						material.m_v_scale = raw.m_base_uv_scale.y;
+						material.m_two_sided = raw.m_two_sided;
 
 						data.m_materials[material_id] = material;
 
@@ -169,6 +170,7 @@ namespace tasks
 						new_instance.m_transform = (glm::mat3x4)(model_mat);
 						new_instance.m_blas = blas;
 						new_instance.m_material = material_id;
+						new_instance.m_two_sided = material.m_two_sided;
 						blas_instances.push_back(new_instance);
 
 						material_id++;
@@ -233,7 +235,7 @@ namespace tasks
 		desc.m_type = fg::RenderTaskType::COMPUTE;
 		desc.m_allow_multithreading = true;
 
-		fg.AddTask<BuildASData>(desc, L"Build Acceleration Structures Task");
+		fg.AddTask<BuildASData>(desc, "Build Acceleration Structures Task");
 	}
 
 } /* tasks */

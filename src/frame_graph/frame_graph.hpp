@@ -388,6 +388,32 @@ namespace fg
 			}
 		}
 
+		/*! Get the name of a specific render task. (Returns "Unknown" if FG_MAX_PERFORMANCE is defined) */
+		inline std::string const& GetTaskName(RenderTaskHandle handle)
+		{
+#ifndef FG_MAX_PERFORMANCE
+			return m_names[handle];
+#else
+			return "Unkown";
+#endif /* FG_MAX_PERFORMANCE */
+		}
+
+		inline RenderTaskType GetTaskType(RenderTaskHandle handle) const
+		{
+			return m_types[handle];
+		}
+
+		inline std::reference_wrapper<const std::type_info> const GetDataTypeInfo(RenderTaskHandle handle) const
+		{
+			return m_data_type_info[handle];
+		}
+
+		/*! Get the number of tasks added to the frame graph */
+		inline std::uint32_t GetNumTasks() const
+		{
+			return m_num_tasks;
+		}
+
 		/*! Wait for a previous task. */
 		/*!
 			This function loops over all tasks and checks whether it has the same type information as the template variable.
@@ -602,6 +628,11 @@ namespace fg
 			return static_cast<T*>(m_render_targets[handle]);
 		}
 
+		[[nodiscard]] inline bool HasRenderTarget(RenderTaskHandle handle) const
+		{
+			return m_rt_properties[handle].has_value();
+		}
+
 		/*! Check if this frame graph has a task. */
 		/*!
 			This checks if the frame graph has the task that has been given as the template variable.
@@ -660,7 +691,7 @@ namespace fg
 			\param desc A description of the render task.
 		*/
 		template<typename T>
-		inline void AddTask(RenderTaskDesc& desc, [[maybe_unused]] std::wstring const & name, [[maybe_unused]] std::vector<std::reference_wrapper<const std::type_info>> dependencies = {})
+		inline void AddTask(RenderTaskDesc& desc, [[maybe_unused]] std::string const & name, [[maybe_unused]] std::vector<std::reference_wrapper<const std::type_info>> dependencies = {})
 		{
 			static_assert(std::is_class<T>::value ||
 				std::is_floating_point<T>::value ||
@@ -728,6 +759,11 @@ namespace fg
 			}
 		}
 
+		/*! Enable or disable execution of a task. */
+		inline bool ShouldExecute(RenderTaskHandle handle) const
+		{
+			return m_should_execute[handle];
+		}
 
 		/*! Update the settings of a task. */
 		/*!
@@ -801,6 +837,11 @@ namespace fg
 		catch (const std::bad_any_cast& e) {
 			LOGW("A task settings requested failed to cast to T. ({})", e.what());
 			return T();
+		}
+
+		[[nodiscard]] inline bool HasSettings(RenderTaskHandle handle) const
+		{
+			return m_settings[handle] != std::nullopt;
 		}
 
 	private:
@@ -986,7 +1027,7 @@ namespace fg
 		/*! Stored the dependencies of a task. */
 		std::vector<std::vector<std::reference_wrapper<const std::type_info>>> m_dependencies;
 		/*! The names of the render targets meant for debugging */
-		std::vector<std::wstring> m_names;
+		std::vector<std::string> m_names;
 #endif
 		std::vector<RenderTaskType> m_types;
 		std::vector<std::optional<RenderTargetProperties>> m_rt_properties;

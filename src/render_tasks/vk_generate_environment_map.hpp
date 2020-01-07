@@ -164,7 +164,7 @@ namespace tasks
 		desc.m_type = fg::RenderTaskType::COMPUTE;
 		desc.m_allow_multithreading = true;
 
-		fg.AddTask<GenerateEnvironmentMapData>(desc, L"Generate Environment map Task");
+		fg.AddTask<GenerateEnvironmentMapData>(desc, "Generate Environment map Task");
 	}
 
 } /* tasks */

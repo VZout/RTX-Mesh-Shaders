@@ -20,6 +20,7 @@ struct shaders
 	static RegistryHandle basic_ps;
 	static RegistryHandle basic_vs;
 	static RegistryHandle composition_cs;
+	static RegistryHandle sharpening_cs;
 	static RegistryHandle taa_cs;
 	static RegistryHandle post_processing_cs;
 	static RegistryHandle generate_cubemap_cs;
@@ -45,6 +46,7 @@ struct root_signatures
 	static RegistryHandle basic_mesh;
 	static RegistryHandle composition;
 	static RegistryHandle taa;
+	static RegistryHandle sharpening;
 	static RegistryHandle post_processing;
 	static RegistryHandle generate_cubemap; // Also used by `generate_irradiance`.
 	static RegistryHandle generate_environmentmap;
@@ -60,6 +62,7 @@ struct pipelines
 	static RegistryHandle basic_mesh;
 	static RegistryHandle composition;
 	static RegistryHandle taa;
+	static RegistryHandle sharpening;
 	static RegistryHandle post_processing;
 	static RegistryHandle generate_cubemap;
 	static RegistryHandle generate_irradiancemap;

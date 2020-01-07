@@ -69,10 +69,10 @@ struct RaytracingMaterial
 	float clear_coat_roughness;
 	float u_scale;
 	float v_scale;
+	float two_sided;
 	
 	float m_pad0;
 	float m_pad1;
-	float m_pad2;
 };
 
 struct Light

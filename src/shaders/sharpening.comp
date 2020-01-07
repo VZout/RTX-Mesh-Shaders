@@ -1,0 +1,30 @@
+#version 450
+
+layout (local_size_x = 16, local_size_y = 16) in;
+
+layout(set = 0, binding = 0, rgba8) uniform readonly image2D t_input;
+layout(set = 1, binding = 1, rgba8) uniform writeonly image2D t_output;
+
+#include "special_fx.glsl"
+
+layout(push_constant) uniform PushConstants {
+    float strength;
+} settings;
+
+void main()
+{
+    const ivec2 resolution = imageSize(t_output);
+    vec2 uv = (vec2(gl_GlobalInvocationID.xy + 0.5f) / resolution);
+
+    vec2 n_uv = vec2(gl_GlobalInvocationID.xy);
+#ifdef SHOW_TONEMAPPING_ALGOS
+    n_uv.x = mod(n_uv.x, ceil(resolution.x / NUM_TONEMAPPING_ALGOS)); // Repeate a part of the frame
+#endif /* SHOW_TONEMAPPING_ALGOS */
+
+    ImageData data = GetNeighbours();
+    vec3 color_sharpened = Sharpen(data);
+    vec3 color_original = imageLoad(t_input, ivec2(n_uv)).rgb;
+	vec3 color = mix(color_original, color_sharpened, settings.strength); 
+
+    imageStore(t_output, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1));
+}

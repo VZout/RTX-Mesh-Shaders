@@ -23,6 +23,6 @@ public:
 	AnonResource LoadFromDisc(std::string const & path) final;
 
 	void LoadEmbeddedTextures(ModelData* model, const aiScene* scene);
-	void LoadMaterials(ModelData* model, const aiScene* scene);
+	void LoadMaterials(ModelData* model, const aiScene* scene, std::string base_path);
 	void LoadMeshes(ModelData* model, const aiScene* scene, aiNode* node);
 };

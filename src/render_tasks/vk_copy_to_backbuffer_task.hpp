@@ -56,7 +56,7 @@ namespace tasks
 		desc.m_type = fg::RenderTaskType::DIRECT;
 		desc.m_allow_multithreading = true;
 
-		fg.AddTask<CopyToBackBufferData>(desc, L"Copy to back buffer Task");
+		fg.AddTask<CopyToBackBufferData>(desc, "Copy to back buffer Task");
 	}
 
 } /* tasks */

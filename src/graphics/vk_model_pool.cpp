@@ -84,8 +84,7 @@ ModelHandle::MeshOffsets gfx::VkModelPool::AllocateMesh(void* vertex_data, std::
 
 
 	const auto storage_buffer_allignment = m_context->GetPhysicalDeviceProperties().properties.limits.minStorageBufferOffsetAlignment;
-	auto x = SizeAlignTwoPower(vertex_stride, storage_buffer_allignment);
-	m_next_vb_offset += SizeAlignTwoPower(vertex_stride * num_vertices, storage_buffer_allignment);
+	m_next_vb_offset += SizeAlignTwoPower(vertex_stride * num_vertices, 1);
 	m_next_ib_offset += SizeAlignTwoPower(index_stride * num_indices, storage_buffer_allignment);
 
 	return offsets;

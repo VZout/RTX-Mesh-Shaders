@@ -1,3 +1,5 @@
+
+
 /*!
  *  \author    Viktor Zoutman
  *  \date      2019-2020
@@ -24,10 +26,11 @@
 #include "../common/sss_scene.hpp"
 #include "../common/forrest_scene.hpp"
 #include "../common/displacement_scene.hpp"
+#include "../common/spaceship_scene.hpp"
 
 #include <util/cpu_profiler.hpp>
 
-#define DEFAULT_SCENE ForrestScene
+#define DEFAULT_SCENE SpaceshipScene
 
 class Demo : public Application
 {
@@ -306,6 +309,8 @@ protected:
 	{
 		if (m_fg_type != type)
 		{
+			m_selected_task = std::nullopt;
+
 			m_fg_type = type;
 			editor.SetMainMenuBarText("FrameGraph: " + fg_manager::GetFrameGraphName(type));
 			m_reload_fg = true;
@@ -427,6 +432,7 @@ protected:
 	// ImGui
 	std::chrono::time_point<std::chrono::high_resolution_clock> m_last;
 	std::optional<sg::NodeHandle> m_selected_node;
+	std::optional<std::uint32_t> m_selected_task;
 	ImGuiTextFilter m_outliner_filter;
 	bool m_viewport_has_focus = false;
 	ImVec2 m_viewport_pos = { 0, 0 };
@@ -434,7 +440,7 @@ protected:
 
 	bool m_viewport_has_changed = false;
 
-	fg_manager::FGType m_fg_type = fg_manager::FGType::PBR_MESH_SHADING;
+	fg_manager::FGType m_fg_type = fg_manager::FGType::RAYTRACING;
 };
 
 

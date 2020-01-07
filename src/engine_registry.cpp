@@ -45,6 +45,11 @@ REGISTER(shaders::taa_cs, ShaderRegistry)({
 	.m_type = gfx::enums::ShaderType::COMPUTE,
 });
 
+REGISTER(shaders::sharpening_cs, ShaderRegistry)({
+	.m_path = "shaders/sharpening.comp.spv",
+	.m_type = gfx::enums::ShaderType::COMPUTE,
+});
+
 REGISTER(shaders::post_processing_cs, ShaderRegistry)({
     .m_path = "shaders/post_processing.comp.spv",
     .m_type = gfx::enums::ShaderType::COMPUTE,
@@ -236,6 +241,32 @@ REGISTER(root_signatures::composition, RootSignatureRegistry)({
     }(),
 });
 
+REGISTER(root_signatures::sharpening, RootSignatureRegistry)({
+    .m_parameters = []() -> decltype(RootSignatureDesc::m_parameters)
+    {
+        decltype(RootSignatureDesc::m_parameters) params(2);
+	    params[0].binding = 0; // root parameter 1
+	    params[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	    params[0].descriptorCount = 1;
+	    params[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+	    params[0].pImmutableSamplers = nullptr;
+	    params[1].binding = 1; // root parameter 2
+	    params[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	    params[1].descriptorCount = 1;
+	    params[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+	    params[1].pImmutableSamplers = nullptr;
+        return params;
+    }(),
+	.m_push_constants = []() -> decltype(RootSignatureDesc::m_push_constants)
+	{
+		decltype(RootSignatureDesc::m_push_constants) constants(1);
+		constants[0].offset = 0;
+		constants[0].size = sizeof(float); // strength
+		constants[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+		return constants;
+	}()
+});
+
 REGISTER(root_signatures::post_processing, RootSignatureRegistry)({
     .m_parameters = []() -> decltype(RootSignatureDesc::m_parameters)
     {
@@ -252,6 +283,14 @@ REGISTER(root_signatures::post_processing, RootSignatureRegistry)({
 	    params[1].pImmutableSamplers = nullptr;
         return params;
     }(),
+	.m_push_constants = []() -> decltype(RootSignatureDesc::m_push_constants)
+	{
+		decltype(RootSignatureDesc::m_push_constants) constants(1);
+		constants[0].offset = 0;
+		constants[0].size = (sizeof(float) * 2) + sizeof(std::int32_t) + (sizeof(float)*3) + (sizeof(float) * 2); // exposure, gamma, tonemapping, vignettex3, abborationx3
+		constants[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+		return constants;
+	}()
 });
 
 REGISTER(root_signatures::taa, RootSignatureRegistry)({
@@ -447,6 +486,14 @@ REGISTER(pipelines::composition, PipelineRegistry)({
 REGISTER(pipelines::taa, PipelineRegistry)({
    .m_root_signature_handle = root_signatures::taa,
    .m_shader_handles = { shaders::taa_cs },
+   .m_input_layout = std::nullopt,
+
+   .m_type = gfx::enums::PipelineType::COMPUTE_PIPE,
+});
+
+REGISTER(pipelines::sharpening, PipelineRegistry)({
+   .m_root_signature_handle = root_signatures::sharpening,
+   .m_shader_handles = { shaders::sharpening_cs },
    .m_input_layout = std::nullopt,
 
    .m_type = gfx::enums::PipelineType::COMPUTE_PIPE,
