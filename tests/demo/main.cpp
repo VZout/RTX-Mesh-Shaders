@@ -30,7 +30,7 @@
 
 #include <util/cpu_profiler.hpp>
 
-#define DEFAULT_SCENE SpaceshipScene
+#define DEFAULT_SCENE ForrestScene
 
 class Demo : public Application
 {

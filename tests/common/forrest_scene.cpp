@@ -25,7 +25,7 @@ ForrestScene::ForrestScene() :
 
 void ForrestScene::LoadResources(std::optional<std::reference_wrapper<util::Progress>> progress)
 {
-	if (progress) MAKE_CHILD_PROGRESS((*progress).get(), 9);
+	if (progress) MAKE_CHILD_PROGRESS((*progress).get(), 10);
 
 	if (progress) PROGRESS((*progress).get(), "Loading `forrest_ground_01_diff_4k`")
 
@@ -65,6 +65,8 @@ void ForrestScene::LoadResources(std::optional<std::reference_wrapper<util::Prog
 	m_plane_model = m_model_pool->LoadWithMaterials<Vertex>("plane.fbx", m_material_pool, m_texture_pool, false);
 	if (progress) PROGRESS((*progress).get(), "Loading Robot Model")
 	m_object_model = m_model_pool->LoadWithMaterials<Vertex>("robot/scene.gltf", m_material_pool, m_texture_pool, false);
+	if (progress) PROGRESS((*progress).get(), "Loading Baby Robot Model")
+	m_object2_model = m_model_pool->LoadWithMaterials<Vertex>("baby_robot/scene.gltf", m_material_pool, m_texture_pool, false);
 	if (progress) PROGRESS((*progress).get(), "Loading Grass Model")
 	m_grass_model = m_model_pool->LoadWithMaterials<Vertex>("grass/scene.gltf", m_material_pool, m_texture_pool, false, data_gass);
 	if (progress) PROGRESS((*progress).get(), "Loading Tree Model")
@@ -87,9 +89,14 @@ void ForrestScene::BuildScene(std::optional<std::reference_wrapper<util::Progres
 	sg::helper::SetFocalDistance(m_scene_graph, m_camera_node, 2.1f);
 
 	// Create Object
-	auto object = m_scene_graph->CreateNode<sg::MeshComponent>(m_object_model);
-	sg::helper::SetPosition(m_scene_graph, object, glm::vec3(0, 0, 0));
-	sg::helper::SetScale(m_scene_graph, object, glm::vec3(0.008));
+	auto object_1 = m_scene_graph->CreateNode<sg::MeshComponent>(m_object_model);
+	sg::helper::SetPosition(m_scene_graph, object_1, glm::vec3(0, 0, 0));
+	sg::helper::SetScale(m_scene_graph, object_1, glm::vec3(0.008));
+
+	auto object_2 = m_scene_graph->CreateNode<sg::MeshComponent>(m_object2_model);
+	sg::helper::SetPosition(m_scene_graph, object_2, glm::vec3(1.333, 0.261, 0.093));
+	sg::helper::SetRotation(m_scene_graph, object_2, glm::vec3(0, -58.980_deg, 0));
+	sg::helper::SetScale(m_scene_graph, object_2, glm::vec3(0.008));
 
 	auto plane_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_plane_model);
 	sg::helper::SetMaterial(m_scene_graph, plane_node, { m_plane_material_handle });
@@ -108,6 +115,11 @@ void ForrestScene::BuildScene(std::optional<std::reference_wrapper<util::Progres
 	sg::helper::SetPosition(m_scene_graph, light_node2, glm::vec3(1.143, 1.362, 0.691));
 	sg::helper::SetRadius(m_scene_graph, light_node2, 0);
 	sg::helper::SetPhysicalSize(m_scene_graph, light_node2, 0.1);
+
+	/*auto light_node3 = m_scene_graph->CreateNode<sg::LightComponent>(cb::LightType::POINT, glm::vec3(5, 1, 0));
+	sg::helper::SetPosition(m_scene_graph, light_node3, glm::vec3(0.5, 0.5, 0.5));
+	sg::helper::SetRadius(m_scene_graph, light_node3, 0);
+	sg::helper::SetPhysicalSize(m_scene_graph, light_node3, 0.1);*/
 
 	std::seed_seq seed{ 0, 0 };
 	std::mt19937 gen(seed);

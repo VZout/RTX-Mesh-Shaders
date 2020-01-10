@@ -50,7 +50,7 @@ namespace tasks
 			auto render_target = fg.GetRenderTarget(handle);
 
 			auto texture_pool = static_cast<gfx::VkTexturePool*>(rs.GetTexturePool());
-			data.m_sky_texture_id = texture_pool->Load("kiara_1_dawn_4k.hdr", false, false);
+			data.m_sky_texture_id = texture_pool->Load("epping_forest_01_4k.hdr", false, false);
 			auto textures = texture_pool->GetTextures({ data.m_sky_texture_id });
 
 			gfx::SamplerDesc input_sampler_desc
