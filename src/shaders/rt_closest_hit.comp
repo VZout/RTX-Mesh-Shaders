@@ -268,7 +268,7 @@ void main()
 
 	lighting += DirectLighting(world_pos, N, geometric_normal, V, roughness, diffuse_color, metallic, thickness, clear_coat, cc_roughness, subsurface_power, subsurface_color, anisotropy, anisotropic_t, anisotropic_b, F0, energy_compensation, payload.seed, depth);
 
-	lighting += IndirectLighting(world_pos, N, geometric_normal, V, roughness, albedo, diffuse_color, metallic, thickness, clear_coat, cc_roughness, subsurface_power, subsurface_color, anisotropy, anisotropic_t, anisotropic_b, F0, energy_compensation, payload.seed, depth);
+	lighting += clamp(IndirectLighting(world_pos, N, geometric_normal, V, roughness, albedo, diffuse_color, metallic, thickness, clear_coat, cc_roughness, subsurface_power, subsurface_color, anisotropy, anisotropic_t, anisotropic_b, F0, energy_compensation, payload.seed, depth), 0, 5);
 
 	payload.color = lighting;
 }

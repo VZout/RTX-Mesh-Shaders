@@ -13,9 +13,9 @@
 #include "vertex.hpp"
 #include "util/bitfield.hpp"
 
-static inline const int max_vertex_count_limit = 63;
+static inline const int max_vertex_count_limit = 256;
 static inline const int primitive_packing_alignment = 1;
-static inline const int max_primitive_count_limit = 63;
+static inline const int max_primitive_count_limit = 21;
 static inline const std::uint32_t vertex_packing_alignment = 16;
 static inline const std::uint32_t meshlets_per_task = 32;
 

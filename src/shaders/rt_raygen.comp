@@ -96,7 +96,6 @@ void main()
     generateCameraRay(pixelUV, lensUV, origin, direction);
 
 	vec3 result = TraceColorRay(origin, direction, seed, 0);
-	result = clamp(result, 0, 10);
 
 	vec3 prev = imageLoad(t_output, ivec2(gl_LaunchIDNV.xy)).rgb;
 	vec3 color = (info.frame_number * prev + result) / (info.frame_number + 1); // accumulate

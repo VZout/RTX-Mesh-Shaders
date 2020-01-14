@@ -6,8 +6,8 @@
 #extension GL_KHR_shader_subgroup_vote : require
 
 #define GROUP_SIZE 32
-#define NVMESHLET_VERTEX_COUNT      63
-#define NVMESHLET_PRIMITIVE_COUNT   63
+#define NVMESHLET_VERTEX_COUNT      64
+#define NVMESHLET_PRIMITIVE_COUNT   21
 #define NVMESHLET_PRIM_ALIGNMENT        1
 #define NVMESHLET_VERTEX_ALIGNMENT      16
 
@@ -37,7 +37,8 @@ void DecodeBbox(uvec4 meshlet_desc, out vec3 oBboxMin, out vec3 oBboxMax)
 
 vec4 GetBoxCorner(vec3 bboxMin, vec3 bboxMax, int n)
 {
-	switch(n){
+	switch(n)
+	{
     case 0:
 		return vec4(bboxMin.x,bboxMin.y,bboxMin.z,1);
     case 1:
@@ -64,11 +65,7 @@ uint GetCullBits(vec4 hPos)
 	cullBits |= hPos.x >  hPos.w ?  2 : 0;
 	cullBits |= hPos.y < -hPos.w ?  4 : 0;
 	cullBits |= hPos.y >  hPos.w ?  8 : 0;
-#if NVMESHLET_CLIP_Z_SIGNED // non vulkan pipe
-	cullBits |= hPos.z < -hPos.w ? 16 : 0;
-#else
 	cullBits |= hPos.z <  0      ? 16 : 0;
-#endif
 	cullBits |= hPos.z >  hPos.w ? 32 : 0;
 	cullBits |= hPos.w <= 0      ? 64 : 0; 
 	
