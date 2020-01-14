@@ -17,7 +17,7 @@ sg::SceneGraph::SceneGraph(Renderer* renderer)
 
 	m_per_object_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Basic) * gfx::settings::max_render_batch_size, 100, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_TASK_BIT_NV);
 	m_camera_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Camera), 1, 0, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_TASK_BIT_NV);
-	m_inverse_camera_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::CameraInverse), 1, 2, VK_SHADER_STAGE_RAYGEN_BIT_NV);
+	m_inverse_camera_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::RaytracingCamera), 1, 2, VK_SHADER_STAGE_RAYGEN_BIT_NV);
 	m_light_buffer_pool = renderer->CreateConstantBufferPool(sizeof(cb::Light) * gfx::settings::max_lights, 1, 3, VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV | VK_SHADER_STAGE_MISS_BIT_NV);
 
 	// Initialize the light buffer as empty.
@@ -135,7 +135,7 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 		m_camera_buffer_pool->Update(m_camera_cb_handles[node.m_camera_component], sizeof(cb::Camera), &data, frame_idx);
 
 		// Update inverse
-		cb::CameraInverse inv_data;
+		cb::RaytracingCamera inv_data;
 		//inv_data.m_view = glm::inverse(data.m_view);
 		//inv_data.m_proj = glm::inverse(data.m_proj);
 
@@ -159,7 +159,7 @@ void sg::SceneGraph::Update(std::uint32_t frame_idx)
 		inv_data.cameraForwardVectorLensF.z = forward.z;
 		inv_data.cameraForwardVectorLensF.a = lens_properties.m_focal_dist;
 
-		m_inverse_camera_buffer_pool->Update(m_inverse_camera_cb_handles[node.m_camera_component], sizeof(cb::CameraInverse), &inv_data, frame_idx);
+		m_inverse_camera_buffer_pool->Update(m_inverse_camera_cb_handles[node.m_camera_component], sizeof(cb::RaytracingCamera), &inv_data, frame_idx);
 
 		m_requires_camera_buffer_update[node.m_camera_component].m_value[frame_idx] = false;
 	}
