@@ -71,7 +71,7 @@ struct RaytracingMaterial
 	float v_scale;
 	float two_sided;
 	
-	float m_pad0;
+	uint emissive_texture;
 	float m_pad1;
 };
 

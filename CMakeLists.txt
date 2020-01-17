@@ -371,7 +371,7 @@ source_group("ImGui" FILES ${HEADERS_IMGUI} ${SOURCES_IMGUI})
 source_group("Shaders" FILES ${GLSL_SOURCE_FILES})
 
 # Application
-add_library(WispVK
+add_library(Skygge
 	${HEADERS} ${SOURCES}
 	${HEADERS_FG} ${SOURCES_FG}
 	${HEADERS_SG} ${SOURCES_SG}
@@ -379,8 +379,8 @@ add_library(WispVK
 	${HEADERS_UTIL} ${SOURCES_UTIL}
 	${HEADERS_GFX} ${SOURCES_GFX}
 	${HEADERS_IMGUI} ${SOURCES_IMGUI})
-target_link_libraries(WispVK ${VULKAN_LIBRARY} glfw fmt assimp)
-target_include_directories(WispVK PUBLIC
+target_link_libraries(Skygge ${VULKAN_LIBRARY} glfw fmt assimp)
+target_include_directories(Skygge PUBLIC
 	${glfw_SOURCE_DIR}/include
 	${vulkan_SOURCE_DIR}/include
 	${glm_SOURCE_DIR}/glm
@@ -415,25 +415,25 @@ foreach(GLSL ${GLSL_SOURCE_FILES})
 endforeach(GLSL)
 
 add_custom_target(
-    WispVK_Shaders 
+    Skygge_Shaders 
     DEPENDS ${SPIRV_BINARY_FILES}
 	SOURCES ${GLSL_SOURCE_FILES}
     )
 
-add_dependencies(WispVK WispVK_Shaders)
+add_dependencies(Skygge Skygge_Shaders)
 
 # Copy external resources
-add_custom_command(TARGET WispVK PRE_BUILD
+add_custom_command(TARGET Skygge PRE_BUILD
 		COMMAND ${CMAKE_COMMAND} -E copy_directory
 		${CMAKE_SOURCE_DIR}/resources/ ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 		COMMENT "Copying Resources")
 
 # Build Tests
-message(STATUS "${Magenta}Configuring WispVk Tests & Benchmarks:${ColorReset}")
+message(STATUS "${Magenta}Configuring Skygge Tests & Benchmarks:${ColorReset}")
 add_subdirectory(tests)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Demo)
 
-message(STATUS "${Magenta}WispVK Configuration Info:${ColorReset}")
+message(STATUS "${Magenta}Skygge Configuration Info:${ColorReset}")
 if(NOT CMAKE_BUILD_TYPE)
 	message("\tBuild Type: ${Yellow}${CMAKE_CONFIGURATION_TYPES}${ColorReset}")
 else()

@@ -135,11 +135,13 @@ gfx::Context::Context(Application* app)
 		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 	}
 
+	auto app_version = VK_MAKE_VERSION(1, 0, 0);
+
 	m_app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	m_app_info.pApplicationName = "Hello";
-	m_app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-	m_app_info.pEngineName = "Vik Engine";
-	m_app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+	m_app_info.pApplicationName = "Mesh Shader Demo";
+	m_app_info.applicationVersion = app_version;
+	m_app_info.pEngineName = "irrelevant";
+	m_app_info.engineVersion = app_version;
 	m_app_info.apiVersion = VK_API_VERSION_1_1;
 
 	m_instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;

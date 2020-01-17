@@ -227,6 +227,7 @@ void main()
 	uv.y = 1.0f - uv.y;
 
 	vec3 albedo = material.color.x > -1 ? material.color.rgb : texture(ts_textures[material.albedo_texture], uv).rgb;
+	vec3 emissive = texture(ts_textures[material.emissive_texture], uv).rgb;
 	vec3 normal_t = normalize(texture(ts_textures[material.normal_texture], uv).rgb * 2.0f - 1.0f);
 	vec4 compressed_mra = texture(ts_textures[material.roughness_texture], uv).rgba;
 
@@ -269,6 +270,15 @@ void main()
 	lighting += DirectLighting(world_pos, N, geometric_normal, V, roughness, diffuse_color, metallic, thickness, clear_coat, cc_roughness, subsurface_power, subsurface_color, anisotropy, anisotropic_t, anisotropic_b, F0, energy_compensation, payload.seed, depth);
 
 	lighting += clamp(IndirectLighting(world_pos, N, geometric_normal, V, roughness, albedo, diffuse_color, metallic, thickness, clear_coat, cc_roughness, subsurface_power, subsurface_color, anisotropy, anisotropic_t, anisotropic_b, F0, energy_compensation, payload.seed, depth), 0, 5);
+
+	if (depth == 0)
+	{
+		lighting += emissive;
+	}
+	else
+	{
+		lighting += emissive * 500;
+	}
 
 	payload.color = lighting;
 }

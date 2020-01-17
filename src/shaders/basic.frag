@@ -5,7 +5,7 @@
 
 precision mediump int; precision highp float;
 
-layout(set = 2, binding = 2) uniform sampler2D ts_textures[5];
+layout(set = 2, binding = 2) uniform sampler2D ts_textures[6];
 
 layout(location = 0) in vec2 g_uv;
 layout(location = 1) in vec3 g_normal;

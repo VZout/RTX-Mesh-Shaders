@@ -22,6 +22,7 @@ struct MaterialHandle
 	std::uint32_t m_roughness_texture_handle;
 	std::uint32_t m_thickness_texture_handle;
 	std::uint32_t m_displacement_texture_handle;
+	std::uint32_t m_emissive_texture_handle;
 	std::uint32_t m_material_set_id;
 	std::uint32_t m_material_cb_set_id;
 
@@ -52,6 +53,7 @@ private:
 	std::uint32_t m_default_normal_texture;
 	std::uint32_t m_default_thickness_texture;
 	std::uint32_t m_default_displacement_texture;
+	std::uint32_t m_default_emissive_texture;
 
 	std::unordered_map<uint32_t, MaterialData> m_raw_data;
 

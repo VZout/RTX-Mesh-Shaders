@@ -104,8 +104,6 @@ void EmitVertex(uint idx, Vertex vertex, mat4 model, uint meshlet_id)
 	gl_MeshVerticesNV[idx].gl_Position = camera.proj * camera.view * world_pos;
 }
 
-//const uint prim_iterations = NVMESHLET_PRIMITIVE_COUNT / GROUP_SIZE;
-//const uint vert_iterations = NVMESHLET_VERTEX_COUNT / GROUP_SIZE;
 const uint prim_iterations = (NVMESHLET_PRIMITIVE_COUNT + GROUP_SIZE - 1) / GROUP_SIZE;
 const uint vert_iterations = (NVMESHLET_VERTEX_COUNT + GROUP_SIZE - 1) / GROUP_SIZE;
 
