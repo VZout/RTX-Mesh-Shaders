@@ -152,7 +152,7 @@ namespace tasks
 
 			cmd_list->BindPipelineState(data.m_pipeline);
 			cmd_list->BindDescriptorHeap(data.m_root_sig, sets);
-			cmd_list->Dispatch(render_target->GetWidth() / 16, render_target->GetHeight() / 16, 1);
+			cmd_list->Dispatch(render_target->GetWidth() / 32, render_target->GetHeight() / 32, 1);
 		}
 
 		inline void DestroyDeferredCompositionTask(fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)

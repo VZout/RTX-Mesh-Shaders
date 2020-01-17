@@ -48,8 +48,14 @@ void main()
 	mat4 model = ubo.model[instance_id];
 	uvec4 meshlet_desc = mb.meshlet_descs[meshlet_id];
 
-	mat4 inverse_view = inverse(camera.view);
-	bool render = !(global_id > total_meshlet_count || EarlyCull(meshlet_desc, model, vec3(inverse_view[3]), camera.proj * camera.view));
+	vec3 view_pos;
+	if (subgroupElect())
+	{
+		view_pos = vec3(inverse(camera.view)[3]);
+	}
+	view_pos = subgroupBroadcastFirst(view_pos);
+
+	bool render = !(global_id > total_meshlet_count || EarlyCull(meshlet_desc, model, view_pos, camera.proj * camera.view));
 	uvec4 vote = subgroupBallot(render);
 	uint tasks = subgroupBallotBitCount(vote);
 
@@ -61,7 +67,7 @@ void main()
 	}
 
 	uint idx_offset = subgroupBallotExclusiveBitCount(vote);
-	if (render)
+	// if (render)
 	{
 		OUT.sub_ids[idx_offset] = uint8_t(lane_id);
 	}
