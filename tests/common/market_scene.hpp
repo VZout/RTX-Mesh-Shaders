@@ -19,4 +19,5 @@ private:
 	void Update_Impl(float delta, float time) final;
 
 	ModelHandle m_market_model;
+	ModelHandle m_human_model;
 };

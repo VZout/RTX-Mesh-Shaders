@@ -20,10 +20,13 @@ MarketScene::MarketScene() :
 
 void MarketScene::LoadResources(std::optional<std::reference_wrapper<util::Progress>> progress)
 {
-	if (progress) MAKE_CHILD_PROGRESS((*progress).get(), 1);
+	if (progress) MAKE_CHILD_PROGRESS((*progress).get(), 2);
 
 	if (progress) PROGRESS((*progress).get(), "Loading Market Model");
 	m_market_model = m_model_pool->LoadWithMaterials<Vertex>("market/scene.gltf", m_material_pool, m_texture_pool, false);
+
+	/*if (progress) PROGRESS((*progress).get(), "Loading Human Model");
+	m_human_model = m_model_pool->LoadWithMaterials<Vertex>("aguilar/scene.gltf", m_material_pool, m_texture_pool, false);*/
 
 	if (progress) POP_CHILD_PROGRESS((*progress).get());
 }
@@ -46,6 +49,12 @@ void MarketScene::BuildScene(std::optional<std::reference_wrapper<util::Progress
 	sg::helper::SetPosition(m_scene_graph, object, glm::vec3(0, 0, 0));
 	sg::helper::SetScale(m_scene_graph, object, glm::vec3(0.1));
 	//sg::helper::SetRotation(m_scene_graph, object, glm::vec3(0, 0_deg, 0g));
+
+
+	/*auto human = m_scene_graph->CreateNode<sg::MeshComponent>(m_human_model);
+	sg::helper::SetPosition(m_scene_graph, human, glm::vec3(0, 0, 0));
+	sg::helper::SetScale(m_scene_graph, human, glm::vec3(0.1));
+	sg::helper::SetRotation(m_scene_graph, human, glm::vec3(0._deg, 0._deg, 0._deg));*/
 
 	auto light_node = m_scene_graph->CreateNode<sg::LightComponent>(cb::LightType::POINT, glm::vec3(400, 300, 200));
 	sg::helper::SetPosition(m_scene_graph, light_node, { -8.359, 6.315, 2.043 });

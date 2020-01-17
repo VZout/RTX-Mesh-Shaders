@@ -41,25 +41,27 @@ void main()
 	const uint base_id = gl_WorkGroupID.x * GROUP_SIZE;
 	const uint lane_id = gl_LocalInvocationID.x;
 	const uint global_id = gl_GlobalInvocationID.x;
-	const uint total_meshlet_count = subgroupBroadcastFirst(drawcall_info.num_meshlets * drawcall_info.batch_size);
 
-	uint meshlet_id = (base_id + lane_id) % drawcall_info.num_meshlets;
-	uint instance_id = uint(floor((float(base_id) + float(lane_id)) / float(drawcall_info.num_meshlets)));
-	mat4 model = ubo.model[instance_id];
-	uvec4 meshlet_desc = mb.meshlet_descs[meshlet_id];
-
+	uint total_meshlet_count;
 	vec3 view_pos;
 	if (subgroupElect())
 	{
+		total_meshlet_count = drawcall_info.num_meshlets * drawcall_info.batch_size;
 		view_pos = vec3(inverse(camera.view)[3]);
 	}
 	view_pos = subgroupBroadcastFirst(view_pos);
+	total_meshlet_count = subgroupBroadcastFirst(total_meshlet_count);
+
+	uint meshlet_id = (base_id + lane_id) % drawcall_info.num_meshlets;
+	uint instance_id = uint(((float(base_id) + float(lane_id)) / float(drawcall_info.num_meshlets)));
+	mat4 model = ubo.model[instance_id];
+	uvec4 meshlet_desc = mb.meshlet_descs[meshlet_id];
 
 	bool render = !(global_id > total_meshlet_count || EarlyCull(meshlet_desc, model, view_pos, camera.proj * camera.view));
 	uvec4 vote = subgroupBallot(render);
 	uint tasks = subgroupBallotBitCount(vote);
 
-	if (lane_id == 0)
+	if (subgroupElect())
 	{
 		gl_TaskCountNV = tasks;
 		OUT.base_id = base_id;
@@ -67,7 +69,7 @@ void main()
 	}
 
 	uint idx_offset = subgroupBallotExclusiveBitCount(vote);
-	// if (render)
+	if (render)
 	{
 		OUT.sub_ids[idx_offset] = uint8_t(lane_id);
 	}
