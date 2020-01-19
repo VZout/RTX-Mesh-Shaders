@@ -20,6 +20,16 @@ layout(push_constant) uniform PushConstants {
 	float ca_zoom;
 } settings;
 
+vec3 Hash32(vec2 p){
+  vec3 p3 = fract(vec3(p.xyx) * vec3(443.8975,397.2973, 491.1871));
+  p3 += dot(p3, p3.yxz + 19.19);
+  return fract(vec3((p3.x + p3.y) * p3.z, (p3.x + p3.z) * p3.y, (p3.y + p3.z) * p3.x));
+}
+
+vec3 DitherRGB(vec3 c, vec2 seed){
+  return c + Hash32(seed) / 255.0;
+}
+
 //#define SHOW_TONEMAPPING_ALGOS
 #define RUNTIME_TONEMAPPING_SELECTION
 #define NUM_TONEMAPPING_ALGOS 12
@@ -78,7 +88,10 @@ void main()
 #endif /* RUNTIME_TONEMAPPING_SELECTION */
 #endif /* SHOW_TONEMAPPING_ALGOS */
 
+	// dither color to remove griadient bands.
+	color = DitherRGB(color, vec2(gl_GlobalInvocationID.xy));
 	color = Vignette(color, uv, settings.vignette_radius, settings.vignette_softness, settings.vignette_strength);
+
 
     imageStore(t_output, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1));
 }
