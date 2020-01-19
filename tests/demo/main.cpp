@@ -27,10 +27,11 @@
 #include "../common/forrest_scene.hpp"
 #include "../common/displacement_scene.hpp"
 #include "../common/spaceship_scene.hpp"
+#include "../common/market_scene.hpp"
 
 #include <util/cpu_profiler.hpp>
 
-#define DEFAULT_SCENE ForrestScene
+#define DEFAULT_SCENE MarketScene
 
 class Demo : public Application
 {
@@ -440,7 +441,7 @@ protected:
 
 	bool m_viewport_has_changed = false;
 
-	fg_manager::FGType m_fg_type = fg_manager::FGType::RAYTRACING;
+	fg_manager::FGType m_fg_type = fg_manager::FGType::PBR_MESH_SHADING;
 };
 
 

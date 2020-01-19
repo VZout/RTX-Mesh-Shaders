@@ -38,7 +38,7 @@ namespace cb
 		alignas(16) glm::mat4 m_proj;
 	};
 
-	struct CameraInverse
+	struct RaytracingCamera
 	{
 		//alignas(16) glm::mat4 m_view;
 		//alignas(16) glm::mat4 m_proj;

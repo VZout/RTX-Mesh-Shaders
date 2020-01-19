@@ -350,14 +350,14 @@ ModelHandle ModelPool::LoadWithMaterials(ModelData* data,
 		int vertices_start = 0;
 		int prim_begin = 0;
 
-		for (auto indices_start = 0; indices_start < mesh.m_num_indices; indices_start += max_primitive_count_limit)
+		for (auto indices_start = 0; indices_start < mesh.m_num_indices; indices_start += max_primitive_count_limit * 3)
 		{
 			MeshletDesc meshlet = {};
 
 			glm::vec3 bbox_min = glm::vec3(std::numeric_limits<float>::max());
 			glm::vec3 bbox_max = glm::vec3(-std::numeric_limits<float>::max());
 
-			auto num_indices_in_meshlet = std::min((int)mesh.m_num_indices - indices_start, max_primitive_count_limit);
+			auto num_indices_in_meshlet = std::min((int)mesh.m_num_indices - indices_start, max_primitive_count_limit * 3);
 			std::vector<std::uint32_t> meshlet_vertex_indices;
 			std::vector<std::uint32_t> meshlet_indices;
 

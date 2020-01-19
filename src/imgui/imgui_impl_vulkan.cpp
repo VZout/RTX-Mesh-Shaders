@@ -595,6 +595,7 @@ void ImGuiImpl::Draw(gfx::CommandList* cmd_list, std::uint32_t frame_idx) // TOD
 			for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++)
 			{
 				const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[j];
+
 				if (pcmd->TextureId)
 				{
 					auto img_descriptor_set = (VkDescriptorSet)pcmd->TextureId;

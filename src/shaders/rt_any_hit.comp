@@ -87,7 +87,7 @@ void main()
 	uv.y *= material.v_scale;
 	uv.y = 1.0f - uv.y;
 
-	vec4 albedo = texture(ts_textures[material.albedo_texture], uv).rgba;
+	vec4 albedo = textureLod(ts_textures[material.albedo_texture], uv, payload.depth).rgba;
 
 	if (albedo.a < 0.5)
 	{

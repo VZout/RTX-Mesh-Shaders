@@ -16,6 +16,7 @@ void SetupEditor()
 
 	// Actions
 	editor.RegisterAction("Quit", "File", [&]() { Close(); }, reinterpret_cast<const char*>(ICON_FA_POWER_OFF));
+	editor.RegisterAction("Toggle Fullscreen", "File", [&]() { SetFullscreen(true); }, reinterpret_cast<const char*>(ICON_FA_EXPAND_ARROWS_ALT));
 	editor.RegisterAction("Save ImGui Settings", "File", [&]() { ImGui::SaveIniSettingsToDisk(settings::imgui_ini_filename); }, reinterpret_cast<const char*>(ICON_FA_SAVE));
 	editor.RegisterAction("Contribute", "Help", [&]() { util::OpenURL("https://github.com/VZout/RTX-Mesh-Shaders"); }, reinterpret_cast<const char*>(ICON_FA_HANDS_HELPING));
 	editor.RegisterAction("Report Issue", "Help", [&]() { util::OpenURL("https://github.com/VZout/RTX-Mesh-Shaders/issues"); }, reinterpret_cast<const char*>(ICON_FA_BUG));

@@ -198,7 +198,7 @@ namespace sg
 				handle
 			));
 			// Allocate inverse constant buffer.
-			auto inverse_camera_cb_handle = m_inverse_camera_buffer_pool->Allocate(sizeof(cb::CameraInverse));
+			auto inverse_camera_cb_handle = m_inverse_camera_buffer_pool->Allocate(sizeof(cb::RaytracingCamera));
 			m_inverse_camera_cb_handles.emplace_back(ComponentData<ConstantBufferHandle>(
 				inverse_camera_cb_handle,
 				handle

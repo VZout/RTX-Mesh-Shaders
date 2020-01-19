@@ -87,17 +87,16 @@ taskNV in Task {
 	uint num_meshlets;
 } IN;
 
-void EmitVertex(uint idx, ReadableVertex vertex, mat4 model, uint meshlet_id)
+void EmitVertex(uint idx, Vertex vertex, mat4 model, mat4 pv, uint meshlet_id)
 {
-	vec4 world_pos = model * vec4(vertex.pos, 1.0f);
-	vec4 world_normal = normalize(model * vec4(vertex.normal, 0));
+	vec4 world_pos = model * vec4(vertex.x, vertex.y, vertex.z, 1.0f);
+	vec4 world_normal = normalize(model * vec4(vertex.nx, vertex.ny, vertex.nz, 0));
 
 	g_frag_pos[idx] = vec3(world_pos);
 	g_normal[idx] = world_normal.xyz;
-	g_tangent[idx] = normalize(model * vec4(vertex.tangent, 0)).xyz;
-	g_bitangent[idx] = normalize(model * vec4(vertex.bitangent, 0)).xyz;
-	g_uv[idx] = vertex.uv;
-	g_uv[idx].y *= -1;
+	g_tangent[idx] = normalize(model * vec4(vertex.tx, vertex.ty, vertex.tz, 0)).xyz;
+	g_bitangent[idx] = normalize(model * vec4(vertex.bx, vertex.by, vertex.bz, 0)).xyz;
+	g_uv[idx] = vec2(vertex.u, vertex.v * -1);
 #ifdef SHOW_MESHLETS
 	g_meshlet_id[idx] = meshlet_id;
 #endif
@@ -105,17 +104,8 @@ void EmitVertex(uint idx, ReadableVertex vertex, mat4 model, uint meshlet_id)
 	gl_MeshVerticesNV[idx].gl_Position = camera.proj * camera.view * world_pos;
 }
 
-ReadableVertex VertexToReadable(Vertex vertex)
-{
-	ReadableVertex retval;
-	retval.pos = vec3(vertex.x, vertex.y, vertex.z);
-	retval.uv = vec2(vertex.u, vertex.v);
-	retval.normal = vec3(vertex.nx, vertex.ny, vertex.nz);
-	retval.tangent = vec3(vertex.tx, vertex.ty, vertex.tz);
-	retval.bitangent = vec3(vertex.bx, vertex.by, vertex.bz);
-
-	return retval;
-}
+const uint prim_iterations = (NVMESHLET_PRIMITIVE_COUNT + GROUP_SIZE - 1) / GROUP_SIZE;
+const uint vert_iterations = (NVMESHLET_VERTEX_COUNT + GROUP_SIZE - 1) / GROUP_SIZE;
 
 void main()
 {
@@ -132,35 +122,38 @@ void main()
 
 	float id = (float(IN.base_id) + float(IN.sub_ids[gl_WorkGroupID.x])) / float(IN.num_meshlets);
 	int instance_id = int(floor(id));
+
 	mat4 model = ubo.model[instance_id];
+	mat4 pv = camera.proj * camera.view;
 	
 	// primitives
 	uint next_index = 0;
 	uint num_indices = prim_max * 3;
 	uint indices_start = prim_begin * 3;
-	for (uint i = indices_start; i < indices_start + num_indices; i += 3)
+	for (uint i = 0; i < prim_iterations; i++)
 	{
-		uint k = i - indices_start;
-		gl_PrimitiveIndicesNV[k+0] = ibi.indices[i + 0];
-		gl_PrimitiveIndicesNV[k+1] = ibi.indices[i + 1];
-		gl_PrimitiveIndicesNV[k+2] = ibi.indices[i + 2];
+		uint pre_k = min(gl_LocalInvocationID.x + i * GROUP_SIZE, prim_max - 1);
+		uint k = pre_k * 3;
+		uint ii = indices_start + k;
 
-		/*uint ii = uint(floor(float(i) / float(4)));
-		uint pp = ibi.indices[ii];
-
-		gl_PrimitiveIndicesNV[(k)+0] = (NVMSH_PACKED4X8_GET((pp), 3 - 0));
-		gl_PrimitiveIndicesNV[(k)+1] = (NVMSH_PACKED4X8_GET((pp), 3 - 1));
-		gl_PrimitiveIndicesNV[(k)+2] = (NVMSH_PACKED4X8_GET((pp), 3 - 2));
-		gl_PrimitiveIndicesNV[(k)+3] = (NVMSH_PACKED4X8_GET((pp), 3 - 3));
-		writePackedPrimitiveIndices4x8NV(k, ibi.indices[ii]);*/
+		//if (k < prim_max * 3)
+		{
+			gl_PrimitiveIndicesNV[k+0] = ibi.indices[ii + 0];
+			gl_PrimitiveIndicesNV[k+1] = ibi.indices[ii + 1];
+			gl_PrimitiveIndicesNV[k+2] = ibi.indices[ii + 2];
+		}
 	}
 
-	for (uint i = vert_begin; i < vert_begin + vert_max; i++)
+	for (uint i = 0; i < vert_iterations; i++)
 	{
-		uint k = i - (vert_begin);
+		uint k = min(gl_LocalInvocationID.x + i * GROUP_SIZE, vert_max - 1);
+		uint ii = vert_begin + k;
 
-		ReadableVertex v0 = VertexToReadable(vb.vertices[vbi.indices[i]]);
-		EmitVertex(k, v0, model, meshlet_id);
+		//if (k < vert_max)
+		{
+			Vertex v0 = vb.vertices[vbi.indices[ii]];
+			EmitVertex(k, v0, model, pv, meshlet_id);
+		}
 	}
 
 	gl_PrimitiveCountNV = prim_max;

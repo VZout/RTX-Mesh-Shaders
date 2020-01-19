@@ -56,7 +56,7 @@ namespace tasks
 		float m_v_scale = 1;
 		float m_two_sided = true;
 
-		float m_pad0 = 1;
+		std::uint32_t m_emissive_texture;
 		float m_pad1 = 1;
 	};
 
@@ -150,6 +150,7 @@ namespace tasks
 						material.m_normal_texture = batch.m_material_handles[i].m_normal_texture_handle;
 						material.m_roughness_texture = batch.m_material_handles[i].m_roughness_texture_handle;
 						material.m_thickness_texture = batch.m_material_handles[i].m_thickness_texture_handle;
+						material.m_emissive_texture = batch.m_material_handles[i].m_emissive_texture_handle;
 						material.m_color = glm::vec4(raw.m_base_color[0], raw.m_base_color[1], raw.m_base_color[2], 0);
 						material.m_roughness = raw.m_base_roughness;
 						material.m_metallic = raw.m_base_metallic;

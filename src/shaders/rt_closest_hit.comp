@@ -226,9 +226,10 @@ void main()
 	uv.y *= material.v_scale;
 	uv.y = 1.0f - uv.y;
 
-	vec3 albedo = material.color.x > -1 ? material.color.rgb : texture(ts_textures[material.albedo_texture], uv).rgb;
-	vec3 normal_t = normalize(texture(ts_textures[material.normal_texture], uv).rgb * 2.0f - 1.0f);
-	vec4 compressed_mra = texture(ts_textures[material.roughness_texture], uv).rgba;
+	vec3 albedo = material.color.x > -1 ? material.color.rgb : textureLod(ts_textures[material.albedo_texture], uv, payload.depth).rgb;
+	vec3 emissive = textureLod(ts_textures[material.emissive_texture], uv, payload.depth).rgb;
+	vec3 normal_t = normalize(textureLod(ts_textures[material.normal_texture], uv, payload.depth).rgb * 2.0f - 1.0f);
+	vec4 compressed_mra = textureLod(ts_textures[material.roughness_texture], uv, payload.depth).rgba;
 
 	vec3 geometric_normal = vec3(0);
 	vec3 N = CalcPeturbedNormal(normal, normal_t, tangent, bitangent, V, geometric_normal);
@@ -239,7 +240,7 @@ void main()
 		N = -N;
 	}
 
-	float thickness = texture(ts_textures[material.thickness_texture], uv).r;;
+	float thickness = textureLod(ts_textures[material.thickness_texture], uv, payload.depth).r;;
     float metallic = material.metallic > -1 ? material.metallic : compressed_mra.b;
 	float roughness = clamp(material.roughness > -1 ? material.roughness : compressed_mra.g, MIN_PERCEPTUAL_ROUGHNESS, 1.f);
 	float anisotropy = 0;
@@ -268,7 +269,16 @@ void main()
 
 	lighting += DirectLighting(world_pos, N, geometric_normal, V, roughness, diffuse_color, metallic, thickness, clear_coat, cc_roughness, subsurface_power, subsurface_color, anisotropy, anisotropic_t, anisotropic_b, F0, energy_compensation, payload.seed, depth);
 
-	lighting += IndirectLighting(world_pos, N, geometric_normal, V, roughness, albedo, diffuse_color, metallic, thickness, clear_coat, cc_roughness, subsurface_power, subsurface_color, anisotropy, anisotropic_t, anisotropic_b, F0, energy_compensation, payload.seed, depth);
+	lighting += clamp(IndirectLighting(world_pos, N, geometric_normal, V, roughness, albedo, diffuse_color, metallic, thickness, clear_coat, cc_roughness, subsurface_power, subsurface_color, anisotropy, anisotropic_t, anisotropic_b, F0, energy_compensation, payload.seed, depth), 0, 5);
+
+	if (depth == 0)
+	{
+		lighting += emissive;
+	}
+	else
+	{
+		lighting += emissive * 500;
+	}
 
 	payload.color = lighting;
 }
