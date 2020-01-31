@@ -81,6 +81,13 @@ void PixelBBoxEpsilon(inout vec2 pixelMin, inout vec2 pixelMax)
   pixelMax += epsilon;
 }
 
+bool PixelBBoxCull(vec2 pixelMin, vec2 pixelMax){
+  // bbox culling
+  pixelMin = round(pixelMin);
+  pixelMax = round(pixelMax);
+  return ( ( pixelMin.x == pixelMax.x) || ( pixelMin.y == pixelMax.y));
+}
+
 // oct_ code from "A Survey of Efficient Representations for Independent Unit Vectors"
 // http://jcgt.org/published/0003/02/01/paper.pdf
 vec2 oct_signNotZero(vec2 v) {
@@ -117,6 +124,10 @@ bool EarlyCull(uvec4 meshlet_desc, mat4 model, vec3 view_pos, mat4 viewproj_mat)
 	uint frustum_bits = ~0;
 	bool backface = false;
 
+	// Early sub-pixel culling
+    vec3 clip_min = vec3(100000);
+    vec3 clip_max = vec3(-100000);
+
 	// Early backface culling
 	vec3 o_group_normal;
 	float angle;
@@ -134,7 +145,37 @@ bool EarlyCull(uvec4 meshlet_desc, mat4 model, vec3 view_pos, mat4 viewproj_mat)
 		// Early backface culling
 		vec3 w_dir = normalize(view_pos - w_pos.xyz);
    		backface = backface && (dot(w_group_normal, w_dir) < angle);
+
+		// Early sub-pixel culling
+		clip_min = min(clip_min, h_pos.xyz / h_pos.w);
+    	clip_max = max(clip_max, h_pos.xyz / h_pos.w);
 	}
 
-	return (frustum_bits != 0 || backface);
+	// Early sub-pixel culling
+#ifdef TASK
+	vec2 pixel_min = (clip_min.xy * 0.5 + 0.5) * (drawcall_info.viewport * 0.5); // last 0.5 here is aggressive ness
+	vec2 pixel_max = (clip_max.xy * 0.5 + 0.5) * (drawcall_info.viewport * 0.5);
+	PixelBBoxEpsilon(pixel_min, pixel_max);
+	bool subpixel = PixelBBoxCull(pixel_min, pixel_max);
+#else
+	bool subpixel = false;
+#endif
+
+	return (frustum_bits != 0 || backface || subpixel);
+}
+
+bool TestTriangle(vec2 a, vec2 b, vec2 c)
+{
+	// back face culling
+#ifdef BACKFACE_CULLING
+    vec2 ab = b.xy - a.xy;
+    vec2 ac = c.xy - a.xy;
+    float cross_product = ab.x * ac.y - ab.y * ac.x;   
+    cross_product = -cross_product;
+  	
+	float winding = 1;
+	if (cross_product * winding < 0) return false;
+#endif
+
+	return true;
 }

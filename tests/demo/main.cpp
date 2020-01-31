@@ -31,7 +31,7 @@
 
 #include <util/cpu_profiler.hpp>
 
-#define DEFAULT_SCENE MarketScene
+#define DEFAULT_SCENE ForrestScene
 
 class Demo : public Application
 {

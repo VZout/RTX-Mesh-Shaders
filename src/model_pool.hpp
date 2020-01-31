@@ -183,7 +183,7 @@ inline glm::vec3 FVec3ToOctnPrecise(glm::vec3 v, const int n)
 	// Remap components to snorm(n/2) precision...with floor instead
 	// of round (see equation 1)
 	s = glm::floor(glm::clamp(s, glm::vec3(-1.0f), glm::vec3(1.0f)) * M) * glm::vec3(1.0 / M);
-	glm::vec3 bestRepresentation = s;
+	glm::vec3 bestRepresentation = s;	
 	float highestCosine = glm::dot(OctToFVec3(s), v);
 	// Test all combinations of floor and ceil and keep the best.
 	// Note that at +/- 1, this will exit the square... but that

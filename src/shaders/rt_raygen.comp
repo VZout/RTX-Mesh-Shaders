@@ -88,14 +88,20 @@ void main()
 
 	uint seed = initRand(gl_LaunchIDNV.x + gl_LaunchIDNV.y * gl_LaunchIDNV.x, info.frame_number);
 
-	vec2 jitter  = pixelSize * (vec2(nextRand(seed), nextRand(seed)) - 0.5);	
-	vec2 lensUV  = vec2(nextRand(seed), nextRand(seed));
-    vec2 pixelUV = pixelLocation + jitter;
+	vec3 result = vec3(0);
+	uint num_samples = 1;
+	for (int i = 0; i < num_samples; i++)
+	{
+		vec2 jitter  = pixelSize * (vec2(nextRand(seed), nextRand(seed)) - 0.5);	
+		vec2 lensUV  = vec2(nextRand(seed), nextRand(seed));
+		vec2 pixelUV = pixelLocation + jitter;
 
-	vec3 origin, direction;
-    generateCameraRay(pixelUV, lensUV, origin, direction);
+		vec3 origin, direction;
+		generateCameraRay(pixelUV, lensUV, origin, direction);
 
-	vec3 result = TraceColorRay(origin, direction, seed, 0);
+		result += TraceColorRay(origin, direction, seed, 0);
+	}
+	result = result / num_samples;
 
 	vec3 prev = imageLoad(t_output, ivec2(gl_LaunchIDNV.xy)).rgb;
 	vec3 color = (info.frame_number * prev + result) / (info.frame_number + 1); // accumulate

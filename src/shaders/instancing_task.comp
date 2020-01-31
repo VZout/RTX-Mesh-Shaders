@@ -6,11 +6,11 @@
 layout(push_constant) uniform PushConstants {
     uint batch_size;
     uint num_meshlets;
-	uint paddingx;
-	uint paddingy;
+	vec2 viewport;
 	vec4 object_bbox_min;
 	vec4 object_bbox_max;
 } drawcall_info;
+
 
 #include "mesh_shader_util.glsl"
 
@@ -34,6 +34,7 @@ taskNV out Task
 	uint base_id;
 	uint8_t sub_ids[GROUP_SIZE];
 	uint num_meshlets;
+	vec2 viewport;
 } OUT;
 
 void main()
@@ -60,6 +61,8 @@ void main()
 	bool render = !(global_id > total_meshlet_count || EarlyCull(meshlet_desc, model, view_pos, camera.proj * camera.view));
 	uvec4 vote = subgroupBallot(render);
 	uint tasks = subgroupBallotBitCount(vote);
+
+	OUT.viewport = drawcall_info.viewport;
 
 	if (subgroupElect())
 	{

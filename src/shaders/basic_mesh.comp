@@ -85,6 +85,7 @@ taskNV in Task {
 	uint base_id;
 	uint8_t sub_ids[GROUP_SIZE];
 	uint num_meshlets;
+	vec2 viewport;
 } IN;
 
 void EmitVertex(uint idx, Vertex vertex, mat4 model, mat4 pv, uint meshlet_id)
@@ -102,6 +103,12 @@ void EmitVertex(uint idx, Vertex vertex, mat4 model, mat4 pv, uint meshlet_id)
 #endif
 
 	gl_MeshVerticesNV[idx].gl_Position = camera.proj * camera.view * world_pos;
+}
+
+vec2 GetScreenPos(vec4 hPos)
+{
+  hPos /= hPos.w;
+  return vec2((hPos.xy * 0.5 + 0.5) * IN.viewport);
 }
 
 const uint prim_iterations = (NVMESHLET_PRIMITIVE_COUNT + GROUP_SIZE - 1) / GROUP_SIZE;
@@ -138,9 +145,9 @@ void main()
 
 		//if (k < prim_max * 3)
 		{
-			gl_PrimitiveIndicesNV[k+0] = ibi.indices[ii + 0];
-			gl_PrimitiveIndicesNV[k+1] = ibi.indices[ii + 1];
-			gl_PrimitiveIndicesNV[k+2] = ibi.indices[ii + 2];
+			gl_PrimitiveIndicesNV[k + 0] = ibi.indices[ii + 0];
+			gl_PrimitiveIndicesNV[k + 1] = ibi.indices[ii + 1];
+			gl_PrimitiveIndicesNV[k + 2] = ibi.indices[ii + 2];
 		}
 	}
 
@@ -156,5 +163,46 @@ void main()
 		}
 	}
 
+#if 0
+	// We need to wait because there is no guarantee that the indices we parse here point to vertices we parse.
+	memoryBarrierShared();
+    barrier();
+
+	// Culling.
+	uint primitive_count = 0;
+	for (uint i = 0; i < prim_iterations; i++)
+	{
+		uint pre_k = min(gl_LocalInvocationID.x + i * GROUP_SIZE, prim_max - 1);
+		uint k = pre_k * 3;
+
+		uint ia = gl_PrimitiveIndicesNV[k + 0];
+		uint ib = gl_PrimitiveIndicesNV[k + 1];
+		uint ic = gl_PrimitiveIndicesNV[k + 2];
+
+		vec2 a = GetScreenPos(gl_MeshVerticesNV[ia].gl_Position);
+        vec2 b = GetScreenPos(gl_MeshVerticesNV[ib].gl_Position);
+		vec2 c = GetScreenPos(gl_MeshVerticesNV[ic].gl_Position);
+
+		bool render_tri = TestTriangle(a, b, c);
+
+		uvec4 vote = subgroupBallot(render_tri);
+		uint tris = subgroupBallotBitCount(vote);
+		uint idx_offset = primitive_count + subgroupBallotExclusiveBitCount(vote);
+
+		// re-order tris
+		if (render_tri)
+		{
+		    uint idx = idx_offset * 3;
+		    gl_PrimitiveIndicesNV[idx + 0] = ia;
+		    gl_PrimitiveIndicesNV[idx + 1] = ib;
+		    gl_PrimitiveIndicesNV[idx + 2] = ic;
+        }
+
+		primitive_count += tris;
+	}
+	gl_PrimitiveCountNV = primitive_count;
+#else
 	gl_PrimitiveCountNV = prim_max;
+#endif
+
 }
