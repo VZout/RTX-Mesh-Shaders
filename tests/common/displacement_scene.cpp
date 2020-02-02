@@ -28,7 +28,7 @@ void DisplacementScene::LoadResources(std::optional<std::reference_wrapper<util:
 	auto displacement_f = std::async(std::launch::async, load_texture_func, "medieval_blocks/medieval_blocks_06_disp_4k.jpg");
 	auto normal_map_f = std::async(std::launch::async, load_texture_func, "medieval_blocks/medieval_blocks_06_nor_4k.jpg");
 
-	m_sphere_model = m_model_pool->LoadWithMaterials<Vertex>("sphere.fbx", m_material_pool, m_texture_pool, false);
+	m_sphere_model = m_model_pool->LoadWithMaterials<Vertex>("jezus/scene.gltf", m_material_pool, m_texture_pool, false);
 
 	MaterialData mat = {};
 	mat.m_base_reflectivity = 0.4f;
@@ -45,11 +45,13 @@ void DisplacementScene::BuildScene(std::optional<std::reference_wrapper<util::Pr
 {
 	// Create Camera
 	m_camera_node = m_scene_graph->CreateNode<sg::CameraComponent>();
-	sg::helper::SetPosition(m_scene_graph, m_camera_node, glm::vec3(0, 0, 5.f));
+	sg::helper::SetPosition(m_scene_graph, m_camera_node, glm::vec3(0, 0, 6.f));
 	sg::helper::SetRotation(m_scene_graph, m_camera_node, glm::vec3(0, -90._deg, 0));
 
 	auto sphere_node = m_scene_graph->CreateNode<sg::MeshComponent>(m_sphere_model);
 	sg::helper::SetMaterial(m_scene_graph, sphere_node, { m_sphere_material_handle });
+	sg::helper::SetScale(m_scene_graph, sphere_node, glm::vec3(0.1, 0.1, 0.1));
+	sg::helper::SetPosition(m_scene_graph, sphere_node, glm::vec3(-11.900, -1.7, -20));
 
 	// Create Light
 	auto light_node = m_scene_graph->CreateNode<sg::LightComponent>(cb::LightType::POINT, glm::vec3(20, 20, 20));

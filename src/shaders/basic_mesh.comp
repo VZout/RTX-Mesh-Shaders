@@ -3,12 +3,6 @@
 
 //#define SHOW_MESHLETS
 
-#define DISPLACEMENT
-
-#ifdef DISPLACEMENT
-	layout(set = 2, binding = 2) uniform sampler2D ts_textures[5];
-#endif
-
 #include "mesh_shader_util.glsl"
 
 layout(local_size_x=GROUP_SIZE) in;
@@ -102,7 +96,7 @@ void EmitVertex(uint idx, Vertex vertex, mat4 model, mat4 pv, uint meshlet_id)
 	g_meshlet_id[idx] = meshlet_id;
 #endif
 
-	gl_MeshVerticesNV[idx].gl_Position = camera.proj * camera.view * world_pos;
+	gl_MeshVerticesNV[idx].gl_Position = pv * world_pos;
 }
 
 vec2 GetScreenPos(vec4 hPos)
@@ -116,7 +110,8 @@ const uint vert_iterations = (NVMESHLET_VERTEX_COUNT + GROUP_SIZE - 1) / GROUP_S
 
 void main()
 {
-	uint meshlet_id = uint((IN.base_id + IN.sub_ids[gl_WorkGroupID.x]) % (IN.num_meshlets));
+	uint id = uint(IN.base_id + IN.sub_ids[gl_WorkGroupID.x]);
+	uint meshlet_id = id % (IN.num_meshlets);
 
 	uvec4 meshlet_desc = mb.meshlet_descs[meshlet_id];
 	uint vert_max;
@@ -127,14 +122,12 @@ void main()
 	vert_max += 1;
 	prim_max += 1;
 
-	float id = (float(IN.base_id) + float(IN.sub_ids[gl_WorkGroupID.x])) / float(IN.num_meshlets);
-	int instance_id = int(floor(id));
+	int instance_id = int(float(id) / float(IN.num_meshlets));
 
 	mat4 model = ubo.model[instance_id];
 	mat4 pv = camera.proj * camera.view;
 	
 	// primitives
-	uint next_index = 0;
 	uint num_indices = prim_max * 3;
 	uint indices_start = prim_begin * 3;
 	for (uint i = 0; i < prim_iterations; i++)
@@ -143,12 +136,9 @@ void main()
 		uint k = pre_k * 3;
 		uint ii = indices_start + k;
 
-		//if (k < prim_max * 3)
-		{
-			gl_PrimitiveIndicesNV[k + 0] = ibi.indices[ii + 0];
-			gl_PrimitiveIndicesNV[k + 1] = ibi.indices[ii + 1];
-			gl_PrimitiveIndicesNV[k + 2] = ibi.indices[ii + 2];
-		}
+		gl_PrimitiveIndicesNV[k + 0] = ibi.indices[ii + 0];
+		gl_PrimitiveIndicesNV[k + 1] = ibi.indices[ii + 1];
+		gl_PrimitiveIndicesNV[k + 2] = ibi.indices[ii + 2];
 	}
 
 	for (uint i = 0; i < vert_iterations; i++)
@@ -156,11 +146,8 @@ void main()
 		uint k = min(gl_LocalInvocationID.x + i * GROUP_SIZE, vert_max - 1);
 		uint ii = vert_begin + k;
 
-		//if (k < vert_max)
-		{
-			Vertex v0 = vb.vertices[vbi.indices[ii]];
-			EmitVertex(k, v0, model, pv, meshlet_id);
-		}
+		Vertex v0 = vb.vertices[vbi.indices[ii]];
+		EmitVertex(k, v0, model, pv, meshlet_id);
 	}
 
 #if 0

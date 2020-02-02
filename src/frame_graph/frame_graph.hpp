@@ -28,7 +28,7 @@
 #include "../graphics/gfx_settings.hpp"
 
 #ifndef _DEBUG
-#define FG_MAX_PERFORMANCE
+//#define FG_MAX_PERFORMANCE
 #endif
 
 template<typename ...Ts>

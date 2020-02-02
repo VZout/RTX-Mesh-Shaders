@@ -7,7 +7,7 @@
 
 #define GROUP_SIZE 32
 #define NVMESHLET_VERTEX_COUNT      64
-#define NVMESHLET_PRIMITIVE_COUNT   126
+#define NVMESHLET_PRIMITIVE_COUNT   21
 #define NVMESHLET_PRIM_ALIGNMENT        1
 #define NVMESHLET_VERTEX_ALIGNMENT      16
 
@@ -74,11 +74,11 @@ uint GetCullBits(vec4 hPos)
 
 void PixelBBoxEpsilon(inout vec2 pixelMin, inout vec2 pixelMax)
 {
-  // Apply some safety around the bbox to take into account fixed point rasterization.
-  // This logic will only work without MSAA active.
-  const float epsilon = (1.0 / 256.0);
-  pixelMin -= epsilon;
-  pixelMax += epsilon;
+	// Apply some safety around the bbox to take into account fixed point rasterization.
+	// This logic will only work without MSAA active.
+	const float epsilon = (1.0 / 256.0);
+	pixelMin -= epsilon;
+	pixelMax += epsilon;
 }
 
 bool PixelBBoxCull(vec2 pixelMin, vec2 pixelMax){
@@ -152,7 +152,7 @@ bool EarlyCull(uvec4 meshlet_desc, mat4 model, vec3 view_pos, mat4 viewproj_mat)
 	}
 
 	// Early sub-pixel culling
-#ifdef TASK
+#ifdef BLAH 
 	vec2 pixel_min = (clip_min.xy * 0.5 + 0.5) * (drawcall_info.viewport * 0.5); // last 0.5 here is aggressive ness
 	vec2 pixel_max = (clip_max.xy * 0.5 + 0.5) * (drawcall_info.viewport * 0.5);
 	PixelBBoxEpsilon(pixel_min, pixel_max);

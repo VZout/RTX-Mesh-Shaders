@@ -183,14 +183,14 @@ REGISTER(root_signatures::basic_mesh, RootSignatureRegistry)({
 		params[7].pImmutableSamplers = nullptr;
 		return params;
 	}(),
-	.m_push_constants = []() -> decltype(RootSignatureDesc::m_push_constants)
+	/*.m_push_constants = []() -> decltype(RootSignatureDesc::m_push_constants)
 	{
 		decltype(RootSignatureDesc::m_push_constants) constants(1);
 		constants[0].offset = 0;
 		constants[0].size = (sizeof(unsigned int) * 4) + (sizeof(glm::vec4) * 2); // meshlet offset (instance) and meshlet count and bbox
 		constants[0].stageFlags = VK_SHADER_STAGE_TASK_BIT_NV;
 		return constants;
-	}()
+	}()*/
 });
 
 REGISTER(root_signatures::composition, RootSignatureRegistry)({

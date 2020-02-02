@@ -1,0 +1,139 @@
+#version 450
+#pragma shader_stage(mesh)
+
+//#define SHOW_MESHLETS
+
+#include "mesh_shader_util.glsl"
+
+layout(local_size_x=GROUP_SIZE) in;
+layout(max_vertices=NVMESHLET_VERTEX_COUNT, max_primitives=NVMESHLET_PRIMITIVE_COUNT) out;
+layout(triangles) out;
+
+layout(location = 0) out vec2 g_uv[];
+layout(location = 1) out vec3 g_normal[];
+layout(location = 2) out vec3 g_frag_pos[];
+layout(location = 3) out vec3 g_tangent[];
+layout(location = 4) out vec3 g_bitangent[];
+#ifdef SHOW_MESHLETS
+layout(location = 5) out flat uint g_meshlet_id[];
+#endif
+
+struct Vertex
+{
+	float x;
+	float y;
+	float z;
+
+	float u;
+	float v;
+	
+	float nx;
+	float ny;
+	float nz;
+
+	float tx;
+	float ty;
+	float tz;
+
+	float bx;
+	float by;
+	float bz;
+};
+
+struct ReadableVertex
+{
+	vec3 pos;
+	vec2 uv;
+	vec3 normal;
+	vec3 tangent;
+	vec3 bitangent;
+};
+
+layout(set = 1, binding = 1) uniform UniformBufferObject {
+    mat4 model[100];
+} ubo;
+
+
+layout(set = 0, binding = 0) uniform UniformBufferCameraObject {
+    mat4 view;
+    mat4 proj;
+} camera;
+
+layout(set = 4, binding = 4) buffer VertexBufferObj {
+	Vertex vertices[];
+} vb;
+
+layout(set = 5, binding = 5) buffer FlatIndexBufferObj {
+	uint8_t indices[];
+} ibi;
+
+layout(set = 7, binding = 7) buffer VertexIndexBufferObj {
+	uint indices[];
+} vbi;
+
+layout(set = 6, binding = 6) buffer MeshletBufferObj {
+	uvec4 meshlet_descs[];
+} mb;
+
+void EmitVertex(uint idx, Vertex vertex, mat4 model, mat4 pv, uint meshlet_id)
+{
+	vec4 world_pos = model * vec4(vertex.x, vertex.y, vertex.z, 1.0f);
+	vec4 world_normal = normalize(model * vec4(vertex.nx, vertex.ny, vertex.nz, 0));
+
+	g_frag_pos[idx] = vec3(world_pos);
+	g_normal[idx] = world_normal.xyz;
+	g_tangent[idx] = normalize(model * vec4(vertex.tx, vertex.ty, vertex.tz, 0)).xyz;
+	g_bitangent[idx] = normalize(model * vec4(vertex.bx, vertex.by, vertex.bz, 0)).xyz;
+	g_uv[idx] = vec2(vertex.u, vertex.v * -1);
+#ifdef SHOW_MESHLETS
+	g_meshlet_id[idx] = meshlet_id;
+#endif
+
+	gl_MeshVerticesNV[idx].gl_Position = pv * world_pos;
+}
+
+const uint prim_iterations = (NVMESHLET_PRIMITIVE_COUNT + GROUP_SIZE - 1) / GROUP_SIZE;
+const uint vert_iterations = (NVMESHLET_VERTEX_COUNT + GROUP_SIZE - 1) / GROUP_SIZE;
+
+void main()
+{
+	uint meshlet_id = uint(gl_WorkGroupID.x);
+
+	uvec4 meshlet_desc = mb.meshlet_descs[meshlet_id];
+	uint vert_max;
+	uint prim_max;
+	uint vert_begin;
+	uint prim_begin;
+	DecodeMeshlet(meshlet_desc, vert_max, prim_max, vert_begin, prim_begin);
+	vert_max += 1;
+	prim_max += 1;
+
+	mat4 model = ubo.model[0];
+	mat4 pv = camera.proj * camera.view;
+	
+	// primitives
+	uint num_indices = prim_max * 3;
+	uint indices_start = prim_begin * 3;
+	for (uint i = 0; i < prim_iterations; i++)
+	{
+		uint pre_k = min(gl_LocalInvocationID.x + i * GROUP_SIZE, prim_max - 1);
+		uint k = pre_k * 3;
+		uint ii = indices_start + k;
+
+		gl_PrimitiveIndicesNV[k + 0] = ibi.indices[ii + 0];
+		gl_PrimitiveIndicesNV[k + 1] = ibi.indices[ii + 1];
+		gl_PrimitiveIndicesNV[k + 2] = ibi.indices[ii + 2];
+	}
+
+	for (uint i = 0; i < vert_iterations; i++)
+	{
+		uint k = min(gl_LocalInvocationID.x + i * GROUP_SIZE, vert_max - 1);
+		uint ii = vert_begin + k;
+
+		Vertex v0 = vb.vertices[vbi.indices[ii]];
+		EmitVertex(k, v0, model, pv, meshlet_id);
+	}
+
+	gl_PrimitiveCountNV = prim_max;
+}
+
