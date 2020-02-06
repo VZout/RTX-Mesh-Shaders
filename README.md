@@ -60,8 +60,9 @@ cmake -G "[configuration]" ..
 <img src="https://i.imgur.com/wtW4Y1o.png" width="100%"><br>
 <img src="https://i.imgur.com/puSbu7w.jpg" width="100%"><br>
 <img src="https://i.imgur.com/b5lAbVU.png" width="100%"><br>
-<img src="https://i.imgur.com/ezUFj1A.png" width="300"> 
-<img src="https://i.imgur.com/hyiK8kp.png" width="300"> 
+<img src="https://i.imgur.com/ezUFj1A.png" width="280"> 
+<img src="https://i.imgur.com/hyiK8kp.png" width="280"> 
+<img src="https://i.imgur.com/HzKW0yK.png" width="290"> 
 
 ## [License (GNU Affero General Public License 3)](https://opensource.org/licenses/AGPL-3.0)
 
