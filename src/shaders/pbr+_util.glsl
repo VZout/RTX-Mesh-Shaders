@@ -14,7 +14,7 @@
 #define MIN_ROUGHNESS 0.002025 // Only used for anisotropyic lobes
 #define MIN_N_DOT_V 1e-4
 //#define ANISO
-//#define CLEAR_COAT
+#define CLEAR_COAT
 #define MATERIAL_HAS_NORMAL
 #define SPECULAR_AMBIENT_OCCLUSION 1
 #define MULTI_BOUNCE_AMBIENT_OCCLUSION 0
@@ -394,7 +394,6 @@ vec3 SS_BRDF(vec3 L, vec3 V, vec3 N, vec3 geometric_normal, float metallic, floa
 
 	// NoL does not apply to transmitted light
     vec3 color = (diff + spec) * (NdotL * occlusion);
-
 
 	 // subsurface scattering
     // Use a spherical gaussian approximation of pow() for forwardScattering

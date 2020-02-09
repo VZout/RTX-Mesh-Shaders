@@ -60,11 +60,11 @@ namespace tasks
 
 	namespace internal
 	{
-		inline void SetupRaytracingTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize)
+		inline void SetupRaytracingTask(Renderer& rs, fg::FrameGraph& fg, fg::RenderTaskHandle handle, bool resize, bool old_impl)
 		{
 			auto& data = fg.GetData<RaytracingData>(handle);
 			data.m_root_sig = RootSignatureRegistry::SFind(root_signatures::raytracing);
-			data.m_pipeline = RTPipelineRegistry::SFind(pipelines::raytracing);
+			data.m_pipeline = RTPipelineRegistry::SFind(old_impl ? pipelines::raytracing_old : pipelines::raytracing);
 			auto render_target = fg.GetRenderTarget(handle);
 
 			gfx::SamplerDesc input_sampler_desc
@@ -198,7 +198,7 @@ namespace tasks
 
 	} /* internal */
 
-	inline void AddRaytracingTask(fg::FrameGraph& fg)
+	inline void AddRaytracingTask(fg::FrameGraph& fg, bool old_impl)
 	{
 		RenderTargetProperties rt_properties
 		{
@@ -214,9 +214,9 @@ namespace tasks
 		};
 
 		fg::RenderTaskDesc desc;
-		desc.m_setup_func = [](Renderer& rs, fg::FrameGraph& fg, ::fg::RenderTaskHandle handle, bool resize)
+		desc.m_setup_func = [old_impl](Renderer& rs, fg::FrameGraph& fg, ::fg::RenderTaskHandle handle, bool resize)
 		{
-			internal::SetupRaytracingTask(rs, fg, handle, resize);
+			internal::SetupRaytracingTask(rs, fg, handle, resize, old_impl);
 		};
 		desc.m_execute_func = [](Renderer& rs, fg::FrameGraph& fg, sg::SceneGraph& sg, ::fg::RenderTaskHandle handle)
 		{

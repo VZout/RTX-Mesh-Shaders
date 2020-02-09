@@ -21,6 +21,7 @@ namespace fg_manager
 		PBR_GENERIC,
 		PBR_MESH_SHADING,
 		RAYTRACING,
+		RAYTRACING_OLD,
 		COUNT
 	};
 
@@ -31,7 +32,8 @@ namespace fg_manager
 		case FGType::IMGUI_ONLY: return "ImGui Only";
 		case FGType::PBR_GENERIC: return "PBR Generic";
 		case FGType::PBR_MESH_SHADING: return "PBR Mesh Shading";
-		case FGType::RAYTRACING: return "Raytracing";
+		case FGType::RAYTRACING: return "Raytracing Disney";
+		case FGType::RAYTRACING_OLD: return "Raytracing Filament";
 		default:
 			return "Unknown";
 		}
@@ -92,7 +94,25 @@ namespace fg_manager
 			tasks::AddBuildASTask(*fg);
 			tasks::AddGenerateCubemapTask(*fg);
 			tasks::AddGenerateBRDFLutTask(*fg);
-			tasks::AddRaytracingTask(*fg);
+			tasks::AddRaytracingTask(*fg, false);
+			//tasks::AddTemporalAntiAliasingTask<tasks::RaytracingData>(*fg);
+			tasks::AddSharpeningTask<tasks::RaytracingData>(*fg);
+			tasks::AddPostProcessingTask<tasks::SharpeningData>(*fg);
+			tasks::AddCopyToBackBufferTask<tasks::PostProcessingData>(*fg);
+			tasks::AddImGuiTask<tasks::PostProcessingData>(*fg, imgui_func);
+
+			fg->Validate();
+			fg->Setup(rs);
+			return fg;
+		},
+		// Raytracing
+		[](Renderer* rs, decltype(tasks::ImGuiTaskData::m_render_func) imgui_func)
+		{
+			auto fg = new fg::FrameGraph(7);
+			tasks::AddBuildASTask(*fg);
+			tasks::AddGenerateCubemapTask(*fg);
+			tasks::AddGenerateBRDFLutTask(*fg);
+			tasks::AddRaytracingTask(*fg, true);
 			//tasks::AddTemporalAntiAliasingTask<tasks::RaytracingData>(*fg);
 			tasks::AddSharpeningTask<tasks::RaytracingData>(*fg);
 			tasks::AddPostProcessingTask<tasks::SharpeningData>(*fg);

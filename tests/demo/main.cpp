@@ -358,6 +358,10 @@ protected:
 			{
 				SwitchFrameGraph(fg_manager::FGType::RAYTRACING);
 			}
+			else if (key == GLFW_KEY_4)
+			{
+				SwitchFrameGraph(fg_manager::FGType::RAYTRACING_OLD);
+			}
 		}
 
 		// Key Bindings Modal
@@ -441,7 +445,7 @@ protected:
 
 	bool m_viewport_has_changed = false;
 
-	fg_manager::FGType m_fg_type = fg_manager::FGType::PBR_MESH_SHADING;
+	fg_manager::FGType m_fg_type = fg_manager::FGType::RAYTRACING;
 };
 
 

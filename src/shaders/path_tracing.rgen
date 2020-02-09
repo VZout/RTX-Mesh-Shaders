@@ -1,0 +1,123 @@
+#version 460
+#extension GL_NV_ray_tracing : require
+#pragma shader_stage(raygen)
+#define RAYGEN
+
+#include "structs.glsl"
+#include "random.glsl"
+
+layout(binding = 0, set = 0) uniform accelerationStructureNV scene;
+
+layout(set = 1, binding = 1, rgba8) uniform image2D t_output;
+
+layout(set = 2, binding = 2) uniform UniformBufferCameraObject {
+	vec4 cameraPositionAspect;
+    vec4 cameraUpVectorTanHalfFOV;
+    vec4 cameraRightVectorLensR;
+    vec4 cameraForwardVectorLensF;
+} camera;
+
+layout(set = 3, binding = 3) uniform UniformBufferLightObject {
+    Light lights[25];
+} lights;
+
+layout(location = 0) rayPayloadNV NewPayload payload;
+layout(location = 1) rayPayloadNV bool shadow_payload;
+
+layout(push_constant) uniform PushConstants {
+    uint frame_number;
+} info;
+
+#include "rt_sample.glsl"
+
+vec3 cameraToWorld(vec3 v, vec3 right, vec3 up, vec3 forward)
+{
+	v.y = v.y * -1;
+    return right * v.x + up * v.y + forward * v.z;
+}
+
+vec2 sampleDiskConcentric(vec2 u)
+{
+    vec2 up = 2.0 * u - vec2(1.0);
+    if(up == vec2(0.0)) {
+        return vec2(0.0);
+    }
+    else {
+        float r, theta;
+        if(abs(up.x) > abs(up.y)) {
+            r = up.x;
+            theta = 0.25 * M_PI * (up.y / up.x);
+        }
+        else {
+            r = up.y;
+            theta = 0.5 * M_PI - 0.25 * M_PI * (up.x / up.y);
+        }
+        return r * vec2(cos(theta), sin(theta));
+    }
+}
+
+void GenerateCameraRay(vec2 pixelUV, vec2 lensUV, out vec3 p, out vec3 wo)
+{
+    const vec3 up      = camera.cameraUpVectorTanHalfFOV.xyz;
+    const vec3 right   = camera.cameraRightVectorLensR.xyz;
+    const vec3 forward = camera.cameraForwardVectorLensF.xyz;
+
+    const float aspect = camera.cameraPositionAspect.w;
+    const float tanHalfFOV = camera.cameraUpVectorTanHalfFOV.w;
+    const float lensRadius = camera.cameraRightVectorLensR.w;
+    const float lensFocalDistance = camera.cameraForwardVectorLensF.w;
+
+    float tx = (2.0 * pixelUV.x - 1.0) * tanHalfFOV * aspect;
+    float ty = (2.0 * pixelUV.y - 1.0) * tanHalfFOV;
+
+    vec3 pCamera  = vec3(0.0);
+    vec3 woCamera = normalize(vec3(tx, ty, 1.0));
+    if(lensRadius > 0.0) {
+        float tFocus = lensFocalDistance / woCamera.z;
+        vec3  pFocus = tFocus * woCamera;
+        pCamera.xy = lensRadius * sampleDiskConcentric(lensUV);
+        woCamera = normalize(pFocus - pCamera);
+    }
+    p  = cameraToWorld(pCamera, right, up, forward) + camera.cameraPositionAspect.xyz;
+    wo = cameraToWorld(woCamera, right, up, forward);
+}
+
+void main() 
+{
+	vec2 pixel_size = vec2(1.0) / vec2(gl_LaunchSizeNV.xy);
+    vec2 pixel_loc = vec2(gl_LaunchIDNV.xy) * pixel_size;
+
+	uint seed = initRand(gl_LaunchIDNV.x + gl_LaunchIDNV.y * gl_LaunchIDNV.x, info.frame_number);
+
+	vec2 jitter  = pixel_size * (vec2(nextRand(seed), nextRand(seed)) - 0.5);	
+	vec2 lensUV  = vec2(nextRand(seed), nextRand(seed));
+	vec2 pixelUV = pixel_loc + jitter;
+
+	vec3 origin, direction;
+	GenerateCameraRay(pixelUV, lensUV, origin, direction);
+
+
+	vec3 result = vec3(0);
+	payload.throughput = vec3(1);
+	const uint max_depth = 3;
+	for (int depth = 0; depth < max_depth; depth++)
+	{
+		// Color Ray
+		result += TraceColorRay(origin, direction, 0, 0, seed);
+		float t = payload.color_t.w;
+
+		if (t < 0.f)
+		{
+			break;
+		}
+
+		// Prepare for bounce
+		origin = (origin + t * direction) /*+ (payload.normal * EPSILON)*/;
+		direction = payload.direction;
+	}
+
+	vec3 prev = imageLoad(t_output, ivec2(gl_LaunchIDNV.xy)).rgb;
+	vec3 color = (info.frame_number * prev + result) / (info.frame_number + 1); // accumulate
+	imageStore(t_output, ivec2(gl_LaunchIDNV.xy), vec4(color, 1));
+}
+

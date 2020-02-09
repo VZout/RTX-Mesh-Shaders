@@ -15,6 +15,8 @@
 /* ===                    Shader Registry                     === */
 /* ============================================================== */
 
+#define NEW_PATH_TRACER
+
 REGISTER(shaders::basic_vs, ShaderRegistry)({
 	.m_path = "shaders/basic.vert.spv",
 	.m_type = gfx::enums::ShaderType::VERTEX,
@@ -75,29 +77,49 @@ REGISTER(shaders::generate_brdf_lut_cs, ShaderRegistry)({
    .m_type = gfx::enums::ShaderType::COMPUTE,
 });
 
-REGISTER(shaders::rt_raygen, ShaderRegistry)({
+REGISTER(shaders::rt_raygen_old, ShaderRegistry)({
    .m_path = "shaders/rt_raygen.comp.spv",
    .m_type = gfx::enums::ShaderType::RT_RAYGEN,
 });
 
-REGISTER(shaders::rt_miss, ShaderRegistry)({
+REGISTER(shaders::rt_miss_old, ShaderRegistry)({
    .m_path = "shaders/rt_miss.comp.spv",
    .m_type = gfx::enums::ShaderType::RT_MISS,
+});
+
+REGISTER(shaders::rt_closest_hit_old, ShaderRegistry)({
+   .m_path = "shaders/rt_closest_hit.comp.spv",
+   .m_type = gfx::enums::ShaderType::RT_CLOSEST,
+});
+
+REGISTER(shaders::rt_any_hit_old, ShaderRegistry)({
+   .m_path = "shaders/rt_any_hit.comp.spv",
+   .m_type = gfx::enums::ShaderType::RT_ANY,
+});
+
+REGISTER(shaders::rt_raygen, ShaderRegistry)({
+   .m_path = "shaders/path_tracing.rgen.spv",
+   .m_type = gfx::enums::ShaderType::RT_RAYGEN,
+});
+
+REGISTER(shaders::rt_miss, ShaderRegistry)({
+   .m_path = "shaders/path_tracing.rmiss.spv",
+   .m_type = gfx::enums::ShaderType::RT_MISS,
+});
+
+REGISTER(shaders::rt_closest_hit, ShaderRegistry)({
+   .m_path = "shaders/path_tracing.rchit.spv",
+   .m_type = gfx::enums::ShaderType::RT_CLOSEST,
+});
+
+REGISTER(shaders::rt_any_hit, ShaderRegistry)({
+   .m_path = "shaders/path_tracing.rahit.spv",
+   .m_type = gfx::enums::ShaderType::RT_ANY,
 });
 
 REGISTER(shaders::rt_shadow_miss, ShaderRegistry)({
    .m_path = "shaders/rt_shadow_miss.comp.spv",
    .m_type = gfx::enums::ShaderType::RT_MISS,
-});
-
-REGISTER(shaders::rt_closest_hit, ShaderRegistry)({
-   .m_path = "shaders/rt_closest_hit.comp.spv",
-   .m_type = gfx::enums::ShaderType::RT_CLOSEST,
-});
-
-REGISTER(shaders::rt_any_hit, ShaderRegistry)({
-   .m_path = "shaders/rt_any_hit.comp.spv",
-   .m_type = gfx::enums::ShaderType::RT_ANY,
 });
 
 REGISTER(shaders::rt_shadow_hit, ShaderRegistry)({
@@ -215,7 +237,7 @@ REGISTER(root_signatures::composition, RootSignatureRegistry)({
 	    params[3].binding = 3; // lights
 	    params[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	    params[3].descriptorCount = 1;
-	    params[3].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV | VK_SHADER_STAGE_MISS_BIT_NV;
+	    params[3].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV | VK_SHADER_STAGE_MISS_BIT_NV | VK_SHADER_STAGE_RAYGEN_BIT_NV;
 	    params[3].pImmutableSamplers = nullptr;
 	    params[4].binding = 4; // skybox
 	    params[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -398,7 +420,7 @@ REGISTER(root_signatures::raytracing, RootSignatureRegistry)({
 	  params[3].binding = 3; // lights
 	  params[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	  params[3].descriptorCount = 1;
-	  params[3].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV | VK_SHADER_STAGE_MISS_BIT_NV;
+	  params[3].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV | VK_SHADER_STAGE_MISS_BIT_NV | VK_SHADER_STAGE_RAYGEN_BIT_NV;
 	  params[3].pImmutableSamplers = nullptr;
 	  params[4].binding = 4; // vertices
 	  params[4].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -551,6 +573,13 @@ std::vector<VkRayTracingShaderGroupCreateInfoNV> rt_shader_groups =
 REGISTER(pipelines::raytracing, RTPipelineRegistry)({
 	.m_root_signature_handle = root_signatures::raytracing,
 	.m_shader_handles = { shaders::rt_raygen, shaders::rt_miss, shaders::rt_shadow_miss, shaders::rt_closest_hit, shaders::rt_shadow_hit, shaders::rt_any_hit },
+	.m_shader_groups = rt_shader_groups,
+	.m_recursion_depth = 3,
+});
+
+REGISTER(pipelines::raytracing_old, RTPipelineRegistry)({
+	.m_root_signature_handle = root_signatures::raytracing,
+	.m_shader_handles = { shaders::rt_raygen_old, shaders::rt_miss_old, shaders::rt_shadow_miss, shaders::rt_closest_hit_old, shaders::rt_shadow_hit, shaders::rt_any_hit_old },
 	.m_shader_groups = rt_shader_groups,
 	.m_recursion_depth = 3,
 });

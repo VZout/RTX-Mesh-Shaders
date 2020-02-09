@@ -39,6 +39,7 @@ bool TraceShadowRay(vec3 origin, vec3 direction, float max_dist, uint seed, uint
 	return shadow_payload;
 }
 
+/*
 #ifndef MISS
 vec3 CalcPeturbedNormal(vec3 normal, vec3 normal_map, vec3 tangent, vec3 bitangent, vec3 V, out vec3 world_normal)
 {
@@ -56,6 +57,27 @@ vec3 CalcPeturbedNormal(vec3 normal, vec3 normal_map, vec3 tangent, vec3 bitange
 
 	vec3 fN = normalize(TBN * normal_map);
 
+	world_normal = N;
+
+	return fN;
+}*/
+#ifndef MISS
+vec3 CalcPeturbedNormal(vec3 normal, vec3 normal_map, vec3 tangent, vec3 bitangent, vec3 V, out vec3 world_normal)
+{
+	mat4x3 object_to_world = gl_ObjectToWorldNV;
+	vec3 N = normalize(object_to_world * vec4(normal, 0)).xyz;
+	vec3 T = normalize(object_to_world * vec4(tangent, 0)).xyz;
+#define CALC_BITANGENT
+#ifndef CALC_BITANGENT
+	const vec3 B = normalize(object_to_world * vec4(bitangent, 0)).xyz;
+#else
+	vec3 B = cross(N, T);
+#endif
+	
+	const vec3 fN = normalize(
+		mat3(T, B, N) * normalize(normal_map).xyz
+	);
+	
 	world_normal = N;
 
 	return fN;

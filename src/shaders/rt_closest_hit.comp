@@ -4,9 +4,6 @@
 #pragma shader_stage(closest)
 #define SCATTER
 
-#define POINT_LIGHT 0
-#define DIRECTIONAL_LIGHT 1
-#define SPOT_LIGHT 2
 
 #include "random.glsl"
 #include "structs.glsl"
@@ -265,7 +262,6 @@ void main()
 	//lighting = DoFog(lighting, gl_HitTNV);
 
 	uint depth = payload.depth;
-
 
 	lighting += DirectLighting(world_pos, N, geometric_normal, V, roughness, diffuse_color, metallic, thickness, clear_coat, cc_roughness, subsurface_power, subsurface_color, anisotropy, anisotropic_t, anisotropic_b, F0, energy_compensation, payload.seed, depth);
 

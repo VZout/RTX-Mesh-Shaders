@@ -33,9 +33,15 @@ struct shaders
 	static RegistryHandle rt_raygen;
 	static RegistryHandle rt_closest_hit;
 	static RegistryHandle rt_any_hit;
+	static RegistryHandle rt_miss;
+
+	static RegistryHandle rt_raygen_old;
+	static RegistryHandle rt_closest_hit_old;
+	static RegistryHandle rt_any_hit_old;
+	static RegistryHandle rt_miss_old;
+
 	static RegistryHandle rt_shadow_hit;
 	static RegistryHandle rt_shadow_miss;
-	static RegistryHandle rt_miss;
 
 }; /* shaders */
 
@@ -69,6 +75,7 @@ struct pipelines
 	static RegistryHandle generate_environmentmap;
 	static RegistryHandle generate_brdf_lut;
 	static RegistryHandle raytracing;
+	static RegistryHandle raytracing_old;
 
 }; /* pipelines */
 

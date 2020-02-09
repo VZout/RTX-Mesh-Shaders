@@ -4,6 +4,10 @@
 #define MAX_RECURSION 3
 #define EPSILON 0.001
 
+#define POINT_LIGHT 0
+#define DIRECTIONAL_LIGHT 1
+#define SPOT_LIGHT 2
+
 struct Vertex
 {
 	float x;
@@ -40,6 +44,17 @@ struct Payload
 	vec3 color;
 	uint seed;
 	uint depth;
+};
+
+struct NewPayload
+{
+	vec4 color_t;
+	vec3 throughput;
+	vec3 direction;
+	uint seed;
+	int light;
+	float shadow_mult;
+	vec3 normal;
 };
 
 struct RaytracingOffset
@@ -89,6 +104,22 @@ struct Light
 	float m_outer_angle;
 	float m_physical_size;
 	vec3 m_padding;
+};
+
+struct Surface
+{
+	vec3 albedo;
+	float metallic;
+	float specular; // Reflectance?
+	float roughness;
+	float clearcoat;
+	float clearcoat_gloss;
+	float thickness;
+	float anisotropic;
+	vec3 aniso_t;
+	vec3 aniso_b;
+	float sheen;
+	float csw;
 };
 
 #endif /* STRUCTS_GLSL */
