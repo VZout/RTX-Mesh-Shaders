@@ -43,8 +43,8 @@ namespace tasks
 		std::int32_t m_tonemapping_alg = 0;
 		float vignette_radius = 1.6;
 		float vignette_softness = 0.6;
-		float vignette_strength = 0.5;
-		float ca_strength = -0.17;
+		float vignette_strength = 0.3;
+		float ca_strength = -0.1;
 		float ca_zoom = 1.f;
 	};
 

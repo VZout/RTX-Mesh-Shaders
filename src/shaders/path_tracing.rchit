@@ -42,8 +42,6 @@ layout(set = 7, binding = 7) buffer UniformBufferMaterialObject
 
 layout(set = 8, binding = 8) uniform sampler2D ts_textures[100];
 
-layout(set = 10, binding = 10) uniform sampler2D t_brdf_lut;
-
 #include "pbr_disney.glsl"
 #include "rt_sample.glsl"
 
@@ -69,7 +67,25 @@ vec3 HitWorldPosition()
 	return gl_WorldRayOriginNV + gl_WorldRayDirectionNV * gl_HitTNV;
 }
 
-vec3 DirectLighting(Surface surface, vec3 world_pos, vec3 V, vec3 N)
+float ShadowTerminatorTerm_Chiang2019(vec3 L, vec3 N, vec3 geometric_normal)
+{
+	float NdotL = max(0.0f, dot(N, L));
+	float gNdotL = max(0.0f, dot(geometric_normal, L));
+	float gNdotN = max(0.0f, dot(geometric_normal, N));
+
+	if (abs(NdotL) < 0.0f || abs(gNdotL) < 0.0f || abs(gNdotN) < 0.0f) {
+        return 0.0f;
+    } else {
+        float G = gNdotL / (NdotL * gNdotN);
+        if (G <= 1.0f) {
+            float smoothTerm = -(G * G * G) + (G * G) + G; // smoothTerm is G' in the math
+            return smoothTerm;
+        }
+    }
+    return 1.0f;
+}
+
+vec3 DirectLighting(Surface surface, vec3 world_pos, vec3 V, vec3 N, vec3 geometric_normal)
 {
 	// Shadow
 	uint light_count = lights.lights[0].m_type >> 2;
@@ -113,6 +129,12 @@ vec3 DirectLighting(Surface surface, vec3 world_pos, vec3 V, vec3 N)
 		attenuation *= GetAngleAttenuation(-light_dir, L, inner_angle, outer_angle);
 	}
 
+    float sinThetaMax2 = sqr_falloff / dot(pos_to_light, pos_to_light);
+    float cosThetaMax = sqrt(max(EPSILON, 1. - sinThetaMax2));
+	float lightPdf = 1. / (TWO_PI * (1. - cosThetaMax));
+	lightPdf = attenuation;
+
+	
 	const vec3 H = normalize(V + L);
 	const float NdotH = max(0.0, dot(N, H));
 	const float NdotL = max(0.0, dot(L, N));
@@ -120,11 +142,17 @@ vec3 DirectLighting(Surface surface, vec3 world_pos, vec3 V, vec3 N)
 	const float LdotH = max(0.0, dot(H, L));
 	const float NdotV = max(0.0, dot(N, V));
 
-	const float bsdf_pdf = DisneyPdf(surface, NdotH, NdotL, HdotL);
+	const float bsdf_pdf = DisneyPDF(surface, N, V, L);
+	const float shadow_term = ShadowTerminatorTerm_Chiang2019(N, L, geometric_normal);
+	const vec3 f = DisneyEval(surface, NdotL, NdotV, NdotH, LdotH, V, L, H, shadow_mult) * shadow_term;
 
-	const vec3 f = DisneyEval(surface, NdotL, NdotV, NdotH, LdotH, V, L, H);
+	vec3 lighting = vec3(0);
+	if (lightPdf > EPSILON)
+	{
+		lighting = (f * emission) * lightPdf;
+	}
 
-	return (f * emission) * attenuation * shadow_mult;
+	return lighting;
 }
 
 void main()
@@ -202,8 +230,6 @@ void main()
 	surface.specular = ProbabilityToSampleDiffuse(albedo, vec3(metallic));
 	surface.clearcoat = clear_coat;
 	surface.clearcoat_gloss = abs(cc_roughness - 1);
-	if (surface.clearcoat == 0)
-		surface.clearcoat_gloss = 0;
 	surface.thickness = 0;
 	surface.anisotropic = anisotropy;
 	surface.sheen = 0;
@@ -213,13 +239,11 @@ void main()
 
 	vec3 color = vec3(0);
 	vec3 throughput = payload.throughput;
-	
 
 	// Direct Lighting
-	vec3 lighting = DirectLighting(surface, world_pos, V, N);
+	vec3 lighting = DirectLighting(surface, world_pos, V, N, geometric_normal);
 	color += clamp((emissive * 2) * throughput, 0, 10);
 	color += clamp(lighting * throughput, 0, 10);
-	//color += lighting * throughput;
 
 	const vec3 bsdf_dir = DisneySample(surface, payload.seed, V, N);
 
@@ -236,17 +260,18 @@ void main()
     //const float HdotL = abs(dot(H, L));
 	//const float LdotH = abs(dot(H, L));
 
-	const float pdf = DisneyPdf(surface, NdotH, NdotL, HdotL);
+	const float shadow_term = ShadowTerminatorTerm_Chiang2019(N, L, geometric_normal);
+	const float pdf = DisneyPDF(surface, V, L, N);
 	if (pdf > 0.0)
 	{
-		throughput *= DisneyEval(surface, NdotL, NdotV, NdotH, LdotH, V, L, H) / pdf;
+		float occlusion = float(!(NdotL <= 0.0 || NdotV <= 0.0));
+		throughput *= (DisneyEval(surface, NdotL, NdotV, NdotH, LdotH, V, L, H, occlusion) * shadow_term) / pdf;
 	}
 	else
 	{
 		t = -1.f;
 	}
-
-
+	
 	payload.color_t = vec4(color, t);
 	payload.throughput = throughput;
 	payload.direction = bsdf_dir;

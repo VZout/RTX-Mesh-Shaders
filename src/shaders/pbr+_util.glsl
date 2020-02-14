@@ -13,7 +13,7 @@
 #define MIN_PERCEPTUAL_ROUGHNESS 0.045
 #define MIN_ROUGHNESS 0.002025 // Only used for anisotropyic lobes
 #define MIN_N_DOT_V 1e-4
-//#define ANISO
+#define ANISO
 #define CLEAR_COAT
 #define MATERIAL_HAS_NORMAL
 #define SPECULAR_AMBIENT_OCCLUSION 1

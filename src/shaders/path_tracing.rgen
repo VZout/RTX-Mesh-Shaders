@@ -96,10 +96,9 @@ void main()
 	vec3 origin, direction;
 	GenerateCameraRay(pixelUV, lensUV, origin, direction);
 
-
 	vec3 result = vec3(0);
 	payload.throughput = vec3(1);
-	const uint max_depth = 3;
+	const uint max_depth = 5;
 	for (int depth = 0; depth < max_depth; depth++)
 	{
 		// Color Ray
@@ -112,7 +111,7 @@ void main()
 		}
 
 		// Prepare for bounce
-		origin = (origin + t * direction) /*+ (payload.normal * EPSILON)*/;
+		origin = (origin + t * direction) + (payload.normal * EPSILON);
 		direction = payload.direction;
 	}
 

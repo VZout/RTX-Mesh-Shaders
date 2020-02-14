@@ -25,17 +25,11 @@ AssimpModelLoader::AssimpModelLoader()
 
 }
 
-AssimpModelLoader::AnonResource AssimpModelLoader::LoadFromDisc(std::string const & path)
+AssimpModelLoader::AnonResource AssimpModelLoader::LoadFromDisc(std::string const& path)
 {
 	Assimp::Importer importer;
 	const aiScene* scene = importer.ReadFile(path.data(),
-		//aiProcess_FlipWindingOrder |
-		aiProcess_Triangulate |
-		aiProcess_CalcTangentSpace |
-		aiProcess_JoinIdenticalVertices |
-		aiProcess_OptimizeMeshes |
-		aiProcess_PreTransformVertices |
-		aiProcess_ImproveCacheLocality);
+		aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_FixInfacingNormals | aiProcess_PreTransformVertices);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 	{

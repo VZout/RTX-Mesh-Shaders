@@ -84,8 +84,9 @@ void SpheresScene::LoadResources(std::optional<std::reference_wrapper<util::Prog
 			mat.m_base_color[1] = 92 / 255.f;
 			mat.m_base_color[2] = 60 / 255.f;
 			mat.m_base_roughness = x / (float)(num_spheres_x - 1);
-			mat.m_base_anisotropy = 0.4f;
+			mat.m_base_anisotropy = 0.9f;
 			mat.m_base_reflectivity = 0.5f;
+			mat.m_base_metallic = 1;
 
 			m_sphere_material_handles[i] = m_material_pool->Load(mat, m_texture_pool);
 			m_sphere_materials[i] = mat;
@@ -100,7 +101,7 @@ void SpheresScene::LoadResources(std::optional<std::reference_wrapper<util::Prog
 			mat.m_base_color[2] = 61.f / 255.f;
 			mat.m_base_roughness = x / (float)(num_spheres_x - 1);
 			mat.m_base_metallic = 1;
-			mat.m_base_anisotropy = 0.6f;
+			mat.m_base_anisotropy = 0.7f;
 			mat.m_base_clear_coat = 0.9f;
 			mat.m_base_clear_coat_roughness = 0.1f;
 			mat.m_base_reflectivity = 0.7f;

@@ -240,7 +240,7 @@ void SetupEditor()
 				ImGui::Combo("Type", &selected_type, types, 3);
 				scene_graph->m_light_types[node.m_light_component].m_value = (cb::LightType)selected_type;
 
-				ImGui::DragFloat3("Color", &scene_graph->m_colors[node.m_light_component].m_value[0], 0.1f);
+				ImGui::ColorEdit3("Color", &scene_graph->m_colors[node.m_light_component].m_value[0]);
 				ImGui::DragFloat("Physical Size", &scene_graph->m_light_physical_size[node.m_light_component].m_value, 0.01f);
 
 				if (scene_graph->m_light_types[node.m_light_component] == cb::LightType::POINT)

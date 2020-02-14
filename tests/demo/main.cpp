@@ -1,5 +1,3 @@
-
-
 /*!
  *  \author    Viktor Zoutman
  *  \date      2019-2020
@@ -31,7 +29,7 @@
 
 #include <util/cpu_profiler.hpp>
 
-#define DEFAULT_SCENE DisplacementScene
+#define DEFAULT_SCENE ForrestScene
 
 class Demo : public Application
 {

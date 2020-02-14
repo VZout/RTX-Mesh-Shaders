@@ -1,10 +1,13 @@
 #ifndef PBR_DISNEY_GLSL
 #define PBR_DISNEY_GLSL
 
-#define PI           3.141592653589793
-#define HALF_PI  1.5707963267948966
-#define TWO_PI   6.283185307179586
+#define PI       3.1415926535897932384626433832795
+#define HALF_PI  1.5707963267948966192313216916398
+#define TWO_PI   6.283185307179586476925286766559
 #define INV_PI   0.3183098861837907
+
+// wo = V
+// wi = L
 
 float PowerHeuristic(float a, float b)
 {
@@ -42,6 +45,11 @@ float SmithGGX_G(float NdotV, float a)
     return 1.0 / (NdotV + sqrt(a2 + b - a2 * b));
 }
 
+bool SameHemiSphere(const in vec3 V, const in vec3 L, const in vec3 N)
+{
+    return dot(V, N) * dot(L, N) > 0.0;
+}
+
 // Can be heavily optimized
 float SmithG_GGX_Aniso(float NdotV, float VdotX, float VdotY, float ax, float ay) {
     return 1. / (NdotV + sqrt(pow2(VdotX * ax) + pow2(VdotY * ay) + pow2(NdotV) ));
@@ -72,7 +80,7 @@ vec3 CosineSampleHemisphere(float u1, float u2) {
 
 void CalculateCSW(inout Surface surface)
 {
-    vec3 specular_tint = vec3(1);
+    vec3 specular_tint = vec3(0);
 
     const vec3 cd_lin = surface.albedo;
     const float cd_lum = dot(cd_lin, vec3(0.3, 0.6, 0.1));
@@ -83,22 +91,77 @@ void CalculateCSW(inout Surface surface)
     surface.csw = cs_w;
 }
 
-float DisneyPdf(Surface surface, in const float NdotH, in const float NdotL, in const float HdotL)
+float PDFDisneyLambartianReflection(vec3 V, vec3 L, vec3 N)
 {
-    const float d_pdf = NdotL * (1.0 / PI);
-    const float r_pdf = GTR2(NdotH, max(0.001, max(0.001, surface.roughness))) * NdotH / (4.0 * HdotL);
+	return SameHemiSphere(V, L, N) ? abs(dot(N, L)) / PI : 0.f;
+}
 
+float PDFDisneyMicrofacet(Surface surface, vec3 V, vec3 L, vec3 N) {
+    if (!SameHemiSphere(V, L, N)) return 0.0f;
+	vec3 wh = normalize(V + L);
+    
+    float NdotH = dot(N, wh);
+    float alpha2 = surface.roughness * surface.roughness;
+    alpha2 *= alpha2;
+    
+    float cos2Theta = NdotH * NdotH;
+    float denom = cos2Theta * (alpha2 - 1.0f) + 1.0f;
 
-    const float c_pdf = GTR1(NdotH, mix(0.1, 0.001, mix(0.1, 0.001, surface.clearcoat_gloss))) * NdotH / (4.0 * HdotL);
+    if(denom == 0.0f) 
+		return 0.0f;
 
-    const float cs_w = surface.csw;
+    float pdfDistribution = alpha2 * NdotH / (PI * denom * denom);
+    return pdfDistribution / (4.0f * dot(V, wh));
+}
 
-    return c_pdf * surface.clearcoat + (1.0 - surface.clearcoat) * (cs_w * r_pdf + (1.0 - cs_w) * d_pdf);
+float PDFDisneyMicrofacetAniso(Surface surface, vec3 V, vec3 L, vec3 N) {
+    if (!SameHemiSphere(V, L, N)) return 0.0f;
+	vec3 wh = normalize(V + L);
+
+	float aspect = sqrt(1.0 - surface.anisotropic * 0.9);
+    float alphax = max(0.001, pow2(surface.roughness) / aspect);
+    float alphay = max(0.001, pow2(surface.roughness) * aspect);
+
+	float alphax2 = alphax * alphax;
+    float alphay2 = alphax * alphay;
+
+    float HdotX = dot(wh, surface.aniso_t);
+    float HdotY = dot(wh, surface.aniso_b);
+	float NdotH = dot(N, wh);
+    
+    float denom = HdotX * HdotX / alphax2 + HdotY * HdotY / alphay2 + NdotH * NdotH;
+
+    if(denom == 0.0f) 
+		return 0.0f;
+
+    float pdfDistribution = NdotH /(PI * alphax * alphay * denom * denom);
+    return pdfDistribution / (4.f * dot(V, wh));
+}
+
+float PDFDisneyClearCoat(Surface surface, vec3 V, vec3 L, vec3 N) {
+    if (!SameHemiSphere(V, L, N)) return 0.0f;
+
+    vec3 wh = V + L;
+    wh = normalize(wh);
+	
+    float NdotH = abs(dot(wh, N));
+    float Dr = GTR1(NdotH, mix(0.1, 0.001, surface.clearcoat_gloss));
+    return Dr * NdotH / (4. * abs(dot(wh, V)));
+}
+
+float DisneyPDF(Surface surface, vec3 V, vec3 L, vec3 N)
+{
+	float pdf_diff = PDFDisneyLambartianReflection(V, L, N);
+	float pdf_micro = PDFDisneyMicrofacetAniso(surface, V, L, N);
+	float pdf_cc = PDFDisneyClearCoat(surface, V, L, N);
+
+	//return (pdf_diff + pdf_micro + pdf_cc) / 3.0f;
+	return pdf_cc * surface.clearcoat + (1.f - surface.clearcoat) * (surface.csw * pdf_micro + (1.f - surface.csw) * pdf_diff);
 }
 
 vec3 DisneyDiffuse(Surface surface, float NdotL, float NdotV, float LdotH)
 {
-    return Fd_Burley(surface.roughness, NdotV, NdotL, LdotH) * surface.albedo;
+    return /*Fd_Burley(surface.roughness, NdotV, NdotL, LdotH)*/ Fd_Lambert() * surface.albedo;
 }
 
 vec3 DisneMicrofacetIsotropic(Surface surface, float NdotL, float NdotV, float NdotH, float LdotH)
@@ -139,26 +202,15 @@ vec3 DisneMicrofacetAnisotropic(Surface surface, float NdotL, float NdotV, float
     return Gs * Fs * Ds;
 }
 
-// Note abs and note clamping. TODO: Validate abs
-float DisneyClearCoatPDF(Surface surface, float NdotH, float LdotH)
-{
-    //vec3 wh = normalize(V + L);
-    //float NdotH = abs(dot(wh, N));
-	
-    float Dr = GTR1(NdotH, mix(0.1, 0.001, surface.clearcoat_gloss));
-    return Dr * NdotH / (4.0 * LdotH);
-    //return Dr * NdotH / (4.0 * dot(L, wh))
-}
-
 float DisneyClearCoat(Surface surface, float NdotL, float NdotV, float NdotH, float LdotH) {
-    float clear_coat_boost = 0.5f; // Default: 0.25f
+    float clear_coat_boost = 1.f; // Default: 0.25f
 
-    float gloss = mix(0.1, 0.001, surface.clearcoat_gloss);
+    float gloss = mix(0.1f, 0.001f, surface.clearcoat_gloss);
     float Dr = GTR1(abs(NdotH), gloss); // TODO: Validate GTR1
     float FH = SchlickFresnelReflectance(LdotH);
-    float Fr = mix(0.04, 1.0, FH);
+    float Fr = mix(0.04f, 1.f, FH);
     float Gr = G_SchlicksmithGGX(NdotL, NdotV, 0.25); //TODO: Validate this.
-    return clear_coat_boost * Fr * Gr * Dr;
+    return clear_coat_boost * surface.clearcoat * Fr * Gr * Dr;
 }
 
 // Based on Hanrahan-Krueger brdf approximation of isotropic bssrdf
@@ -166,11 +218,11 @@ float DisneyClearCoat(Surface surface, float NdotL, float NdotV, float NdotH, fl
 // fss90 used to "flatten" retroreflection based on roughness
 vec3 DisneySubsurface(Surface surface, const in float NdotL, const in float NdotV, const in float LdotH)
 {
-	vec3 subsurface_color = vec3(24 / 255.f, 69 / 255.f, 0);
+	vec3 subsurface_color = surface.albedo;
     float FL = SchlickFresnelReflectance(NdotL), FV = SchlickFresnelReflectance(NdotV);
     float Fss90 = LdotH * LdotH * surface.roughness;
     float Fss = mix(1.0, Fss90, FL) * mix(1.0, Fss90, FV);
-    float ss = 1.25 * (Fss * (1. / (NdotL + NdotV) - .5) + .5);
+    float ss = 1.25 * (Fss * (1.f / (NdotL + NdotV) - 0.5f) + 0.5f);
     
     return Fd_Lambert() * ss * subsurface_color;
 }
@@ -188,16 +240,16 @@ vec3 DisneySheen(Surface surface, float LdotH)
     return FH * surface.sheen * Csheen;
 }
 
-vec3 DisneyEval(Surface surface, in float NdotL, in const float NdotV, in const float NdotH, const float LdotH, vec3 V, vec3 L, vec3 H)
+vec3 DisneyEval(Surface surface, in float NdotL, in const float NdotV, in const float NdotH, const float LdotH, vec3 V, vec3 L, vec3 H, float occlusion)
 {
-    //if (NdotL <= 0.0 || NdotV <= 0.0) return vec3(0);
-
-	const vec3 diffuse = DisneyDiffuse(surface, NdotL, NdotV, LdotH);
-    const float clear_coat = DisneyClearCoat(surface, NdotL, NdotV, NdotH, LdotH);
+	const vec3 diffuse = DisneyDiffuse(surface, NdotL, NdotV, LdotH) * occlusion;
+    const float clear_coat = DisneyClearCoat(surface, NdotL, NdotV, NdotH, LdotH)  * occlusion;
 	const vec3 sub_surface = DisneySubsurface(surface, NdotL, NdotV, LdotH);
-	const vec3 sheen = DisneySheen(surface, LdotH);
+	const vec3 sheen = DisneySheen(surface, LdotH)  * occlusion;
 	//const vec3 specular = DisneMicrofacetIsotropic(surface, NdotL, NdotV, NdotH, LdotH);
-	const vec3 specular = DisneMicrofacetAnisotropic(surface, NdotL, NdotV, NdotH, LdotH, V, L, H);
+	const vec3 specular = DisneMicrofacetAnisotropic(surface, NdotL, NdotV, NdotH, LdotH, V, L, H) * occlusion;
+
+	//if (NdotL <= 0.0 || NdotV <= 0.0) return vec3(0); // This fucks subsurface of course.
 
     const vec3 f = (mix(diffuse, sub_surface, surface.thickness) + sheen)
         * (1.0 - surface.metallic)
@@ -206,58 +258,167 @@ vec3 DisneyEval(Surface surface, in float NdotL, in const float NdotV, in const 
     return f * NdotL;
 }
 
+
+void CreateBasis(vec3 normal, out vec3 tangent, out vec3 binormal){
+    if (abs(normal.x) > abs(normal.y)) {
+        tangent = normalize(vec3(0., normal.z, -normal.y));
+    }
+    else {
+        tangent = normalize(vec3(-normal.z, 0., normal.x));
+    }
+    binormal = cross(normal, tangent);
+}
+
+vec3 SphericalDirection(float sinTheta, float cosTheta, float sinPhi, float cosPhi) {
+    return normalize(vec3(sinTheta * cosPhi, sinTheta * sinPhi, cosTheta));
+}
+
+vec3 DisneyClearCoatSample(Surface surface, vec3 V, vec3 N, vec2 u) {
+	float gloss = mix(0.1, 0.001, surface.clearcoat_gloss);
+    float alpha2 = gloss * gloss;
+    float cosTheta = sqrt((1. - pow(alpha2, 1. - u[1])) / (1. - alpha2));
+    float sinTheta = sqrt(max(0.0, 1.0 - (cosTheta * cosTheta)));
+    float phi = TWO_PI * u[0];
+    
+    vec3 H = normalize(SphericalDirection(sinTheta, cosTheta, sin(phi), cos(phi)));
+     
+    vec3 tangent = vec3(0.f), binormal = vec3(0.f);
+    CreateBasis(N, tangent, binormal);
+    
+    H = H.x * tangent + H.y * binormal + H.z * N;
+    
+    if(!SameHemiSphere(V, H, N)) {
+       H *= -1.;
+    }
+            
+    return reflect(-V, H);   
+}
+
+// Microfacet Anisotropic Sample
+vec3 DisneyAnisotropicSpecularSample(Surface surface, vec3 V, vec3 N, vec2 u) {
+	float cosTheta = 0., phi = 0.;
+    
+    float aspect = sqrt(1. - surface.anisotropic * 0.9);
+    float alphax = max(.001, pow2(surface.roughness)/aspect);
+    float alphay = max(.001, pow2(surface.roughness)*aspect);
+    
+    phi = atan(alphay / alphax * tan(2. * PI * u[0] + .5 * PI)); // Is this correct? Should this not be sqrt()... 
+    
+    if (u[0] > .5f) phi += PI;
+    float sinPhi = sin(phi), cosPhi = cos(phi);
+    float alphax2 = alphax * alphax, alphay2 = alphay * alphay;
+    float alpha2 = 1. / (cosPhi * cosPhi / alphax2 + sinPhi * sinPhi / alphay2);
+    float tanTheta2 = alpha2 * u[1] / (1. - u[1]);
+    cosTheta = 1. / sqrt(1. + tanTheta2);
+    
+    float sinTheta = sqrt(max(0., 1. - cosTheta * cosTheta));
+    vec3 H = SphericalDirection(sinTheta, cosTheta, sin(phi), cos(phi));
+         
+    H = H.x * surface.aniso_t + H.y * surface.aniso_b + H.z * N;
+    
+    if(!SameHemiSphere(V, H, N)) {
+       H *= -1.;
+    }
+            
+    return reflect(-V, H);
+}
+
+vec3 DisneyDiffuseSample(Surface surface, vec3 V, vec3 N, vec2 u) {
+	vec3 H = CosineSampleHemisphere(u.x, u.y);
+	vec3 tangent = vec3(0.f), binormal = vec3(0.f);
+	CreateBasis(N, tangent, binormal);
+
+	H = H.x * tangent + H.y * binormal + H.z * N;
+
+    if (dot(V, N) < 0.) 
+		H.z *= -1.;
+
+	return H;
+}
+
 vec3 DisneySample(Surface surface, inout uint seed, in const vec3 V, in const vec3 N) {
     float r1 = nextRand(seed);
     float r2 = nextRand(seed);
+	float rnd = nextRand(seed);
 
     const vec3 U = abs(N.z) < (1.0 - EPSILON) ? vec3(0, 0, 1) : vec3(1, 0, 0);
     const vec3 T = normalize(cross(U, N));
     const vec3 B = cross(N, T);
+	
+	/*
+    // clearcoat
+    if (rnd <= 0.3333)
+    {
+		return DisneyClearCoatSample(surface, V, N, vec2(r1, r2));
+    }
+
+    // specular
+    if (rnd >= 0.3333 && rnd < 0.6666)
+    {
+        return DisneyAnisotropicSpecularSample(surface, V, N, vec2(r1, r2));
+    }
+
+    // diffuse
+	return DisneyDiffuseSample(surface, V, N, vec2(r1, r2));
+	*/
 
     // clearcoat
     if (r1 < surface.clearcoat)
     {
-        r1 /= (surface.clearcoat);
-        const float a = mix(0.1, 0.001, surface.clearcoat_gloss);
-        const float cosTheta = sqrt((1.0 - pow(a*a, 1.0 - r2)) / (1.0 - a*a));
-        const float sinTheta = sqrt(max(0.0, 1.0 - (cosTheta * cosTheta)));
-        const float phi = r1 * TWO_PI;
-        vec3 H = normalize(vec3(
-            cos(phi) * sinTheta,
-            sin(phi) * sinTheta,
-            cosTheta
-        ));
-        H = H.x * T + H.y * B + H.z * N;
-        if (dot(H, V) <= 0.0) H = H * -1.0;
-        return reflect(-V, H);
+		r1 /= surface.clearcoat;
+
+		return DisneyClearCoatSample(surface, V, N, vec2(r1, r2));
+
+		const float a = mix(0.1, 0.001, surface.clearcoat_gloss);
+		const float cosTheta = sqrt((1.0 - pow(a*a, 1.0 - r2)) / (1.0 - a*a));
+		const float sinTheta = sqrt(max(0.0, 1.0 - (cosTheta * cosTheta)));
+		const float phi = r1 * TWO_PI;
+		vec3 H = normalize(vec3(
+		  cos(phi) * sinTheta,
+		  sin(phi) * sinTheta,
+		  cosTheta
+		));
+		H = H.x * T + H.y * B + H.z * N;
+		if (dot(H, V) <= 0.0) H = H * -1.0;
+		return reflect(-V, H);
     }
+	else
+	{
+	    r1 -= (surface.clearcoat);
+       	r1 /= (1.f - surface.clearcoat);
 
-    r1 -= (surface.clearcoat);
-    r1 /= (1.0 - surface.clearcoat);
+		// specular
+		if (r2 < surface.csw)
+        {
+            r2 /= surface.csw;
 
-    // specular
-    if (r2 < surface.csw)
-    {
-        r2 /= surface.csw;
-        const float a = max(0.001, surface.roughness);
-        const float cosTheta = sqrt((1.0 - r2) / (1.0 + (a*a-1.0) * r2));
-        const float sinTheta = sqrt(max(0.0, 1.0 - (cosTheta * cosTheta)));
-        const float phi = r1 * TWO_PI;
-        vec3 H = normalize(vec3(
-            cos(phi) * sinTheta,
-            sin(phi) * sinTheta,
-            cosTheta
-        ));
-        H = H.x * T + H.y * B + H.z * N;
-        if (dot(H, V) <= 0.0) H = H * -1.0;
-        return reflect(-V, H);
-    }
+			return DisneyAnisotropicSpecularSample(surface, V, N, vec2(r1, r2));
 
-    // diffuse
-    r2 -= surface.csw;
-    r2 /= (1.0 - surface.csw);
-    const vec3 H = CosineSampleHemisphere(r1, r2);
-    return T * H.x + B * H.y + N * H.z;
+			const float a = max(0.001, surface.roughness);
+			const float cosTheta = sqrt((1.0 - r2) / (1.0 + (a*a-1.0) * r2));
+			const float sinTheta = sqrt(max(0.0, 1.0 - (cosTheta * cosTheta)));
+			const float phi = r1 * TWO_PI;
+			vec3 H = normalize(vec3(
+			  cos(phi) * sinTheta,
+			  sin(phi) * sinTheta,
+			  cosTheta
+			));
+			H = H.x * T + H.y * B + H.z * N;
+			if (dot(H, V) <= 0.0) H = H * -1.0;
+			return reflect(-V, H);
+		}
+		// diffuse
+		else
+		{
+			r2 -= surface.csw;
+            r2 /= (1.f - surface.csw);
+
+			return DisneyDiffuseSample(surface, V, N, vec2(r1, r2));
+			
+			const vec3 H = CosineSampleHemisphere(r1, r2);
+			return T * H.x + B * H.y + N * H.z;
+		}
+	}
 }
 
 #endif /* PBR_DISNEY_GLSL */
