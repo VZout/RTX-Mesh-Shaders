@@ -98,7 +98,7 @@ void main()
 
 	vec3 result = vec3(0);
 	payload.throughput = vec3(1);
-	const uint max_depth = 5;
+	const uint max_depth = 3;
 	for (int depth = 0; depth < max_depth; depth++)
 	{
 		// Color Ray
