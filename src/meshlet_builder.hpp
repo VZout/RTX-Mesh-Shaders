@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <cassert>
 #include <cstring>
+#include <glm.hpp>
 
 #include "vertex.hpp"
 #include "util/bitfield.hpp"
