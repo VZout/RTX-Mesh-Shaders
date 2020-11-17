@@ -609,6 +609,7 @@ void SetupEditor()
 		ImGui::NewLine();
 		ImGui::InfoText("Switch To Generic Pipeline", "Ctrl + 1");
 		ImGui::InfoText("Switch To Mesh Shading Pipeline", "Ctrl + 2");
+		ImGui::InfoText("Switch To Path Tracing Pipeline", "Ctrl + 3");
 		ImGui::NewLine();
 		ImGui::InfoText("Open Key bindings", "F1");
 		ImGui::InfoText("Toggle Editor", "F3 / ESC");
